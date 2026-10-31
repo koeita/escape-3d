@@ -27,7 +27,7 @@
   <div id="darkness-vignette" class="hidden"></div>
 
   <!-- 画面中央の常時クロスヘア（十字・照準ドット） -->
-  <div id="crosshair">
+  <div id="crosshair" class="hidden">
     <div class="crosshair-dot"></div>
     <div class="crosshair-ring"></div>
   </div>
@@ -58,51 +58,32 @@
     </div>
   </div>
 
-  <!-- 画面右上：設定・操作ガイドメニューボタン -->
-  <div id="top-menu">
-    <button id="btn-sound-toggle" class="menu-icon-btn" title="サウンド切り替え (ON/OFF)" aria-label="サウンド切り替え">
-      <svg class="icon-sound-on" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-      </svg>
-      <svg class="icon-sound-off hidden" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-        <line x1="23" y1="9" x2="17" y2="15"></line>
-        <line x1="17" y1="9" x2="23" y2="15"></line>
-      </svg>
-    </button>
-    <button id="btn-help-toggle" class="menu-icon-btn" title="操作ヘルプ" aria-label="操作ヘルプ">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>
-    </button>
-    <button id="btn-reset-game" class="menu-icon-btn" title="最初からやり直す" aria-label="最初からやり直す">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="1 4 1 10 7 10"></polyline>
-        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+  <!-- 画面右上：設定・メニューボタン（単一アイコンに統合） -->
+  <div id="top-menu" class="hidden">
+    <button id="btn-game-settings" class="menu-icon-btn" title="設定・メニュー" aria-label="設定・メニュー">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3.5"></circle>
+        <path d="M12 2v2.5m0 15V22M2 12h2.5m15 0H22m-3.5-6.5l-1.8 1.8m-9.4 9.4l-1.8 1.8m0-13l1.8 1.8m9.4 9.4l1.8 1.8"></path>
       </svg>
     </button>
   </div>
 
   <!-- 画面左上：ステージHUD -->
-  <div id="hud">
+  <div id="hud" class="hidden">
     <div class="hud-stage-badge">STAGE 1</div>
     <div class="hud-title">古びた書斎と賢者の鍵</div>
     <div class="hud-sub" id="hud-compass">方位: 北 (脱出の大扉)</div>
   </div>
 
   <!-- 画面下部中央：ナレーション・メッセージバー -->
-  <div id="message-bar-container">
+  <div id="message-bar-container" class="hidden">
     <div id="message-bar">
       <span id="message-text">古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。</span>
     </div>
   </div>
 
   <!-- 画面下部：6スロットの所持品バー（インベントリ） -->
-  <div id="inventory-bar-container">
+  <div id="inventory-bar-container" class="hidden">
     <div class="inventory-header">
       <span class="inventory-label">INVENTORY</span>
       <span class="inventory-quick-tip">[キー 1〜6 で選択 ｜ 右クリック/Tabでマウス操作]</span>
@@ -118,41 +99,95 @@
     <div class="inv-hint">※ アイテムクリックで選択（対象に使用） ｜ 選択中を再度クリックで【調べる・分解・合成】</div>
   </div>
 
-  <!-- 開始・一時停止オーバーレイUI -->
-  <div id="start-overlay" class="overlay">
-    <div class="overlay-card">
-      <div class="overlay-badge">STAGE 1 : 3D ESCAPE ADVENTURE</div>
-      <h1 class="overlay-title">古びた書斎と賢者の鍵</h1>
-      <p class="overlay-lead">画面をクリックして探索開始（右クリック/TabでUI操作）</p>
-
-      <div class="controls-guide">
-        <div class="guide-item">
-          <span class="guide-key">マウス移動</span>
-          <span class="guide-desc">室内360度を見渡す</span>
+  <!-- タイトル & ステージ選択 メインメニュー画面 -->
+  <div id="menu-screen">
+    <div class="menu-screen-card">
+      <div class="menu-header">
+        <div class="menu-brand">
+          <span class="menu-subtitle">MYSTERY ESCAPE GAME 3D</span>
+          <h1 class="menu-title">密室の謎解き脱出 3D</h1>
         </div>
-        <div class="guide-item">
-          <span class="guide-key">W A S D / 矢印</span>
-          <span class="guide-desc">前後左右へ歩行移動</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">左クリック</span>
-          <span class="guide-desc">照準の家具や謎を調べる</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">右クリック / Tab</span>
-          <span class="guide-desc">マウス解放（アイテム・UI操作）</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">数字キー 1〜6</span>
-          <span class="guide-desc">アイテム即座選択 / 詳細表示</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">画面クリック</span>
-          <span class="guide-desc">探索視点にスムーズ復帰</span>
+        <div class="menu-controls">
+          <button id="menu-btn-settings" class="menu-icon-btn" title="設定" aria-label="設定">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3.5"></circle>
+              <path d="M12 2v2.5m0 15V22M2 12h2.5m15 0H22m-3.5-6.5l-1.8 1.8m-9.4 9.4l-1.8 1.8m0-13l1.8 1.8m9.4 9.4l1.8 1.8"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <button id="start-btn" class="primary-btn" type="button">書斎の探索を開始する</button>
+      <div class="stage-select-container">
+        <h2 class="stage-select-heading">STAGE SELECT</h2>
+        <div class="stage-grid">
+          <!-- Stage 1 -->
+          <div class="stage-card active-stage" id="stage-card-1">
+            <div class="stage-card-badge" id="stage-1-badge">STAGE 1</div>
+            <div class="stage-thumbnail stage-thumb-1">
+              <svg viewBox="0 0 60 40" class="stage-thumb-svg" aria-hidden="true">
+                <path d="M16 14 a5 5 0 1 0 0 10 a5 5 0 0 0 0 -10 m3 5 h13 m-4 0 v3 m4 -3 v3" stroke="#c89b3c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                <path d="M38 28 c5 -3 8 -2 14 -1 v-13 c-6 -1 -9 -2 -14 1 z m0 0 c-5 -3 -8 -2 -14 -1 v-13 c6 -1 9 -2 14 1 z" stroke="#7e7465" stroke-width="1.4" fill="none"/>
+              </svg>
+            </div>
+            <div class="stage-info">
+              <h3 class="stage-name"><span class="phrase">古びた書斎と</span><span class="phrase">賢者の鍵</span></h3>
+              <p class="stage-desc">
+                <span class="phrase">アンティークな家具と</span><span class="phrase">静寂が包む書斎。</span><span class="phrase">賢者が残した暗号を</span><span class="phrase">解き明かし脱出せよ。</span>
+              </p>
+              <div class="stage-meta" id="stage-1-meta">未プレイ</div>
+            </div>
+            <div class="stage-actions">
+              <button id="btn-play-stage-1" class="primary-btn btn-stage-action" type="button">プレイする</button>
+              <button id="btn-restart-stage-1" class="secondary-btn btn-stage-action" type="button" style="display: none;">はじめから</button>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="stage-card active-stage" id="stage-card-2">
+            <div class="stage-card-badge" id="stage-2-badge">STAGE 2</div>
+            <div class="stage-thumbnail stage-thumb-2">
+              <svg viewBox="0 0 60 40" class="stage-thumb-svg" aria-hidden="true">
+                <rect x="10" y="7" width="24" height="26" rx="2" stroke="#7e8c9a" stroke-width="1.5" fill="none"/>
+                <circle cx="22" cy="20" r="6" stroke="#c0392b" stroke-width="1.6" fill="none"/>
+                <circle cx="22" cy="20" r="2.2" fill="#e74c3c"/>
+                <path d="M38 12 h12 v16 h-12 z" stroke="#c89b3c" stroke-width="1.4" fill="none"/>
+                <path d="M41 17 h6 M41 21 h6 M41 25 h4" stroke="#c89b3c" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="stage-info">
+              <h3 class="stage-name"><span class="phrase">暴走AIと</span><span class="phrase">閉鎖シェルター</span></h3>
+              <p class="stage-desc">
+                <span class="phrase">管理AIが封鎖した</span><span class="phrase">地下機密シェルター。</span><span class="phrase">電力を制御し論理矛盾で</span><span class="phrase">隔壁を開放せよ。</span>
+              </p>
+              <div class="stage-meta" id="stage-2-meta">COMING SOON</div>
+            </div>
+            <div class="stage-actions">
+              <button class="secondary-btn btn-stage-action" type="button" disabled>準備中</button>
+            </div>
+          </div>
+
+          <!-- Stage 3 (今後の拡張用) -->
+          <div class="stage-card stage-locked" id="stage-card-3">
+            <div class="stage-card-badge">STAGE 3</div>
+            <div class="stage-thumbnail stage-thumb-locked">
+              <svg viewBox="0 0 40 40" class="stage-thumb-svg" aria-hidden="true">
+                <rect x="11" y="17" width="18" height="14" rx="2" stroke="#5a5247" stroke-width="1.4" fill="none"/>
+                <path d="M15 17 v-4 a5 5 0 0 1 10 0 v4" stroke="#5a5247" stroke-width="1.4" fill="none"/>
+              </svg>
+            </div>
+            <div class="stage-info">
+              <h3 class="stage-name"><span class="phrase">刻を戻す</span><span class="phrase">時計塔の小部屋</span></h3>
+              <p class="stage-desc">
+                <span class="phrase">過去と現在を</span><span class="phrase">行き来する時計塔。</span><span class="phrase">二つの時代の歯車を</span><span class="phrase">噛み合わせろ。</span>
+              </p>
+              <div class="stage-meta">COMING SOON</div>
+            </div>
+            <div class="stage-actions">
+              <button class="secondary-btn btn-stage-action" type="button" disabled>準備中</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -192,36 +227,62 @@
     </div>
   </div>
 
-  <!-- ヘルプ・操作案内モーダル -->
-  <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-content help-card">
-      <div class="modal-header">
-        <span class="modal-category">HELP & GUIDE</span>
-        <h2>操作方法と探索のヒント</h2>
+  <!-- 設定 & メニューダイアログモーダル（右上ボタン統合先） -->
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-card">
+      <button id="settings-modal-close" class="modal-close-btn" aria-label="閉じる">&times;</button>
+      <div class="settings-header">
+        <h3 id="settings-title">CONFIG &amp; MENU</h3>
       </div>
-      <div class="help-body">
-        <div class="help-section">
-          <h3>■ 基本操作</h3>
-          <ul>
-            <li><strong>移動:</strong> W A S D または 矢印キーで室内を自由に歩行します。</li>
-            <li><strong>視点:</strong> マウスの移動で上下左右を見渡します。</li>
-            <li><strong>調べる:</strong> 白い照準（クロスヘア）を気になる家具や壁に合わせて左クリック。</li>
-            <li><strong>マウスカーソルの解放:</strong> <strong>右クリック</strong> または <strong>Tabキー / Escキー</strong> を押すとマウスが自由になり、インベントリや右上のメニューをクリックできます。</li>
-            <li><strong>アイテムの素早い選択:</strong> キーボードの <strong>1〜6キー</strong> を押すことで、マウスを動かさずに直接アイテムを選択・詳細表示できます。</li>
-            <li><strong>探索への復帰:</strong> 画面の3D空間をクリックするか、Tabキーを押すと即座に探索視点に戻ります。</li>
+      <div class="settings-content">
+        <!-- 音量切替セクション -->
+        <div class="settings-row">
+          <div class="settings-label">
+            <span class="settings-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+            </span>
+            <span class="settings-text">効果音 (SE)</span>
+          </div>
+          <button id="btn-toggle-sound-setting" class="btn-setting-toggle" type="button">
+            <span id="sound-setting-status">ON</span>
+          </button>
+        </div>
+
+        <!-- メニューに戻るボタン -->
+        <div class="settings-action-block" id="block-menu-return">
+          <button id="btn-setting-to-menu" class="primary-btn settings-btn" type="button">
+            メインメニューへ戻る
+          </button>
+          <span class="settings-hint">※探索状態を保持してメニューに戻ります</span>
+        </div>
+
+        <!-- 最初からやり直すボタン -->
+        <div class="settings-action-block" id="block-restart-stage">
+          <button id="btn-setting-restart" class="danger-btn settings-btn" type="button">
+            最初からやり直す
+          </button>
+          <span class="settings-hint">※書斎の進行状況を初期状態にリセットします</span>
+        </div>
+
+        <!-- 操作方法ガイド -->
+        <div class="settings-help-box">
+          <h4>操作の手引き</h4>
+          <ul class="settings-help-list">
+            <li><strong>W A S D / 矢印</strong>：部屋を歩行移動</li>
+            <li><strong>マウス移動</strong>：視点を360度見渡す</li>
+            <li><strong>左クリック</strong>：家具・暗号・仕掛けを調べる</li>
+            <li><strong>右クリック / Tab</strong>：マウス解放（UI操作モード）</li>
+            <li><strong>数字キー 1〜6</strong>：所持品選択 / 再度押して詳細表示</li>
+            <li><strong>画面クリック</strong>：探索視点に戻る</li>
           </ul>
         </div>
-        <div class="help-section">
-          <h3>■ 脱出のヒント</h3>
-          <ul>
-            <li><strong>アイテムの使用:</strong> 下部のインベントリ枠（または数字キー1〜6）で選択した状態で、鍵穴や仕掛けをクリックすると使えます。</li>
-            <li><strong>アイテムの分解・合成:</strong> 選択中のアイテムをもう一度クリック（または同じ数字キーを2回押す）すると詳細画面が開き、ドライバーでの分解やパーツの結合が行えます。</li>
-            <li><strong>照明の暗闇モード:</strong> 部屋の明かりを消すと、普段見えない蓄光の暗号が浮かび上がることがあります。</li>
-          </ul>
-        </div>
       </div>
-      <div class="modal-footer">
-        <button id="help-close-btn" class="secondary-btn" type="button">閉じる [Enter / Esc]</button>
+      <div class="modal-footer" style="margin-top: 14px;">
+        <button id="btn-settings-close" class="secondary-btn" type="button" style="width: 100%;">閉じる [Enter / Esc]</button>
       </div>
     </div>
   </div>
@@ -249,6 +310,7 @@
       </div>
       <div class="clear-actions">
         <button id="btn-replay" class="primary-btn" type="button">もう一度最初から遊ぶ</button>
+        <button id="btn-clear-to-menu" class="secondary-btn" type="button">メインメニューに戻る</button>
       </div>
     </div>
   </div>

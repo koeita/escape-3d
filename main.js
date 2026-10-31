@@ -122,8 +122,13 @@
 
   // --- DOM Elements ---
   const container = document.getElementById('canvas-container');
-  const startOverlay = document.getElementById('start-overlay');
-  const startBtn = document.getElementById('start-btn');
+  const menuScreen = document.getElementById('menu-screen');
+  const btnPlayStage1 = document.getElementById('btn-play-stage-1');
+  const btnRestartStage1 = document.getElementById('btn-restart-stage-1');
+  const stage1Badge = document.getElementById('stage-1-badge');
+  const stage1Meta = document.getElementById('stage-1-meta');
+  const menuBtnSettings = document.getElementById('menu-btn-settings');
+
   const cursorModeBanner = document.getElementById('cursor-mode-banner');
   const btnResumeExplore = document.getElementById('btn-resume-explore');
   const crosshair = document.getElementById('crosshair');
@@ -133,12 +138,13 @@
   const hudCompass = document.getElementById('hud-compass');
   const messageText = document.getElementById('message-text');
 
-  let isGameStarted = false;
+  const hudEl = document.getElementById('hud');
+  const messageBarContainer = document.getElementById('message-bar-container');
+  const inventoryBarContainer = document.getElementById('inventory-bar-container');
+  const topMenuEl = document.getElementById('top-menu');
+  const btnGameSettings = document.getElementById('btn-game-settings');
 
-  // メニュー
-  const btnSoundToggle = document.getElementById('btn-sound-toggle');
-  const btnHelpToggle = document.getElementById('btn-help-toggle');
-  const btnResetGame = document.getElementById('btn-reset-game');
+  let isGameStarted = false;
 
   // モーダル群
   const inspectModal = document.getElementById('inspect-modal');
@@ -155,12 +161,18 @@
   const btnItemAction = document.getElementById('btn-item-action');
   const itemDetailCloseBtn = document.getElementById('item-detail-close-btn');
 
-  const helpModal = document.getElementById('help-modal');
-  const helpCloseBtn = document.getElementById('help-close-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsModalClose = document.getElementById('settings-modal-close');
+  const btnSettingsClose = document.getElementById('btn-settings-close');
+  const btnToggleSoundSetting = document.getElementById('btn-toggle-sound-setting');
+  const soundSettingStatus = document.getElementById('sound-setting-status');
+  const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
+  const btnSettingRestart = document.getElementById('btn-setting-restart');
 
   const clearModal = document.getElementById('clear-modal');
   const clearTimeEl = document.getElementById('clear-time');
   const btnReplay = document.getElementById('btn-replay');
+  const btnClearToMenu = document.getElementById('btn-clear-to-menu');
 
   const invSlots = document.querySelectorAll('.inv-slot');
 
@@ -3739,10 +3751,28 @@
   }
 
   function showClearModal() {
+    state.gameCleared = true;
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
     const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
     const s = String(elapsed % 60).padStart(2, '0');
     clearTimeEl.textContent = `${m}:${s}`;
+
+    // メインメニューのステージ1カードのステータス更新
+    if (stage1Badge) {
+      stage1Badge.textContent = 'CLEARED';
+      stage1Badge.classList.add('cleared');
+    }
+    if (stage1Meta) {
+      stage1Meta.textContent = `クリア済み (タイム: ${m}:${s})`;
+    }
+    if (btnPlayStage1) {
+      btnPlayStage1.textContent = 'もう一度遊ぶ';
+    }
+    if (btnRestartStage1) {
+      btnRestartStage1.style.display = 'none';
+    }
+
+    soundManager.playDoorOpen();
 
     activeModal = clearModal;
     clearModal.classList.remove('hidden');
@@ -3833,21 +3863,140 @@
     hudCompass.textContent = `方位: ${compass}`;
   }
 
+  // --- メインメニュー & 設定モーダル関数 ---
+  function startOrResumeGame() {
+    soundManager.init();
+    soundManager.playClick();
+
+    if (state.gameCleared) {
+      location.reload();
+      return;
+    }
+
+    menuScreen.classList.add('hidden');
+    crosshair.classList.remove('hidden');
+    hudEl.classList.remove('hidden');
+    messageBarContainer.classList.remove('hidden');
+    inventoryBarContainer.classList.remove('hidden');
+    topMenuEl.classList.remove('hidden');
+
+    isGameStarted = true;
+    controls.lock();
+  }
+
+  function returnToMainMenu() {
+    if (activeModal) {
+      activeModal.classList.add('hidden');
+      activeModal = null;
+    }
+    if (controls.isLocked) {
+      controls.unlock();
+    }
+    soundManager.playClick();
+
+    crosshair.classList.add('hidden');
+    hudEl.classList.add('hidden');
+    messageBarContainer.classList.add('hidden');
+    inventoryBarContainer.classList.add('hidden');
+    topMenuEl.classList.add('hidden');
+    if (cursorModeBanner) cursorModeBanner.classList.add('hidden');
+    document.body.classList.remove('cursor-mode');
+
+    menuScreen.classList.remove('hidden');
+
+    if (state.gameCleared) {
+      btnPlayStage1.textContent = 'もう一度遊ぶ';
+      btnRestartStage1.style.display = 'none';
+    } else if (isGameStarted) {
+      btnPlayStage1.textContent = '続きからプレイ';
+      btnRestartStage1.style.display = 'inline-block';
+    }
+  }
+
+  function updateSoundSettingUI() {
+    const muted = soundManager.isMuted;
+    if (soundSettingStatus) {
+      soundSettingStatus.textContent = muted ? 'OFF' : 'ON';
+    }
+    if (btnToggleSoundSetting) {
+      btnToggleSoundSetting.classList.toggle('muted', muted);
+    }
+  }
+
+  function openSettingsModal() {
+    soundManager.playClick();
+    updateSoundSettingUI();
+    activeModal = settingsModal;
+    settingsModal.classList.remove('hidden');
+    if (controls.isLocked) {
+      controls.unlock();
+    }
+  }
+
+  function closeSettingsModal() {
+    settingsModal.classList.add('hidden');
+    activeModal = null;
+    soundManager.playClick();
+    if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
+      controls.lock();
+    }
+  }
+
   // --- イベントリスナー ---
 
-  // 開始画面クリック
-  startOverlay.addEventListener('click', () => {
-    if (!activeModal) {
-      isGameStarted = true;
-      controls.lock();
+  // メインメニュー操作
+  btnPlayStage1.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startOrResumeGame();
+  });
+
+  if (btnRestartStage1) {
+    btnRestartStage1.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('書斎の探索を最初からやり直しますか？')) {
+        location.reload();
+      }
+    });
+  }
+
+  menuBtnSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSettingsModal();
+  });
+
+  // ゲーム中画面 右上設定ボタン（統合ボタン）
+  btnGameSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSettingsModal();
+  });
+
+  // 設定モーダル内のアクション
+  settingsModalClose.addEventListener('click', closeSettingsModal);
+  if (btnSettingsClose) {
+    btnSettingsClose.addEventListener('click', closeSettingsModal);
+  }
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) closeSettingsModal();
+  });
+
+  btnToggleSoundSetting.addEventListener('click', (e) => {
+    e.stopPropagation();
+    soundManager.toggleMute();
+    updateSoundSettingUI();
+    if (!soundManager.isMuted) {
+      soundManager.playClick();
     }
   });
 
-  startBtn.addEventListener('click', (e) => {
+  btnSettingToMenu.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!activeModal) {
-      isGameStarted = true;
-      controls.lock();
+    returnToMainMenu();
+  });
+
+  btnSettingRestart.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm('書斎の探索を初期状態にリセットしますか？')) {
+      location.reload();
     }
   });
 
@@ -3855,14 +4004,13 @@
   if (btnResumeExplore) {
     btnResumeExplore.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!activeModal) {
+      if (!activeModal && menuScreen.classList.contains('hidden')) {
         controls.lock();
       }
     });
   }
 
   controls.addEventListener('lock', () => {
-    startOverlay.classList.add('hidden');
     if (cursorModeBanner) cursorModeBanner.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
     soundManager.init();
@@ -3871,9 +4019,7 @@
   controls.addEventListener('unlock', () => {
     clearHover();
     if (!activeModal && !state.gameCleared && !cameraZoom.active) {
-      if (!isGameStarted) {
-        startOverlay.classList.remove('hidden');
-      } else {
+      if (menuScreen.classList.contains('hidden') && isGameStarted) {
         if (cursorModeBanner) cursorModeBanner.classList.remove('hidden');
         document.body.classList.add('cursor-mode');
       }
@@ -3887,7 +4033,7 @@
 
   // マウスクリック処理
   window.addEventListener('mousedown', (e) => {
-    if (activeModal) return;
+    if (activeModal || !menuScreen.classList.contains('hidden')) return;
 
     // 右クリック (button === 2) で視点操作とUI操作を即座にトグル
     if (e.button === 2) {
@@ -3915,7 +4061,7 @@
         const isUI = clickedEl.closest('#top-menu') ||
                     clickedEl.closest('#inventory-bar-container') ||
                     clickedEl.closest('.modal') ||
-                    clickedEl.closest('#start-overlay') ||
+                    clickedEl.closest('#menu-screen') ||
                     clickedEl.closest('#cursor-mode-banner');
         if (!isUI) {
           controls.lock();
@@ -3937,47 +4083,13 @@
     controls.lock();
   });
 
-  helpCloseBtn.addEventListener('click', () => {
-    helpModal.classList.add('hidden');
-    activeModal = null;
-    soundManager.playClick();
-    controls.lock();
-  });
-
-  // メニュー操作（サウンドON/OFFの即座切り替え＆細線SVGアイコン連動）
-  btnSoundToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isMuted = soundManager.toggleMute();
-    const iconOn = btnSoundToggle.querySelector('.icon-sound-on');
-    const iconOff = btnSoundToggle.querySelector('.icon-sound-off');
-    if (iconOn && iconOff) {
-      iconOn.classList.toggle('hidden', isMuted);
-      iconOff.classList.toggle('hidden', !isMuted);
-    }
-    btnSoundToggle.classList.toggle('muted', isMuted);
-    btnSoundToggle.title = isMuted ? 'サウンド切り替え (現在: OFF)' : 'サウンド切り替え (現在: ON)';
-    if (!isMuted) {
-      soundManager.playClick();
-    }
-  });
-
-  btnHelpToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    soundManager.playClick();
-    activeModal = helpModal;
-    helpModal.classList.remove('hidden');
-    if (controls.isLocked) controls.unlock();
-  });
-
-  btnResetGame.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (confirm('ゲームを初期状態にリセットしますか？')) {
-      location.reload();
-    }
-  });
-
+  // クリアモーダルのボタン
   btnReplay.addEventListener('click', () => {
     location.reload();
+  });
+
+  btnClearToMenu.addEventListener('click', () => {
+    returnToMainMenu();
   });
 
   // キーボード移動＆ショートカット
@@ -3990,10 +4102,8 @@
           itemDetailModal.classList.add('hidden');
           activeModal = null;
           controls.lock();
-        } else if (activeModal === helpModal) {
-          helpModal.classList.add('hidden');
-          activeModal = null;
-          controls.lock();
+        } else if (activeModal === settingsModal) {
+          closeSettingsModal();
         }
       }
       return;
