@@ -511,7 +511,7 @@
 
     // 4. 補助光源 B：書斎机（East）のランプシェードから机上の手帳へ斜め下向きに暖色(#ffebc2)のSpotLightを照射
     deskSpotLight = new THREE.SpotLight(0xffebc2, 1.85, 4.2, Math.PI / 3.8, 0.92, 1.5);
-    deskSpotLight.position.set(3.89, 1.19, -1.52);
+    deskSpotLight.position.set(3.94, 1.17, -1.48);
     deskSpotLight.target.position.set(3.58, 0.86, -2.08);
     deskSpotLight.castShadow = true;
     deskSpotLight.shadow.mapSize.width = 1024;
@@ -522,7 +522,7 @@
 
     // シェード内側の柔らかな発光補助PointLight
     deskShadeLight = new THREE.PointLight(0xffebc2, 0.45, 1.6, 2.0);
-    deskShadeLight.position.set(3.89, 1.17, -1.52);
+    deskShadeLight.position.set(3.94, 1.16, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -942,45 +942,41 @@
     lampCollar.position.set(0, 0.038, 0);
     deskLampGroup.add(lampCollar);
 
-    // 支柱：真鍮の金属製ポール CylinderGeometry(0.015, 0.015, 0.35, 12)
+    // 支柱：真鍮の金属製ポール CylinderGeometry(0.015, 0.015, 0.35, 12)（台座の中心軸 x=0, z=0 に完全一致）
     const lampPole = new THREE.Mesh(
       new THREE.CylinderGeometry(0.015, 0.015, 0.35, 12),
       lampBrassMat
     );
-    lampPole.position.set(0, 0.21, 0);
+    lampPole.position.set(0, 0.205, 0);
     deskLampGroup.add(lampPole);
 
-    // 支柱上部の真鍮ボールジョイント
-    const lampJoint = new THREE.Mesh(
-      new THREE.SphereGeometry(0.024, 16, 16),
-      lampBrassMat
-    );
-    lampJoint.position.set(0, 0.385, 0);
-    deskLampGroup.add(lampJoint);
-
-    // シェードと内部電球を格納する角度調整ピボット（手帳の方向へ斜め下向きに傾ける）
-    const shadePivot = new THREE.Group();
-    shadePivot.position.set(-0.04, 0.36, -0.04);
-    shadePivot.rotation.set(-0.28, 0.0, 0.26);
-
     // ランプシェード（傘）：深緑の円錐 ConeGeometry(0.18, 0.14, 24, 1, true)
+    // 支柱の真上（x=0, z=0）に同軸配置し、位置ずれを解消
     const lampShade = new THREE.Mesh(
       new THREE.ConeGeometry(0.18, 0.14, 24, 1, true),
       lampShadeMat
     );
-    shadePivot.add(lampShade);
+    lampShade.position.set(0, 0.34, 0);
+    deskLampGroup.add(lampShade);
 
-    // シェード天頂の真鍮キャップ
+    // シェード天頂の真鍮キャップ＆フィニアル（支柱頂点と傘の頂点をシームレスに結合）
     const shadeCap = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.016, 0.038, 0.022, 16),
+      new THREE.CylinderGeometry(0.018, 0.042, 0.024, 24),
       lampBrassMat
     );
-    shadeCap.position.set(0, 0.068, 0);
-    shadePivot.add(shadeCap);
+    shadeCap.position.set(0, 0.405, 0);
+    deskLampGroup.add(shadeCap);
 
-    // シェード内側の発光電球
+    const shadeFinial = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 16, 16),
+      lampBrassMat
+    );
+    shadeFinial.position.set(0, 0.422, 0);
+    deskLampGroup.add(shadeFinial);
+
+    // シェード内側の発光電球（傘の内部中央に配置）
     deskBulbMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.036, 16, 16),
+      new THREE.SphereGeometry(0.038, 16, 16),
       new THREE.MeshStandardMaterial({
         color: 0xfff3d6,
         emissive: 0xffebc2,
@@ -988,10 +984,9 @@
         roughness: 0.2
       })
     );
-    deskBulbMesh.position.set(0, -0.02, 0);
-    shadePivot.add(deskBulbMesh);
+    deskBulbMesh.position.set(0, 0.31, 0);
+    deskLampGroup.add(deskBulbMesh);
 
-    deskLampGroup.add(shadePivot);
     deskGroup.add(deskLampGroup);
 
     // =========================================================================
