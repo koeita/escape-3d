@@ -2633,13 +2633,13 @@
           </div>
           <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
         </div>
-        <div style="text-align:center; border-top:1px solid rgba(202,168,106,0.3); padding-top:14px;">
+        <div style="text-align:center; border-top:1px solid rgba(202,168,106,0.3); padding-top:8px;">
     `;
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
         <p style="margin-bottom:10px; font-size:0.9rem;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
-        <div style="width:110px; height:50px; margin:8px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="font-size:1.5rem; color:#bdc3c7;">🔒</span>
         </div>
         ${getItemPickerHtml('引き出しの鍵穴に使うアイテムを選んでください')}
@@ -2792,7 +2792,7 @@
     const isLightOn = state.isLightOn;
     let html = `
       <div style="text-align:center;">
-        <div style="width:100%; max-width:440px; margin:0 auto 14px auto; border:4px solid var(--brass); border-radius:6px; overflow:hidden;">
+        <div style="width:100%; max-width:300px; margin:0 auto 8px auto; border:4px solid var(--brass); border-radius:6px; overflow:hidden;">
     `;
 
     html += `
@@ -2936,7 +2936,7 @@
     if (!state.safeDiscInserted) {
       html += `
         <p style="margin-bottom:12px;">金庫の中央に円形の窪みがある。何か丸いプレートを嵌め込めそうだ。</p>
-        <div style="width:110px; height:110px; margin:14px auto; background:#1b2028; border:3px dashed var(--brass); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#888;">
+        <div style="width:80px; height:80px; margin:6px auto; background:#1b2028; border:3px dashed var(--brass); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#888;">
           円盤スロット
         </div>
         ${getItemPickerHtml('スロットにはめるアイテムを選んでください')}
@@ -3037,7 +3037,7 @@
     if (!state.armillaryPinInserted) {
       html += `
         <p style="margin-bottom:12px;">細密な真鍮リングで構成された天球儀だ。軸の根元が「星型の穴」でピン留めされロックされている。</p>
-        <div style="width:120px; height:120px; margin:12px auto; display:flex; align-items:center; justify-content:center;">
+        <div style="width:90px; height:90px; margin:6px auto; display:flex; align-items:center; justify-content:center;">
           <svg viewBox="0 0 100 100" style="width:100%; height:100%;">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#b78727" stroke-width="3"/>
             <ellipse cx="50" cy="50" rx="42" ry="16" fill="none" stroke="#f1c40f" stroke-width="2.5" transform="rotate(-30 50 50)"/>
@@ -3050,8 +3050,8 @@
     } else if (!state.armillaryOpened) {
       html += `
         <p style="margin-bottom:12px;">星型ピンでロックが解除された！ リングをタップして回転させ、天頂（0度）に合わせよう。</p>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; margin:16px 0;">
-          <svg id="btn-rotate-armillary" viewBox="0 0 100 100" style="width:140px; height:140px; cursor:pointer; transform:rotate(${state.armillaryAngle}deg); transition:transform 0.25s ease;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin:8px 0;">
+          <svg id="btn-rotate-armillary" viewBox="0 0 100 100" style="width:110px; height:110px; cursor:pointer; transform:rotate(${state.armillaryAngle}deg); transition:transform 0.25s ease;">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#b78727" stroke-width="3"/>
             <ellipse cx="50" cy="50" rx="42" ry="16" fill="none" stroke="#f1c40f" stroke-width="3"/>
             <polygon points="50,6 45,14 55,14" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
@@ -3126,7 +3126,7 @@
     if (!state.fireplaceGrilleRemoved) {
       html += `
         <p style="margin-bottom:12px;">火室の手前に頑丈な鉄格子がはまっており奥に手が届かない。フックのついた道具があれば外せそうだ。</p>
-        <div style="width:160px; height:100px; margin:12px auto; background:#1b1c1e; border:3px solid #34495e; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:120px; height:65px; margin:6px auto; background:#1b1c1e; border:3px solid #34495e; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <div style="width:100%; height:100%; background:repeating-linear-gradient(90deg, transparent, transparent 16px, #34495e 16px, #34495e 22px);"></div>
         </div>
         ${getItemPickerHtml('鉄格子に使うアイテムを選んでください')}
@@ -3314,7 +3314,7 @@
     if (!state.switchCoverUnlocked) {
       html += `
         <p style="margin-bottom:14px;">大扉の左横にある頑丈な照明端子盤だ。真鍮の鍵穴でカバーが施錠されている。</p>
-        <div style="width:120px; height:80px; margin:14px auto; background:#2b303c; border:2px solid var(--brass); border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:90px; height:55px; margin:6px auto; background:#2b303c; border:2px solid var(--brass); border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="font-size:1.8rem; color:var(--brass-bright);">🔒</span>
         </div>
         ${getItemPickerHtml('カバーの鍵穴に使う鍵を選んでください')}
@@ -3322,7 +3322,7 @@
     } else {
       html += `
         <p style="margin-bottom:14px;">端子盤のカバーが開き、部屋全体の主電源スイッチが露出している。</p>
-        <div style="margin:20px 0;">
+        <div style="margin:10px 0;">
           <button id="btn-toggle-light" class="primary-btn" style="max-width:280px; margin:0 auto; font-size:1.05rem;">
             ${state.isLightOn ? '💡 部屋の明かりを消す (OFF)' : '💡 部屋の明かりをつける (ON)'}
           </button>
@@ -3413,7 +3413,7 @@
     }
 
     html += `
-        <div style="margin-top:16px;">
+        <div style="margin-top:10px;">
           <button id="btn-escape-door" class="primary-btn">大扉を開いて脱出する</button>
         </div>
       </div>
