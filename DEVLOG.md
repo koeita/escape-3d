@@ -12,30 +12,76 @@
 
 ### ■ 技術スタック & アーキテクチャ
 - **3D描画エンジン**: Three.js (`r128` / CDN読み込み)
-- **一人称カメラ・視点制御**: `THREE.PointerLockControls`
-- **インタラクション判定**: `THREE.Raycaster`（画面中央のクロスヘアからの距離制限付きレイキャスト）
+- **外部3Dモデルローダー**: `THREE.GLTFLoader`（`.glb` / glTF 2.0 バイナリ3Dモデルの非同期読み込み・自動スケール調整・シャドウ適用）
+- **一人称カメラ・視点制御**: `THREE.PointerLockControls` + 調査時の滑らかなカメラズーム補間（Cubic Ease-In-Out / `lerpVectors` & `slerpQuaternions`）
+- **インタラクション判定**: `THREE.Raycaster`（画面中央のクロスヘアからの距離制限付きレイキャスト + 不可視バウンディングボックス併用）
 - **タイポグラフィ & デザイン**: Google Fonts（`Shippori Mincho`, `Share Tech Mono`, `Noto Sans JP`）によるクラシカルなアンティーク調UI
 - **プロシージャルグラフィック**: 外部画像アセットに依存しない HTML5 Canvas プロシージャル生成テクスチャ（木目調フロア・書斎机、漆喰石壁、ペルシャ風絨毯、油絵『星辰の夜』）
-- **ライティング・シャドウ**: 天井の暖色点光源（`PointLight` + `PCFSoftShadowMap`）および環境光（`AmbientLight`）、暖炉のフリッカー光、デスクの集光スポットライト。照明スイッチによるリアルタイムな「暗闇モード」切り替え。
+- **ライティング・シャドウ**: 天井の暖色点光源（`PointLight` + `PCFSoftShadowMap`）および環境光（`AmbientLight`）、暖炉のフリッカー光、デスクの集光スポットライト（`#ffebc2`）。照明スイッチによるリアルタイムな「暗闇モード」切り替え。
 - **効果音システム**: Web Audio API による自前シンセ音源（[se.js](file:///c:/Users/xcang/Desktop/Antigravity/escape-3d/se.js) による完全オフライン・ゼロディレイのクリック・解錠・回転・クリア音）
 - **フロントエンド構成**: HTML5 + CSS3 + Vanilla JavaScript (`index.html`, `style.css`, `main.js`, `se.js`)
 
 ### ■ ファイル構成
 ```text
 c:\Users\xcang\Desktop\Antigravity\escape-3d\
-├── index.html   # メインDOM構造、Google Fonts、Three.js/PointerLockControls CDN読込、インベントリバー、各種モーダル
-├── style.css    # 全画面3D Canvas、クロスヘア、HUD、メッセージバー、6枠インベントリ、パズルモーダル装飾
-├── main.js      # 3D書斎空間構築、東西南北オブジェクト、一人称移動＆AABB衝突判定、Stage 1完全移植ゲームロジック
-├── se.js        # Web Audio API シンセ効果音マネージャー
-├── wrangler.json# Cloudflare Workers Builds 静的アセット＆プレビュー配信設定
-├── DEVLOG.md    # 本開発日記・技術ドキュメント・ロードマップ
-├── README.md    # リポジトリ概要
-└── .gitignore   # OS生成ファイル・エディタ設定等のGit除外定義
+├── assets/
+│   └── models/
+│       └── desk.glb # アンティーク書斎机本体の外部3Dモデル（glTF 2.0 Binary）
+├── index.html       # メインDOM構造、Google Fonts、Three.js/PointerLockControls/GLTFLoader CDN読込
+├── style.css        # 全画面3D Canvas、クロスヘア、HUD、メッセージバー、6枠インベントリ、パズルモーダル装飾
+├── main.js          # 3D書斎空間構築、GLTFLoader非同期読込、立体小物、カメラズーム演出、Stage 1ゲームロジック
+├── se.js            # Web Audio API シンセ効果音マネージャー
+├── wrangler.json    # Cloudflare Workers Builds 静的アセット＆プレビュー配信設定
+├── DEVLOG.md        # 本開発日記・技術ドキュメント・ロードマップ
+├── README.md        # リポジトリ概要
+└── .gitignore       # OS生成ファイル・エディタ設定等のGit除外定義
 ```
 
 ---
 
 ## 2. 開発記録 (Development Log)
+
+### 2026-10-31 (土) - 机の上の小物のジオメトリ修正（円錐・円柱ランプへの復元）とカメラズーム演出の調整 (`feat-custom-3d-model`)
+
+1. **机の上の小物のジオメトリ修正（脱・単純な直方体）**
+   - **スタンドライト（Desk Lamp）**:
+     - 直方体パーツを全廃し、Three.jsの曲面ジオメトリで再構築。
+     - **台座**: 薄い金色の円柱（`CylinderGeometry(0.12, 0.14, 0.03, 24)`）および段差装飾リング。
+     - **支柱**: 真鍮の金属製ポール（細い円柱 `CylinderGeometry(0.015, 0.015, 0.35, 12)`）とボールジョイント。
+     - **ランプシェード（傘）**: クラシックなレトロ書斎風の深緑（ダークグリーン、`roughness: 0.4`）の円錐（`ConeGeometry(0.18, 0.14, 24, 1, true)` / 両面描画 `DoubleSide`）。内側に暖色発光電球と光源を配置。
+     - **マテリアル**: 金属部分には真鍮ゴールド（`metalness: 0.85, roughness: 0.3`）を適用。
+   - **手帳（Diary）とデスクマットの整理**:
+     - 違和感のある大きな緑の四角形（デスクマット）を完全削除（`desk.glb` からも除外）。
+     - 手帳本体を天板の中央手前（机の端から少し引いた位置）に配置し、深いワインレッド〜ダークブラウンの革表紙（`roughness: 0.52, metalness: 0.08`）、丸みを帯びた背表紙（`CylinderGeometry`）、背表紙の4本バンド装飾、内側のクリーム色ページ束、真鍮メダリオン、栞リボンを組み合わせた立体造形に刷新。
+     - 手帳をY軸回転で約13度傾けて配置し、自然な散らかり感を演出。
+
+2. **スポットライトの調整**
+   - ランプシェードの位置から、机上の手帳に向けて斜め下向きに暖色系（`#ffebc2`）の `SpotLight`（`castShadow = true`、高精細シャドウマップ `1024x1024`）を照射。
+   - 半影減衰（`penumbra: 0.92`）を高めに設定し、光が手帳の周囲に丸く柔らかいグラデーションで落ちるよう調整。
+
+3. **手帳の調査・カメラズーム演出（0.6秒補間）**
+   - 手帳（または机）をクリックした際、カメラが机の上（手帳を見下ろす斜め上方の近接位置）へ **0.6秒（600ms）** かけて滑らかにズームイン（Cubic Ease-In-Out + `lerpVectors` / `slerpQuaternions` 補間）する演出を実装。
+   - ズーム完了と同時に、手帳の調査モーダル（「古びた手帳を開いた…」の手がかりUIおよび引き出し調査UI）をオーバーレイ表示し、マウス操作を一時的にUI操作モードへ自動切り替え。
+   - モーダルを閉じる（`Esc` / `Enter` キーまたは閉じるボタン）と、カメラが元の探索視点の位置と向きへスムーズにズームアウトし、視点移動（`PointerLock`）へシームレスに復帰する仕組みを実装。
+
+---
+
+### 2026-10-31 (土) - 外部3Dモデル（.glb）導入検証・GLTFLoader対応 (`feat-custom-3d-model`)
+
+1. **`THREE.GLTFLoader` の導入と非同期モデル読み込み**
+   - [index.html](file:///c:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) に Three.js (`r128`) 対応の `GLTFLoader.js` CDNスクリプトを追加。
+   - [assets/models/desk.glb](file:///c:/Users/xcang/Desktop/Antigravity/escape-3d/assets/models/desk.glb)（アンティーク書斎机のglTF 2.0バイナリモデル：ダークウォルナット天板・マホガニーモールディング・左右袖引き出し・真鍮取っ手）を配置し、`GLTFLoader` で非同期読み込みを実装。
+
+2. **仮置きCubeオブジェクトの非表示化・自動スケール調整・シャドウ適用**
+   - 既存の仮置きしていた書斎机のCubeオブジェクト群（`deskPlaceholderGroup`）を非表示化（読み込み完了時にシーンから削除）し、同じ位置（`x: 3.8, y: 0, z: -2.0`）・同じ向きに読み込んだ3Dモデルを配置。
+   - `THREE.Box3().setFromObject()` を用いて読み込んだ `.glb` モデルのバウンディングボックスを算出し、部屋のスケール（奥行 `2.22m` 基準）に合うよう `scale` と床面接地位置（`y = 0`）を自動正規化。
+   - `deskModel.traverse()` でモデルの全子メッシュに対して `castShadow = true` および `receiveShadow = true` を一括適用。
+
+3. **当たり判定（AABB）とクリック判定（Raycaster）の完全維持**
+   - 読み込んだ `.glb` モデルの全メッシュに `userData.interactiveRoot = deskGroup` を設定して `interactables` 配列へ登録。
+   - さらにモデルの形状や階層構造に依存せず安定した照準クリック判定を保証するため、不要な影を落とさない不可視のバウンディングボックス（`deskHitBox` / `isHitBox: true`）を当たり判定用として併設。
+
+---
 
 ### 2026-10-31 (土) - ビジュアル＆ライティングの刷新・重厚な陰影表現 (`feat-visual-upgrade`)
 
@@ -46,7 +92,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
    - 主光源：部屋の中央天井にオレンジがかった暖色（`0xffaa44`、強度1.45）の `PointLight` を配置し、家具や部屋の角に自然で柔らかなドロップシャドウ（Soft Shadow）を投影。
    - 補助光源の導入：
      - **暖炉（South）**: 炉内に赤橙色（`0xff4a11`、強度0.95）の `PointLight` を設置。アニメーションループ内で微細な正弦波フリッカー（ゆらぎ）を加え、本物の薪火のような生命感を再現。
-     - **書斎机（East）**: アンティークな真鍮製デスクライトのシェード内に下向きの `SpotLight`（`0xffd599`、強度1.35、照射角 `Math.PI / 3.2`、半影 `penumbra: 0.65`）を配置し、机の天板と天体日誌を集中的に照らすドラマチックな陰影を構築。
+     - **書斎机（East）**: アンティークな真鍮製デスクライトのシェード内に下向きの `SpotLight` を配置し、机の天板と天体日誌を集中的に照らすドラマチックな陰影を構築。
 
 2. **マテリアル（質感）のブラッシュアップと物理ベース質感の統一**
    - 単色のベタ塗りや `MeshBasicMaterial` を全廃し、光と影に正確に反応する `MeshStandardMaterial` に統一（発光部は `emissive` / `emissiveIntensity` で表現）。
@@ -98,10 +144,9 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 3. 今後のタスク (Roadmap / Next Steps)
 
+- [ ] **他オブジェクトへの外部3Dモデル（.glb）展開**
+  - ソファ、天球儀、古時計、本棚等の家具オブジェクトへの `.glb` モデル順次適用。
 - [ ] **Stage 2「暴走AIと閉鎖シェルター」の3D化**
   - SFサバイバル地下施設、配電グリッド盤、オシロスコープ波形同調、火災温度センサー、耐爆ハッチの3D移植。
-- [ ] **グラフィックとマテリアルのさらなる高精細化**
-  - ノーマルマップ（法線マップ）のプロシージャル生成による凹凸表現の強化。
-  - 暖炉の炎やほこりパーティクル、足音サウンドの追加。
 - [ ] **オートセーブ（localStorage）機能の追加**
   - ゲーム中断・再開に対応する進行フラグと所持アイテムのローカルストレージ保存。
