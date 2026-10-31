@@ -3925,12 +3925,82 @@
   }
 
   // --- メインメニュー & 設定モーダル関数 ---
+  function resetGameAndPlay() {
+    // 1. state を初期化
+    state.isLightOn = true;
+    state.switchCoverUnlocked = false;
+    state.carpetFlipped = false;
+    state.hasScrewdriver = false;
+    state.sofaBoxFound = false;
+    state.boxDisassembled = false;
+    state.drawerUnlocked = false;
+    state.hasSwitchKey = false;
+    state.hasPoker = false;
+    state.fireplaceGrilleRemoved = false;
+    state.hasEmblem = false;
+    state.booksSequence = [];
+    state.booksPuzzleSolved = false;
+    state.safeDiscInserted = false;
+    state.safeAngle = 90;
+    state.safeUnlocked = false;
+    state.hasArmillaryPin = false;
+    state.armillaryPinInserted = false;
+    state.armillaryAngle = 90;
+    state.armillaryOpened = false;
+    state.clockHour = 0;
+    state.clockMinute = 0;
+    state.clockPuzzleSolved = false;
+    state.hasBrokenKey = false;
+    state.keyAssembled = false;
+    state.doorCode = [0, 0, 0, 0];
+    state.doorKeyUnlocked = false;
+    state.doorCodeUnlocked = false;
+    state.gameCleared = false;
+    state.inventory = [];
+    state.selectedItem = null;
+    state.startTime = Date.now();
+
+    // 2. 3Dシーンとオブジェクトのリセット
+    if (bookshelfMeshGroup) {
+      bookshelfMeshGroup.position.z = 0;
+    }
+    const obsIdx = obstacleBoxes.findIndex(b => b.minX === 3.9 && (b.minZ === 0.0 || b.minZ === 1.3));
+    if (obsIdx !== -1) {
+      obstacleBoxes[obsIdx] = { minX: 3.9, maxX: 5.0, minZ: 0.0, maxZ: 2.4 };
+    }
+    if (doorPivotGroup) {
+      doorPivotGroup.rotation.y = 0;
+    }
+    updateLightingState();
+    updateClockHands3D();
+
+    // 3. プレイヤーカメラの位置・回転リセット（書斎の中央やや手前、北向き）
+    camera.position.set(0, 1.6, 2.8);
+    camera.rotation.set(0, 0, 0);
+
+    // 4. UIのリセット
+    renderInventory();
+    setMessage('古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。');
+
+    // 5. そのまま直ちに探索プレイを開始！
+    soundManager.init();
+    soundManager.playClick();
+    menuScreen.classList.add('hidden');
+    crosshair.classList.remove('hidden');
+    hudEl.classList.remove('hidden');
+    messageBarContainer.classList.remove('hidden');
+    inventoryBarContainer.classList.remove('hidden');
+    topMenuEl.classList.remove('hidden');
+    isGameStarted = true;
+    controls.lock();
+  }
+
   function startOrResumeGame() {
     soundManager.init();
     soundManager.playClick();
 
     if (state.gameCleared) {
-      location.reload();
+      resetGameAndPlay();
       return;
     }
 
@@ -4013,9 +4083,8 @@
   if (btnRestartStage1) {
     btnRestartStage1.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm('書斎の探索を最初からやり直しますか？')) {
-        location.reload();
-      }
+      // はじめからを押したらリロードせず初期化してそのままプレイに直行！
+      resetGameAndPlay();
     });
   }
 
@@ -4055,8 +4124,9 @@
 
   btnSettingRestart.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (confirm('書斎の探索を初期状態にリセットしますか？')) {
-      location.reload();
+    if (confirm('書斎の探索を初期状態にリセットして最初からやり直しますか？')) {
+      closeSettingsModal();
+      resetGameAndPlay();
     }
   });
 
@@ -4117,7 +4187,11 @@
 
   // クリアモーダルのボタン
   btnReplay.addEventListener('click', () => {
-    location.reload();
+    if (activeModal) {
+      activeModal.classList.add('hidden');
+      activeModal = null;
+    }
+    resetGameAndPlay();
   });
 
   btnClearToMenu.addEventListener('click', () => {
