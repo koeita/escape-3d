@@ -39,6 +39,11 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 汎用非表示クラス（メインメニュー時や初期化時にUIを完全に不可視化） */
+.hidden {
+  display: none !important;
+}
+
 /* 3D Canvas */
 #canvas-container {
   position: fixed;
@@ -624,6 +629,11 @@ body.cursor-mode #crosshair {
   transition: opacity 0.2s ease;
 }
 
+#settings-modal,
+#clear-modal {
+  z-index: 600;
+}
+
 .modal.hidden {
   opacity: 0;
   pointer-events: none;
@@ -1146,7 +1156,7 @@ body.cursor-mode #crosshair {
   background: radial-gradient(circle at center, rgba(14, 16, 22, 0.84) 0%, rgba(6, 7, 10, 0.96) 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 50;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
