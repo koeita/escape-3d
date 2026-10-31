@@ -969,7 +969,11 @@
         id: 'door',
         name: '脱出の大扉',
         category: 'NORTH / EXIT DOOR',
-        action: openDoorModal
+        action: () => triggerZoomAndInspect(
+          new THREE.Vector3(0, 1.45, -3.4),
+          new THREE.Vector3(0, 1.42, -4.9),
+          openDoorModal
+        )
       },
       { minX: -0.9, maxX: 0.9, minZ: -5.0, maxZ: -4.5 }
     );
@@ -1006,7 +1010,11 @@
       id: 'switch_panel',
       name: '照明スイッチ盤',
       category: 'NORTH / POWER PANEL',
-      action: openSwitchModal
+      action: () => triggerZoomAndInspect(
+        new THREE.Vector3(-2.0, 1.5, -3.8),
+        new THREE.Vector3(-2.0, 1.5, -4.88),
+        openSwitchModal
+      )
     });
 
     // C. 壁掛けの古時計（木製縦長ケース・白い円形文字盤・真鍮の長針/短針・揺れる金属振り子）
@@ -1180,7 +1188,11 @@
       id: 'clock',
       name: '壁掛けの古時計',
       category: 'NORTH / ANTIQUE CLOCK',
-      action: openClockModal
+      action: () => triggerZoomAndInspect(
+        new THREE.Vector3(2.2, 2.1, -3.6),
+        new THREE.Vector3(2.2, 2.25, -4.88),
+        openClockModal
+      )
     });
 
     // ==========================================
@@ -1659,7 +1671,11 @@
         id: 'bookshelf',
         name: '本棚の蔵書',
         category: 'EAST / BOOKSHELF',
-        action: openBookshelfModal
+        action: () => triggerZoomAndInspect(
+          new THREE.Vector3(3.1, 1.85, 1.2),
+          new THREE.Vector3(4.5, 1.85, 1.2),
+          openBookshelfModal
+        )
       },
       { minX: 3.9, maxX: 5.0, minZ: 0.0, maxZ: 2.4 }
     );
@@ -1710,7 +1726,11 @@
       id: 'wall_safe',
       name: '本棚奥の壁金庫',
       category: 'EAST / HIDDEN SAFE',
-      action: openSafeModal
+      action: () => triggerZoomAndInspect(
+        new THREE.Vector3(3.6, 1.4, 1.2),
+        new THREE.Vector3(4.88, 1.4, 1.2),
+        openSafeModal
+      )
     });
 
     // ==========================================
@@ -1803,7 +1823,11 @@
       id: 'painting',
       name: '油絵『星辰の夜』',
       category: 'SOUTH / OIL PAINTING',
-      action: openPaintingModal
+      action: () => triggerZoomAndInspect(
+        new THREE.Vector3(0, 2.2, 3.5),
+        new THREE.Vector3(0, 2.2, 4.88),
+        openPaintingModal
+      )
     });
 
     // B. 暖炉（グレーの石/レンガ調マテリアル・細いCylinder鉄格子バー等間隔配置・赤く発光する薪と炭）
@@ -1982,7 +2006,11 @@
         id: 'fireplace',
         name: '暖炉の火室',
         category: 'SOUTH / FIREPLACE',
-        action: openFireplaceModal
+        action: () => triggerZoomAndInspect(
+          new THREE.Vector3(-2.5, 1.25, 2.8),
+          new THREE.Vector3(-2.5, 0.55, 4.4),
+          openFireplaceModal
+        )
       },
       { minX: -3.6, maxX: -1.4, minZ: 3.9, maxZ: 5.0 }
     );
@@ -2175,7 +2203,11 @@
         id: 'sofa',
         name: '高級革張りソファ',
         category: 'WEST / LEATHER SOFA',
-        action: openSofaModal
+        action: () => triggerZoomAndInspect(
+          new THREE.Vector3(-2.6, 1.35, -1.0),
+          new THREE.Vector3(-3.88, 0.45, -1.0),
+          openSofaModal
+        )
       },
       { minX: -4.7, maxX: -3.0, minZ: -2.6, maxZ: 0.6 }
     );
@@ -2355,7 +2387,11 @@
         id: 'armillary',
         name: '真鍮の天球儀',
         category: 'WEST / ARMILLARY SPHERE',
-        action: openArmillaryModal
+        action: () => triggerZoomAndInspect(
+          new THREE.Vector3(-2.7, 1.40, 1.8),
+          new THREE.Vector3(-3.8, 1.18, 1.8),
+          openArmillaryModal
+        )
       },
       { minX: -4.4, maxX: -3.2, minZ: 1.2, maxZ: 2.4 }
     );
@@ -2381,7 +2417,11 @@
       id: 'carpet',
       name: 'ペルシャ風絨毯',
       category: 'WEST / PERSIAN CARPET',
-      action: openCarpetModal
+      action: () => triggerZoomAndInspect(
+        new THREE.Vector3(-1.4, 1.65, -0.2),
+        new THREE.Vector3(-2.3, 0.02, -1.0),
+        openCarpetModal
+      )
     });
   }
 
@@ -2469,19 +2509,19 @@
     activeModal = null;
     soundManager.playClick();
 
-    // 手帳・机のズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかにズームアウト
+    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
     if (cameraZoom.isZoomedIn) {
-      startDeskZoomOut();
+      startCameraZoomOut();
     } else {
       controls.lock();
     }
   }
 
-  // 机・手帳クリック時の0.6秒カメラズームイン演出
-  function triggerDeskZoomAndInspect() {
+  // 汎用カメラズームイン演出（0.6秒補間）：任意のオブジェクトに対して近接注視位置へ滑らかにズーム
+  function triggerZoomAndInspect(targetPos, lookAtPos, inspectAction, message = null) {
     if (cameraZoom.active) return;
     if (cameraZoom.isZoomedIn) {
-      openDeskModal();
+      if (typeof inspectAction === 'function') inspectAction();
       return;
     }
 
@@ -2489,13 +2529,10 @@
     cameraZoom.savedPos.copy(camera.position);
     cameraZoom.savedQuat.copy(camera.quaternion);
 
-    // 机上の手帳(3.58, 0.88, -2.08)を斜め上方から見下ろす近接位置と角度を算出
-    const targetPos = new THREE.Vector3(2.96, 1.38, -2.22);
-    const diaryLookAt = new THREE.Vector3(3.58, 0.88, -2.08);
     const tempCam = camera.clone();
     tempCam.position.copy(targetPos);
     tempCam.up.set(0, 1, 0);
-    tempCam.lookAt(diaryLookAt);
+    tempCam.lookAt(lookAtPos);
 
     cameraZoom.fromPos.copy(camera.position);
     cameraZoom.toPos.copy(targetPos);
@@ -2512,13 +2549,23 @@
 
     cameraZoom.onComplete = () => {
       cameraZoom.isZoomedIn = true;
-      setMessage('古びた手帳を開いた…星辰と古時計の針に関する記述が記されている。');
-      openDeskModal();
+      if (message) setMessage(message);
+      if (typeof inspectAction === 'function') inspectAction();
     };
   }
 
+  // 互換用：机・手帳クリック時のズームイン演出
+  function triggerDeskZoomAndInspect() {
+    triggerZoomAndInspect(
+      new THREE.Vector3(2.96, 1.38, -2.22),
+      new THREE.Vector3(3.58, 0.88, -2.08),
+      openDeskModal,
+      '古びた手帳を開いた…星辰と古時計の針に関する記述が記されている。'
+    );
+  }
+
   // モーダルを閉じた際の元の探索視点へのスムーズなズームアウト演出
-  function startDeskZoomOut() {
+  function startCameraZoomOut() {
     cameraZoom.fromPos.copy(camera.position);
     cameraZoom.toPos.copy(cameraZoom.savedPos);
     cameraZoom.fromQuat.copy(camera.quaternion);
@@ -2540,6 +2587,7 @@
       }
     };
   }
+  const startDeskZoomOut = startCameraZoomOut;
 
   function getItemPickerHtml(promptText) {
     if (state.inventory.length === 0) {
