@@ -222,6 +222,7 @@
   let ceilingBulbMesh = null;   // 天井電球
   let deskBulbMesh = null;      // デスク電球
   let deskShadeMesh = null;     // デスクランプの緑シェード
+  let deskLightPoolMesh = null; // ランプ周囲の天板ライトプール（光の輪）
 
   // カメラズーム演出用ステート（机・手帳の調査時 0.6秒補間）
   const cameraZoom = {
@@ -510,20 +511,17 @@
     fireplaceLight.shadow.bias = -0.002;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のランプ周囲と天板・手帳を自然に照らす暖色(#ffebc2)ライト
-    deskSpotLight = new THREE.SpotLight(0xffebc2, 2.1, 3.8, Math.PI / 2.1, 0.98, 1.4);
-    deskSpotLight.position.set(3.94, 1.16, -1.48);
-    deskSpotLight.target.position.set(3.84, 0.86, -1.60);
-    deskSpotLight.castShadow = true;
-    deskSpotLight.shadow.mapSize.width = 1024;
-    deskSpotLight.shadow.mapSize.height = 1024;
-    deskSpotLight.shadow.bias = -0.0012;
+    // 4. 補助光源 B：書斎机（East）のランプ真下・周囲を丸く自然に照らす暖色(#ffebc2)ライト
+    deskSpotLight = new THREE.SpotLight(0xffebc2, 4.2, 3.6, Math.PI / 3.8, 0.88, 1.3);
+    deskSpotLight.position.set(3.94, 1.65, -1.48);
+    deskSpotLight.target.position.set(3.94, 0.86, -1.48);
+    deskSpotLight.castShadow = false;
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
 
-    // ランプの周囲360度（台座・支柱・天板・壁面・手帳）をふんわり照らすPointLight
-    deskShadeLight = new THREE.PointLight(0xffebc2, 1.15, 2.8, 1.5);
-    deskShadeLight.position.set(3.94, 1.10, -1.48);
+    // ランプの周囲360度（台座・支柱・天板・背後のレンガ壁・手帳）をふんわり照らすPointLight
+    deskShadeLight = new THREE.PointLight(0xffdf9e, 1.8, 2.5, 1.4);
+    deskShadeLight.position.set(3.94, 1.15, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -531,8 +529,9 @@
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 2.1;
-      if (deskShadeLight) deskShadeLight.intensity = 1.15;
+      deskSpotLight.intensity = 4.2;
+      if (deskShadeLight) deskShadeLight.intensity = 1.8;
+      if (deskLightPoolMesh) deskLightPoolMesh.visible = true;
       fireplaceLight.intensity = 0.95;
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 1.25;
@@ -548,6 +547,7 @@
       ambientLight.intensity = 0.08;
       deskSpotLight.intensity = 0.0;
       if (deskShadeLight) deskShadeLight.intensity = 0.0;
+      if (deskLightPoolMesh) deskLightPoolMesh.visible = false;
       fireplaceLight.intensity = 0.15; // 暖炉の微かな残り火
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 0.05;
@@ -1005,6 +1005,43 @@
 
     deskGroup.add(deskLampGroup);
 
+    // ランプの周りが丸く暖かく照らされる天板上のライトプール（光のグラデーション）
+    const poolCanvas = document.createElement('canvas');
+    poolCanvas.width = 512;
+    poolCanvas.height = 938;
+    const poolCtx = poolCanvas.getContext('2d');
+    poolCtx.clearRect(0, 0, poolCanvas.width, poolCanvas.height);
+
+    // 天板(1.20m x 2.20m)上のランプ位置(x = +0.14, z = +0.52)を中心とする円形グラデーション
+    const lampCenterX = ((0.14 + 0.60) / 1.20) * poolCanvas.width;
+    const lampCenterY = ((0.52 + 1.10) / 2.20) * poolCanvas.height;
+    const poolGrad = poolCtx.createRadialGradient(
+      lampCenterX, lampCenterY, 10,
+      lampCenterX, lampCenterY, 340
+    );
+    poolGrad.addColorStop(0.0, 'rgba(255, 232, 175, 0.68)');
+    poolGrad.addColorStop(0.22, 'rgba(255, 218, 145, 0.48)');
+    poolGrad.addColorStop(0.50, 'rgba(255, 198, 110, 0.22)');
+    poolGrad.addColorStop(0.78, 'rgba(255, 180, 90, 0.06)');
+    poolGrad.addColorStop(1.0, 'rgba(255, 170, 80, 0.0)');
+    poolCtx.fillStyle = poolGrad;
+    poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
+
+    const poolTex = new THREE.CanvasTexture(poolCanvas);
+    deskLightPoolMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.20, 2.20),
+      new THREE.MeshBasicMaterial({
+        map: poolTex,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    deskLightPoolMesh.rotation.x = -Math.PI / 2;
+    deskLightPoolMesh.position.set(0, 0.8615, 0);
+    deskLightPoolMesh.userData.isHitBox = true;
+    deskGroup.add(deskLightPoolMesh);
+
     // =========================================================================
     // 2. 手帳（Diary）：天板の中央手前に配置、革の表紙＋丸背表紙＋紙束＋13度傾き
     // =========================================================================
@@ -1093,6 +1130,13 @@
     ribbonMesh.rotation.y = 0.18;
     diaryGroup.add(ribbonMesh);
 
+    // 手帳の横に不自然な濃い影が出ないよう設定
+    diaryGroup.traverse((part) => {
+      if (part.isMesh) {
+        part.userData.noCastShadow = true;
+      }
+    });
+
     deskGroup.add(diaryGroup);
 
     registerInteractive(
@@ -1141,9 +1185,15 @@
             );
           }
 
-          // 読み込んだ3Dモデルの全メッシュに影設定（castShadow / receiveShadow）とRaycaster判定を適用
+          // 読み込んだ3Dモデルの全メッシュに木目質感・影設定（castShadow / receiveShadow）とRaycaster判定を適用
           deskModel.traverse((child) => {
             if (child.isMesh) {
+              if (child.material && child.material.name !== 'AntiqueBrass') {
+                child.material = child.material.clone();
+                child.material.map = darkWoodTex;
+                child.material.roughness = 0.55;
+                child.material.needsUpdate = true;
+              }
               child.castShadow = true;
               child.receiveShadow = true;
               child.userData.interactiveRoot = deskGroup;
