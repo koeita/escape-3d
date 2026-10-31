@@ -3,75 +3,197 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D密室脱出 - First-Person Escape Prototype</title>
+  <title>密室の謎解き脱出 3D - 古びた書斎と賢者の鍵</title>
+  
+  <!-- Google Fonts: Share Tech Mono & Shippori Mincho -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&family=Shippori+Mincho:wght@400;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
+
   <!-- Three.js (r128) & PointerLockControls via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+  <!-- Synthesized Web Audio Manager -->
+  <script src="se.js"></script>
 </head>
 <body>
-  <!-- 3D描画用コンテナ -->
+  <!-- 3D WebGL Canvas Container -->
   <div id="canvas-container"></div>
 
-  <!-- 画面中央の常時表示クロスヘア（照準点） -->
+  <!-- 暗闇モード時のビネット効果オーバーレイ -->
+  <div id="darkness-vignette" class="hidden"></div>
+
+  <!-- 画面中央の常時クロスヘア（十字・照準ドット） -->
   <div id="crosshair">
     <div class="crosshair-dot"></div>
     <div class="crosshair-ring"></div>
   </div>
 
-  <!-- 照準がオブジェクトに合った際のターゲット名ツールチップ -->
+  <!-- 照準が対象に合った際のツールチップ -->
   <div id="target-hint" class="hidden">
     <span class="hint-icon">🔍</span>
     <span id="target-hint-text">調べる</span>
     <span class="hint-key">[左クリック]</span>
   </div>
 
-  <!-- 画面左上の簡易ステータス＆操作ガイドHUD -->
-  <div id="hud">
-    <div class="hud-title">STAGE 1 : 古びた書斎の密室 (3D Prototype)</div>
-    <div class="hud-controls">移動: WASD / 矢印キー ｜ 視点: マウス ｜ 調べる: 左クリック ｜ 中断: Esc</div>
+  <!-- 画面右上：設定・操作ガイドメニューボタン -->
+  <div id="top-menu">
+    <button id="btn-sound-toggle" class="menu-icon-btn" title="サウンド切り替え" aria-label="サウンド切り替え">🔊</button>
+    <button id="btn-help-toggle" class="menu-icon-btn" title="操作ヘルプ" aria-label="操作ヘルプ">❓</button>
+    <button id="btn-reset-game" class="menu-icon-btn" title="最初からやり直す" aria-label="最初からやり直す">🔄</button>
   </div>
 
-  <!-- 開始・一時停止オーバーレイUI（PointerLock解除時に表示） -->
-  <div id="start-overlay" class="overlay">
-    <div class="overlay-card">
-      <div class="overlay-badge">3D FIRST-PERSON ESCAPE</div>
-      <h1 class="overlay-title">密室の謎解き脱出 3D</h1>
-      <p class="overlay-lead">画面をクリックして探索開始（Escで解除）</p>
-      <div class="controls-guide">
-        <div class="guide-item">
-          <span class="guide-key">マウス移動</span>
-          <span class="guide-desc">360度 室内を見渡す</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">W A S D / 矢印</span>
-          <span class="guide-desc">前後左右へ移動</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">左クリック</span>
-          <span class="guide-desc">照準の対象を調べる</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-key">Esc キー</span>
-          <span class="guide-desc">マウス固定を解除 / 一時停止</span>
-        </div>
-      </div>
-      <button id="start-btn" class="primary-btn" type="button">画面をクリックして探索開始</button>
+  <!-- 画面左上：ステージHUD -->
+  <div id="hud">
+    <div class="hud-stage-badge">STAGE 1</div>
+    <div class="hud-title">古びた書斎と賢者の鍵</div>
+    <div class="hud-sub" id="hud-compass">方位: 北 (脱出の大扉)</div>
+  </div>
+
+  <!-- 画面下部中央：ナレーション・メッセージバー -->
+  <div id="message-bar-container">
+    <div id="message-bar">
+      <span id="message-text">古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。</span>
     </div>
   </div>
 
-  <!-- 調べるウィンドウ（調査モーダル） -->
+  <!-- 画面下部：6スロットの所持品バー（インベントリ） -->
+  <div id="inventory-bar-container">
+    <div class="inventory-label">INVENTORY</div>
+    <div id="inventory-bar">
+      <div class="inv-slot" data-slot="0"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="1"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="2"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="3"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="4"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="5"><div class="slot-inner"></div></div>
+    </div>
+    <div class="inv-hint">※ アイテムクリックで選択（対象に使用） ｜ 選択中を再度クリックで【調べる・分解・合成】</div>
+  </div>
+
+  <!-- 開始・一時停止オーバーレイUI -->
+  <div id="start-overlay" class="overlay">
+    <div class="overlay-card">
+      <div class="overlay-badge">STAGE 1 : 3D ESCAPE ADVENTURE</div>
+      <h1 class="overlay-title">古びた書斎と賢者の鍵</h1>
+      <p class="overlay-lead">画面をクリックして探索開始（Escで解除）</p>
+
+      <div class="controls-guide">
+        <div class="guide-item">
+          <span class="guide-key">マウス移動</span>
+          <span class="guide-desc">室内360度を見渡す</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">W A S D / 矢印</span>
+          <span class="guide-desc">前後左右へ歩行移動</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">左クリック</span>
+          <span class="guide-desc">照準の家具や謎を調べる</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">Esc キー</span>
+          <span class="guide-desc">視点固定解除 / 一時停止</span>
+        </div>
+      </div>
+
+      <button id="start-btn" class="primary-btn" type="button">書斎の探索を開始する</button>
+    </div>
+  </div>
+
+  <!-- 汎用調査・謎解きモーダル -->
   <div id="inspect-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-content">
       <div class="modal-header">
         <span class="modal-category" id="modal-category">OBJECT INSPECTION</span>
         <h2 id="modal-title">オブジェクト名</h2>
       </div>
-      <div class="modal-body">
-        <p id="modal-description">ここに調査テキストが表示されます。</p>
+      <div class="modal-body" id="modal-body">
+        <!-- JSにより動的にパズルUIやテキストが挿入される -->
       </div>
       <div class="modal-footer">
-        <button id="modal-close-btn" class="secondary-btn" type="button">閉じる [Enter / クリック]</button>
+        <button id="modal-close-btn" class="secondary-btn" type="button">閉じる [Enter / Esc]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- アイテム詳細モーダル（調べる・分解・合成） -->
+  <div id="item-detail-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content item-detail-card">
+      <div class="modal-header">
+        <span class="modal-category">ITEM DETAIL</span>
+        <h2 id="item-detail-name">アイテム名</h2>
+      </div>
+      <div class="item-detail-body">
+        <div id="item-detail-icon-large"></div>
+        <div id="item-detail-desc">アイテム説明文</div>
+        <div id="item-detail-action-container" class="hidden">
+          <button id="btn-item-action" class="primary-btn" type="button">分解 / 合成</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="item-detail-close-btn" class="secondary-btn" type="button">戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ヘルプ・操作案内モーダル -->
+  <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content help-card">
+      <div class="modal-header">
+        <span class="modal-category">HELP & GUIDE</span>
+        <h2>操作方法と探索のヒント</h2>
+      </div>
+      <div class="help-body">
+        <div class="help-section">
+          <h3>■ 基本操作</h3>
+          <ul>
+            <li><strong>移動:</strong> W A S D または 矢印キーで室内を自由に歩行します。</li>
+            <li><strong>視点:</strong> マウスの移動で上下左右を見渡します。</li>
+            <li><strong>調べる:</strong> 白い照準（クロスヘア）を気になる家具や壁に合わせて左クリック。</li>
+            <li><strong>マウス解除:</strong> Escキーを押すとマウスロックが解除されます。</li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>■ 脱出のヒント</h3>
+          <ul>
+            <li><strong>アイテムの使用:</strong> 下部のインベントリ枠をクリックして選択（金枠点灯）した状態で、鍵穴や仕掛けをクリックすると使えます。</li>
+            <li><strong>アイテムの分解・合成:</strong> 選択中のアイテムをもう一度クリックすると詳細画面が開き、ドライバーでの分解やパーツの結合が行えます。</li>
+            <li><strong>照明の暗闇モード:</strong> 部屋の明かりを消すと、普段見えない蓄光の暗号が浮かび上がることがあります。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="help-close-btn" class="secondary-btn" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 脱出成功（ステージクリア）モーダル -->
+  <div id="clear-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content clear-card">
+      <div class="clear-badge">CONGRATULATIONS!</div>
+      <h1 class="clear-title">STAGE CLEAR</h1>
+      <p class="clear-subtitle">『古びた書斎と賢者の鍵』完全脱出！</p>
+      <div class="clear-divider"></div>
+      <p class="clear-desc">
+        賢者の真鍮鍵と星辰の暗号コードによって重厚な大扉のロックが解かれ、<br>
+        眩い光とともに外の世界への扉が開かれた。
+      </p>
+      <div class="clear-stats">
+        <div class="stat-item">
+          <span class="stat-label">脱出所要時間</span>
+          <span id="clear-time" class="stat-value">02:45</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">獲得アイテム数</span>
+          <span class="stat-value">完全コンプリート</span>
+        </div>
+      </div>
+      <div class="clear-actions">
+        <button id="btn-replay" class="primary-btn" type="button">もう一度最初から遊ぶ</button>
       </div>
     </div>
   </div>
