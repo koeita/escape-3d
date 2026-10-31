@@ -52,6 +52,11 @@ body {
   height: 100vh;
 }
 
+/* UI操作モード時（カーソル解放中）のキャンバスカーソル */
+body.cursor-mode #canvas-container {
+  cursor: crosshair;
+}
+
 /* 暗闇モード時のビネット効果 */
 #darkness-vignette {
   position: fixed;
@@ -79,6 +84,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+body.cursor-mode #crosshair {
+  opacity: 0.35;
 }
 
 .crosshair-dot {
@@ -155,20 +165,77 @@ body {
   border-radius: 4px;
 }
 
+/* UI操作モード案内バナー（マウス解放中に画面上部中央に表示） */
+#cursor-mode-banner {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#cursor-mode-banner.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -10px);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(18, 21, 28, 0.92);
+  border: 1.5px solid var(--brass);
+  border-radius: 30px;
+  padding: 6px 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 16px rgba(202, 168, 106, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+.banner-icon {
+  font-size: 1.05rem;
+}
+
+.banner-text {
+  font-size: 0.88rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.banner-resume-btn {
+  background: linear-gradient(135deg, var(--brass-bright) 0%, var(--brass) 100%);
+  border: none;
+  border-radius: 20px;
+  padding: 5px 14px;
+  color: #121316;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(202, 168, 106, 0.4);
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.banner-resume-btn:hover {
+  filter: brightness(1.1);
+  transform: scale(1.03);
+}
+
 /* 右上メニューボタン */
 #top-menu {
   position: fixed;
   top: 18px;
   right: 22px;
-  z-index: 12;
+  z-index: 25;
   display: flex;
   gap: 10px;
+  pointer-events: auto;
 }
 
 .menu-icon-btn {
-  width: 40px;
-  height: 40px;
-  background: rgba(18, 20, 26, 0.75);
+  width: 42px;
+  height: 42px;
+  background: rgba(18, 20, 26, 0.85);
   border: 1px solid var(--panel-border);
   color: var(--text-main);
   border-radius: 8px;
@@ -176,16 +243,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
-  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .menu-icon-btn:hover {
-  background: rgba(202, 168, 106, 0.2);
+  background: rgba(202, 168, 106, 0.25);
   border-color: var(--brass-bright);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(202, 168, 106, 0.3);
 }
 
 /* 左上HUD */
@@ -195,7 +263,7 @@ body {
   left: 22px;
   z-index: 12;
   pointer-events: none;
-  background: rgba(15, 17, 23, 0.78);
+  background: rgba(15, 17, 23, 0.82);
   border-left: 3px solid var(--brass);
   padding: 8px 16px;
   border-radius: 0 8px 8px 0;
@@ -227,7 +295,7 @@ body {
 /* 下部メッセージバー */
 #message-bar-container {
   position: fixed;
-  bottom: 122px;
+  bottom: 128px;
   left: 0;
   width: 100vw;
   display: flex;
@@ -238,7 +306,7 @@ body {
 }
 
 #message-bar {
-  max-width: 720px;
+  max-width: 740px;
   width: 100%;
   background: linear-gradient(90deg, rgba(14, 16, 22, 0.85) 0%, rgba(20, 24, 34, 0.95) 50%, rgba(14, 16, 22, 0.85) 100%);
   border: 1px solid var(--panel-border);
@@ -264,12 +332,18 @@ body {
   bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 12;
+  z-index: 25;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   pointer-events: auto;
+}
+
+.inventory-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .inventory-label {
@@ -280,10 +354,17 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
+.inventory-quick-tip {
+  font-size: 0.68rem;
+  color: var(--brass-bright);
+  opacity: 0.9;
+  letter-spacing: 0.03em;
+}
+
 #inventory-bar {
   display: flex;
   gap: 10px;
-  background: rgba(14, 16, 22, 0.88);
+  background: rgba(14, 16, 22, 0.92);
   border: 1px solid var(--panel-border);
   padding: 8px 14px;
   border-radius: 10px;
@@ -294,7 +375,7 @@ body {
 .inv-slot {
   width: 58px;
   height: 58px;
-  background: rgba(22, 26, 36, 0.85);
+  background: rgba(22, 26, 36, 0.88);
   border: 1.5px solid rgba(202, 168, 106, 0.3);
   border-radius: 8px;
   cursor: pointer;
@@ -305,15 +386,28 @@ body {
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
+.slot-key {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: bold;
+  color: var(--brass);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
 .inv-slot:hover {
-  border-color: var(--brass);
+  border-color: var(--brass-bright);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(202, 168, 106, 0.3);
 }
 
 .inv-slot.selected {
   border-color: var(--accent-gold);
-  background: rgba(202, 168, 106, 0.18);
-  box-shadow: 0 0 12px rgba(241, 196, 15, 0.6), inset 0 0 8px rgba(241, 196, 15, 0.3);
+  background: rgba(202, 168, 106, 0.22);
+  box-shadow: 0 0 14px rgba(241, 196, 15, 0.65), inset 0 0 8px rgba(241, 196, 15, 0.35);
   transform: translateY(-3px);
 }
 
@@ -343,9 +437,9 @@ body {
 .overlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(14, 16, 22, 0.8) 0%, rgba(6, 7, 10, 0.94) 100%);
+  background: radial-gradient(circle at center, rgba(14, 16, 22, 0.82) 0%, rgba(6, 7, 10, 0.95) 100%);
   backdrop-filter: blur(8px);
-  z-index: 30;
+  z-index: 35;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -360,7 +454,7 @@ body {
 }
 
 .overlay-card {
-  max-width: 520px;
+  max-width: 540px;
   width: 100%;
   background: var(--panel-card);
   border: 1px solid var(--panel-border);
@@ -395,7 +489,7 @@ body {
   font-size: 1rem;
   color: var(--brass-bright);
   font-weight: 600;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .controls-guide {
@@ -403,8 +497,8 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   text-align: left;
-  margin-bottom: 28px;
-  background: rgba(10, 11, 15, 0.6);
+  margin-bottom: 26px;
+  background: rgba(10, 11, 15, 0.65);
   padding: 16px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);

@@ -38,6 +38,15 @@
     <span class="hint-key">[左クリック]</span>
   </div>
 
+  <!-- UI操作モード（マウスカーソル解放中）の案内バナー -->
+  <div id="cursor-mode-banner" class="hidden">
+    <div class="banner-content">
+      <span class="banner-icon">🖱️</span>
+      <span class="banner-text">【UI操作モード】アイテム選択や右上のメニューをクリック可能</span>
+      <button id="btn-resume-explore" class="banner-resume-btn" type="button">探索視点に戻る [左クリック / Tab]</button>
+    </div>
+  </div>
+
   <!-- 画面右上：設定・操作ガイドメニューボタン -->
   <div id="top-menu">
     <button id="btn-sound-toggle" class="menu-icon-btn" title="サウンド切り替え" aria-label="サウンド切り替え">🔊</button>
@@ -61,14 +70,17 @@
 
   <!-- 画面下部：6スロットの所持品バー（インベントリ） -->
   <div id="inventory-bar-container">
-    <div class="inventory-label">INVENTORY</div>
+    <div class="inventory-header">
+      <span class="inventory-label">INVENTORY</span>
+      <span class="inventory-quick-tip">[キー 1〜6 で選択 ｜ 右クリック/Tabでマウス操作]</span>
+    </div>
     <div id="inventory-bar">
-      <div class="inv-slot" data-slot="0"><div class="slot-inner"></div></div>
-      <div class="inv-slot" data-slot="1"><div class="slot-inner"></div></div>
-      <div class="inv-slot" data-slot="2"><div class="slot-inner"></div></div>
-      <div class="inv-slot" data-slot="3"><div class="slot-inner"></div></div>
-      <div class="inv-slot" data-slot="4"><div class="slot-inner"></div></div>
-      <div class="inv-slot" data-slot="5"><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="0"><span class="slot-key">1</span><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="1"><span class="slot-key">2</span><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="2"><span class="slot-key">3</span><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="3"><span class="slot-key">4</span><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="4"><span class="slot-key">5</span><div class="slot-inner"></div></div>
+      <div class="inv-slot" data-slot="5"><span class="slot-key">6</span><div class="slot-inner"></div></div>
     </div>
     <div class="inv-hint">※ アイテムクリックで選択（対象に使用） ｜ 選択中を再度クリックで【調べる・分解・合成】</div>
   </div>
@@ -78,7 +90,7 @@
     <div class="overlay-card">
       <div class="overlay-badge">STAGE 1 : 3D ESCAPE ADVENTURE</div>
       <h1 class="overlay-title">古びた書斎と賢者の鍵</h1>
-      <p class="overlay-lead">画面をクリックして探索開始（Escで解除）</p>
+      <p class="overlay-lead">画面をクリックして探索開始（右クリック/TabでUI操作）</p>
 
       <div class="controls-guide">
         <div class="guide-item">
@@ -94,8 +106,16 @@
           <span class="guide-desc">照準の家具や謎を調べる</span>
         </div>
         <div class="guide-item">
-          <span class="guide-key">Esc キー</span>
-          <span class="guide-desc">視点固定解除 / 一時停止</span>
+          <span class="guide-key">右クリック / Tab</span>
+          <span class="guide-desc">マウス解放（アイテム・UI操作）</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">数字キー 1〜6</span>
+          <span class="guide-desc">アイテム即座選択 / 詳細表示</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">画面クリック</span>
+          <span class="guide-desc">探索視点にスムーズ復帰</span>
         </div>
       </div>
 
@@ -134,7 +154,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button id="item-detail-close-btn" class="secondary-btn" type="button">戻る</button>
+        <button id="item-detail-close-btn" class="secondary-btn" type="button">戻る [Enter / Esc]</button>
       </div>
     </div>
   </div>
@@ -153,20 +173,22 @@
             <li><strong>移動:</strong> W A S D または 矢印キーで室内を自由に歩行します。</li>
             <li><strong>視点:</strong> マウスの移動で上下左右を見渡します。</li>
             <li><strong>調べる:</strong> 白い照準（クロスヘア）を気になる家具や壁に合わせて左クリック。</li>
-            <li><strong>マウス解除:</strong> Escキーを押すとマウスロックが解除されます。</li>
+            <li><strong>マウスカーソルの解放:</strong> <strong>右クリック</strong> または <strong>Tabキー / Escキー</strong> を押すとマウスが自由になり、インベントリや右上のメニューをクリックできます。</li>
+            <li><strong>アイテムの素早い選択:</strong> キーボードの <strong>1〜6キー</strong> を押すことで、マウスを動かさずに直接アイテムを選択・詳細表示できます。</li>
+            <li><strong>探索への復帰:</strong> 画面の3D空間をクリックするか、Tabキーを押すと即座に探索視点に戻ります。</li>
           </ul>
         </div>
         <div class="help-section">
           <h3>■ 脱出のヒント</h3>
           <ul>
-            <li><strong>アイテムの使用:</strong> 下部のインベントリ枠をクリックして選択（金枠点灯）した状態で、鍵穴や仕掛けをクリックすると使えます。</li>
-            <li><strong>アイテムの分解・合成:</strong> 選択中のアイテムをもう一度クリックすると詳細画面が開き、ドライバーでの分解やパーツの結合が行えます。</li>
+            <li><strong>アイテムの使用:</strong> 下部のインベントリ枠（または数字キー1〜6）で選択した状態で、鍵穴や仕掛けをクリックすると使えます。</li>
+            <li><strong>アイテムの分解・合成:</strong> 選択中のアイテムをもう一度クリック（または同じ数字キーを2回押す）すると詳細画面が開き、ドライバーでの分解やパーツの結合が行えます。</li>
             <li><strong>照明の暗闇モード:</strong> 部屋の明かりを消すと、普段見えない蓄光の暗号が浮かび上がることがあります。</li>
           </ul>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="help-close-btn" class="secondary-btn" type="button">閉じる</button>
+        <button id="help-close-btn" class="secondary-btn" type="button">閉じる [Enter / Esc]</button>
       </div>
     </div>
   </div>

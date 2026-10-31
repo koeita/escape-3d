@@ -75,11 +75,9 @@
 
   // --- ゲームステート ---
   const state = {
-    // 照明フラグ
     isLightOn: true,
     switchCoverUnlocked: false,
     
-    // アイテム・ギミック進行フラグ
     carpetFlipped: false,
     hasScrewdriver: false,
     sofaBoxFound: false,
@@ -108,11 +106,9 @@
     doorCodeUnlocked: false,
     gameCleared: false,
 
-    // インベントリ
     inventory: [], // [{ id, name, icon, desc }]
     selectedItem: null,
     
-    // 時間計測
     startTime: Date.now(),
   };
 
@@ -120,12 +116,17 @@
   const container = document.getElementById('canvas-container');
   const startOverlay = document.getElementById('start-overlay');
   const startBtn = document.getElementById('start-btn');
+  const cursorModeBanner = document.getElementById('cursor-mode-banner');
+  const btnResumeExplore = document.getElementById('btn-resume-explore');
   const crosshair = document.getElementById('crosshair');
   const targetHint = document.getElementById('target-hint');
   const targetHintText = document.getElementById('target-hint-text');
   const darknessVignette = document.getElementById('darkness-vignette');
   const hudCompass = document.getElementById('hud-compass');
   const messageText = document.getElementById('message-text');
+
+  // ゲーム進行フラグ（初回開始以降は開始オーバーレイを非表示にし、バナーで案内）
+  let isGameStarted = false;
 
   // メニュー
   const btnSoundToggle = document.getElementById('btn-sound-toggle');
@@ -204,12 +205,12 @@
   let hoveredObject = null;
 
   // 動的アニメーション参照
-  let doorPivotGroup = null; // 脱出大扉の回転軸グループ
-  let bookshelfMeshGroup = null; // 本棚のスライドグループ
-  let carpetCornerMesh = null; // 絨毯のめくれる角
-  let ceilingPointLight = null; // 天井照明
-  let ambientLight = null; // 環境光
-  let paintingCanvasMesh = null; // 南の絵画メッシュ
+  let doorPivotGroup = null;
+  let bookshelfMeshGroup = null;
+  let carpetCornerMesh = null;
+  let ceilingPointLight = null;
+  let ambientLight = null;
+  let paintingCanvasMesh = null;
 
   // --- プロシージャルテクスチャ生成 ---
   function createWoodTexture(baseColor, grainColor, planks = 8) {
@@ -280,11 +281,9 @@
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    // 深紅の背景
     ctx.fillStyle = '#6b1b1b';
     ctx.fillRect(0, 0, 512, 512);
 
-    // 外枠とゴールドの縁飾り
     ctx.strokeStyle = '#caa86a';
     ctx.lineWidth = 16;
     ctx.strokeRect(16, 16, 480, 480);
@@ -293,7 +292,6 @@
     ctx.lineWidth = 8;
     ctx.strokeRect(36, 36, 440, 440);
 
-    // ダイヤ柄・メダリオン
     ctx.fillStyle = '#caa86a';
     ctx.beginPath();
     ctx.moveTo(256, 100);
@@ -316,14 +314,12 @@
     return new THREE.CanvasTexture(canvas);
   }
 
-  // 絵画『星辰の夜』テクスチャ生成（明かりON/OFFで切り替え）
   function createPaintingTexture(isLightOn) {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 384;
     const ctx = canvas.getContext('2d');
 
-    // 夜空のグラデーション
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 384);
     if (isLightOn) {
       skyGrad.addColorStop(0, '#0f1a2e');
@@ -335,7 +331,6 @@
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, 512, 384);
 
-    // 山並み
     ctx.fillStyle = '#1a2332';
     ctx.beginPath();
     ctx.moveTo(0, 384);
@@ -347,13 +342,11 @@
     ctx.closePath();
     ctx.fill();
 
-    // 満月
     ctx.fillStyle = isLightOn ? '#f9e79f' : '#627084';
     ctx.beginPath();
     ctx.arc(380, 130, 56, 0, Math.PI * 2);
     ctx.fill();
 
-    // 古塔のシルエット
     ctx.fillStyle = '#080a0e';
     ctx.beginPath();
     ctx.moveTo(350, 384);
@@ -364,7 +357,6 @@
     ctx.closePath();
     ctx.fill();
 
-    // 暗闇モード時の蓄光星辰ライン（白羊 → 獅子 → 天蠍 → 射手）
     if (!isLightOn) {
       ctx.shadowColor = '#5dade2';
       ctx.shadowBlur = 15;
@@ -387,7 +379,6 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 各星の発光ドット
       stars.forEach((st) => {
         ctx.fillStyle = '#eaf2f8';
         ctx.beginPath();
@@ -417,7 +408,6 @@
     ceilingPointLight.shadow.bias = -0.002;
     scene.add(ceilingPointLight);
 
-    // 天井照明の視覚的器具
     const fixtureGroup = new THREE.Group();
     const baseMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.35, 0.45, 0.12, 24),
@@ -435,7 +425,6 @@
     scene.add(fixtureGroup);
   }
 
-  // 照明ON/OFFトグル
   function updateLightingState() {
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.25;
@@ -451,7 +440,6 @@
       scene.fog.color.set(0x030406);
     }
 
-    // 絵画のテクスチャ更新
     if (paintingCanvasMesh) {
       paintingCanvasMesh.material.map = createPaintingTexture(state.isLightOn);
       paintingCanvasMesh.material.needsUpdate = true;
@@ -477,50 +465,42 @@
     const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x181a1f, roughness: 0.9 });
     const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.85, metalness: 0.08 });
 
-    // 床
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.width, ROOM.depth), floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // 天井
     const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.width, ROOM.depth), ceilingMat);
     ceiling.rotation.x = Math.PI / 2;
     ceiling.position.y = ROOM.height;
     ceiling.receiveShadow = true;
     scene.add(ceiling);
 
-    // 壁
     const thick = 0.2;
     const nsGeo = new THREE.BoxGeometry(ROOM.width + thick * 2, ROOM.height, thick);
     const ewGeo = new THREE.BoxGeometry(thick, ROOM.height, ROOM.depth);
 
-    // 北壁 (Z = -5)
     const north = new THREE.Mesh(nsGeo, wallMat);
     north.position.set(0, ROOM.height / 2, -ROOM.depth / 2 - thick / 2);
     north.receiveShadow = true;
     scene.add(north);
 
-    // 南壁 (Z = +5)
     const south = new THREE.Mesh(nsGeo, wallMat);
     south.position.set(0, ROOM.height / 2, ROOM.depth / 2 + thick / 2);
     south.receiveShadow = true;
     scene.add(south);
 
-    // 東壁 (X = +5)
     const east = new THREE.Mesh(ewGeo, wallMat);
     east.position.set(ROOM.width / 2 + thick / 2, ROOM.height / 2, 0);
     east.receiveShadow = true;
     scene.add(east);
 
-    // 西壁 (X = -5)
     const west = new THREE.Mesh(ewGeo, wallMat);
     west.position.set(-ROOM.width / 2 - thick / 2, ROOM.height / 2, 0);
     west.receiveShadow = true;
     scene.add(west);
   }
 
-  // --- インタラクティブ登録ヘルパー ---
   function registerInteractive(group, metadata, collision = null) {
     group.userData = { isInteractiveRoot: true, ...metadata };
     group.traverse((c) => {
@@ -543,21 +523,15 @@
     const oakWoodTex = createWoodTexture('#5c3d26', '#352113', 6);
     const brassMat = new THREE.MeshStandardMaterial({ color: 0xcaa86a, roughness: 0.35, metalness: 0.85 });
 
-    // ==========================================
     // 【1. 北の壁 (North)】
-    // ==========================================
-
-    // A. 脱出の大扉 (中央: X: 0, Z: -4.85)
     const doorSystemGroup = new THREE.Group();
     doorSystemGroup.position.set(0, 0, -4.85);
 
-    // 枠
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x22160f, roughness: 0.7 });
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.68, 2.7, 0.16), frameMat);
     frame.position.set(0, 1.35, 0);
     doorSystemGroup.add(frame);
 
-    // 回転軸用ピボットグループ（左ヒンジ X: -0.7）
     doorPivotGroup = new THREE.Group();
     doorPivotGroup.position.set(-0.7, 0, 0);
 
@@ -566,7 +540,6 @@
     doorLeaf.position.set(0.7, 1.32, 0.02);
     doorPivotGroup.add(doorLeaf);
 
-    // 電子錠プレート（「● LOCKED」表示）
     const lockPlateMat = new THREE.MeshStandardMaterial({ color: 0x151820, roughness: 0.4, metalness: 0.7 });
     const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.44, 0.04), lockPlateMat);
     lockPlate.position.set(0.7, 1.35, 0.1);
@@ -577,7 +550,6 @@
     lockLed.position.set(0.7, 1.45, 0.13);
     doorPivotGroup.add(lockLed);
 
-    // 真鍮ノブ＆鍵穴
     const knob = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.08), brassMat);
     knob.position.set(1.28, 1.15, 0.11);
     doorPivotGroup.add(knob);
@@ -595,7 +567,7 @@
       { minX: -0.9, maxX: 0.9, minZ: -5.0, maxZ: -4.5 }
     );
 
-    // B. 照明スイッチ盤 (扉の左脇: X: -2.0, Y: 1.5, Z: -4.88)
+    // 照明スイッチ盤
     const switchGroup = new THREE.Group();
     switchGroup.position.set(-2.0, 1.5, -4.88);
 
@@ -605,7 +577,6 @@
     );
     switchGroup.add(panelBox);
 
-    // 鍵穴シリンダー付きカバー
     const coverMesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.36, 0.5, 0.04),
       new THREE.MeshStandardMaterial({ color: 0xcaa86a, roughness: 0.5, metalness: 0.7 })
@@ -620,18 +591,16 @@
       action: openSwitchModal
     });
 
-    // C. 壁掛けの古時計 (扉の右側: X: 2.2, Y: 2.2, Z: -4.88)
+    // 壁掛けの古時計
     const clockGroup = new THREE.Group();
     clockGroup.position.set(2.2, 2.2, -4.88);
 
-    // 時計本体ケース
     const clockCase = new THREE.Mesh(
       new THREE.BoxGeometry(0.68, 1.35, 0.16),
       new THREE.MeshStandardMaterial({ map: darkWoodTex, roughness: 0.65 })
     );
     clockGroup.add(clockCase);
 
-    // 文字盤
     const faceMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.24, 0.03, 32),
       new THREE.MeshStandardMaterial({ color: 0xfdfaf2, roughness: 0.3 })
@@ -640,7 +609,6 @@
     faceMesh.position.set(0, 0.25, 0.09);
     clockGroup.add(faceMesh);
 
-    // 振り子窓
     const pendWindow = new THREE.Mesh(
       new THREE.BoxGeometry(0.36, 0.48, 0.04),
       new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.2, metalness: 0.6 })
@@ -655,21 +623,15 @@
       action: openClockModal
     });
 
-    // ==========================================
     // 【2. 東の壁 (East)】
-    // ==========================================
-
-    // A. アンティーク書斎机 (X: 3.8, Z: -2.0)
     const deskGroup = new THREE.Group();
     deskGroup.position.set(3.8, 0, -2.0);
 
     const deskMat = new THREE.MeshStandardMaterial({ map: darkWoodTex, roughness: 0.65 });
-    // 天板
     const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 2.2), deskMat);
     deskTop.position.set(0, 0.82, 0);
     deskGroup.add(deskTop);
 
-    // 脚パネル兼引き出し
     const legLeft = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.78, 0.55), deskMat);
     legLeft.position.set(0, 0.39, -0.75);
     deskGroup.add(legLeft);
@@ -678,7 +640,6 @@
     legRight.position.set(0, 0.39, 0.75);
     deskGroup.add(legRight);
 
-    // 中央引き出し＆取っ手（西向き＝プレイヤー側）
     const drawer = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.18, 0.82), deskMat);
     drawer.position.set(-0.02, 0.68, 0);
     deskGroup.add(drawer);
@@ -687,7 +648,6 @@
     handle.position.set(-0.56, 0.68, 0);
     deskGroup.add(handle);
 
-    // 机の上の天体日誌
     const diary = new THREE.Mesh(
       new THREE.BoxGeometry(0.44, 0.05, 0.34),
       new THREE.MeshStandardMaterial({ color: 0x78281f, roughness: 0.7 })
@@ -696,7 +656,6 @@
     diary.rotation.y = 0.2;
     deskGroup.add(diary);
 
-    // デスクライト
     const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.03, 16), brassMat);
     lampBase.position.set(0.15, 0.88, 0.65);
     deskGroup.add(lampBase);
@@ -719,7 +678,7 @@
       { minX: 3.1, maxX: 4.6, minZ: -3.2, maxZ: -0.8 }
     );
 
-    // B. 本棚 (X: 4.5, Z: 1.2) ＆ スライド後の隠し壁金庫
+    // 本棚
     const shelfSystem = new THREE.Group();
     shelfSystem.position.set(4.5, 0, 1.2);
 
@@ -731,7 +690,6 @@
     shelfBody.position.set(0, 1.35, 0);
     bookshelfMeshGroup.add(shelfBody);
 
-    // 7冊の星座本
     const bookColors = [0x5c261e, 0x2d4030, 0x4a3b2c, 0x512e5f, 0x1b3d54, 0x194d2e, 0x5e4912];
     for (let i = 0; i < 7; i++) {
       const bookMesh = new THREE.Mesh(
@@ -754,7 +712,7 @@
       { minX: 3.9, maxX: 5.0, minZ: 0.0, maxZ: 2.4 }
     );
 
-    // C. 壁金庫 (本棚奥の壁: X: 4.88, Y: 1.4, Z: 1.2)
+    // 壁金庫
     const safeGroup = new THREE.Group();
     safeGroup.position.set(4.88, 1.4, 1.2);
 
@@ -779,22 +737,16 @@
       action: openSafeModal
     });
 
-    // ==========================================
     // 【3. 南の壁 (South)】
-    // ==========================================
-
-    // A. 壁の絵画『星辰の夜』 (中央: X: 0, Y: 2.2, Z: 4.88)
     const paintingGroup = new THREE.Group();
     paintingGroup.position.set(0, 2.2, 4.88);
 
-    // 額縁
     const frameMesh = new THREE.Mesh(
       new THREE.BoxGeometry(2.1, 1.55, 0.08),
       brassMat
     );
     paintingGroup.add(frameMesh);
 
-    // キャンバス
     paintingCanvasMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(1.9, 1.35),
       new THREE.MeshStandardMaterial({
@@ -802,7 +754,7 @@
         roughness: 0.5
       })
     );
-    paintingCanvasMesh.rotation.y = Math.PI; // 北を向く
+    paintingCanvasMesh.rotation.y = Math.PI;
     paintingCanvasMesh.position.z = -0.045;
     paintingGroup.add(paintingCanvasMesh);
 
@@ -813,12 +765,11 @@
       action: openPaintingModal
     });
 
-    // B. 暖炉 (X: -2.5, Z: 4.4)
+    // 暖炉
     const fireplaceGroup = new THREE.Group();
     fireplaceGroup.position.set(-2.5, 0, 4.4);
 
     const brickMat = new THREE.MeshStandardMaterial({ color: 0x422d26, roughness: 0.9 });
-    // 外枠マントルピース
     const fpTop = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.16, 0.8), brickMat);
     fpTop.position.set(0, 1.45, 0);
     fireplaceGroup.add(fpTop);
@@ -831,7 +782,6 @@
     fpRight.position.set(0.75, 0.7, 0);
     fireplaceGroup.add(fpRight);
 
-    // 火室内部（黒）
     const firebox = new THREE.Mesh(
       new THREE.BoxGeometry(1.15, 1.1, 0.6),
       new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.9 })
@@ -839,7 +789,6 @@
     firebox.position.set(0, 0.55, 0.05);
     fireplaceGroup.add(firebox);
 
-    // 鉄格子
     const grilleMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.6, metalness: 0.8 });
     const grille = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.9, 0.04), grilleMat);
     grille.position.set(0, 0.55, -0.25);
@@ -856,26 +805,19 @@
       { minX: -3.6, maxX: -1.4, minZ: 3.9, maxZ: 5.0 }
     );
 
-    // ==========================================
     // 【4. 西の壁 (West)】
-    // ==========================================
-
-    // A. 高級革張りソファ (X: -3.8, Z: -1.0)
     const sofaGroup = new THREE.Group();
     sofaGroup.position.set(-3.8, 0, -1.0);
 
     const leatherMat = new THREE.MeshStandardMaterial({ color: 0x58181f, roughness: 0.6, metalness: 0.1 });
-    // 座面
     const seat = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 2.3), leatherMat);
     seat.position.set(0, 0.28, 0);
     sofaGroup.add(seat);
 
-    // 背もたれ
     const back = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 2.3), leatherMat);
     back.position.set(-0.38, 0.7, 0);
     sofaGroup.add(back);
 
-    // 肘掛け
     const armNorth = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.68, 0.32), leatherMat);
     armNorth.position.set(0, 0.45, -1.1);
     sofaGroup.add(armNorth);
@@ -895,11 +837,10 @@
       { minX: -4.6, maxX: -3.1, minZ: -2.4, maxZ: 0.4 }
     );
 
-    // B. サイドテーブルと天球儀 (X: -3.8, Z: 1.8)
+    // 天球儀
     const globeGroup = new THREE.Group();
     globeGroup.position.set(-3.8, 0, 1.8);
 
-    // 丸テーブル
     const tableTop = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.5, 0.06, 24),
       new THREE.MeshStandardMaterial({ map: darkWoodTex, roughness: 0.6 })
@@ -914,7 +855,6 @@
     tableLeg.position.set(0, 0.35, 0);
     globeGroup.add(tableLeg);
 
-    // 天球儀（リング構造）
     const armRingOuter = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.02, 16, 32), brassMat);
     armRingOuter.position.set(0, 1.05, 0);
     globeGroup.add(armRingOuter);
@@ -942,7 +882,7 @@
       { minX: -4.4, maxX: -3.2, minZ: 1.2, maxZ: 2.4 }
     );
 
-    // C. ペルシャ風絨毯 (ソファ手前床: X: -2.3, Z: -0.8)
+    // 絨毯
     const carpetGroup = new THREE.Group();
     carpetGroup.position.set(-2.3, 0.008, -0.8);
 
@@ -953,7 +893,6 @@
     rugMesh.receiveShadow = true;
     carpetGroup.add(rugMesh);
 
-    // めくれる北東の角（アクセント）
     carpetCornerMesh = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.MeshStandardMaterial({ color: 0x501414, roughness: 0.9 })
@@ -1006,7 +945,7 @@
       const item = state.inventory[idx];
       if (item) {
         inner.innerHTML = item.icon;
-        slot.title = item.name;
+        slot.title = `[キー ${idx + 1}] ${item.name}`;
         if (state.selectedItem === item.id) {
           slot.classList.add('selected');
         }
@@ -1015,7 +954,6 @@
           e.stopPropagation();
           soundManager.playClick();
           if (state.selectedItem === item.id) {
-            // 選択中のアイテムをもう一度クリックすると詳細モーダル表示
             openItemDetailModal(item.id);
           } else {
             state.selectedItem = item.id;
@@ -1024,7 +962,7 @@
           }
         };
       } else {
-        slot.title = '空スロット';
+        slot.title = `スロット ${idx + 1} (空)`;
         slot.onclick = null;
       }
     });
@@ -1055,7 +993,6 @@
     controls.lock();
   }
 
-  // アイテムピッカーUI生成ヘルパー（モーダル内でアイテムを選択させる場合）
   function getItemPickerHtml(promptText) {
     if (state.inventory.length === 0) {
       return `
@@ -1154,7 +1091,6 @@
     });
   }
 
-  // 天体日誌モーダル
   function openDiaryModal() {
     soundManager.playTurn();
     const html = `
@@ -1250,7 +1186,6 @@
         <div style="width:100%; max-width:440px; margin:0 auto 14px auto; border:4px solid var(--brass); border-radius:6px; overflow:hidden;">
     `;
 
-    // SVGで油絵『星辰の夜』を再現（明かりON/OFFで表示変化）
     html += `
       <svg viewBox="0 0 280 210" style="display:block; width:100%; background:${isLightOn ? '#152238' : '#080d17'};">
         <polygon points="0,210 60,130 130,170 220,105 280,140 280,210" fill="#2c3e50"/>
@@ -1260,25 +1195,20 @@
     `;
 
     if (!isLightOn) {
-      // 暗闇時の蓄光星辰ライン
       html += `
         <line x1="45" y1="95" x2="95" y2="60" stroke="#5dade2" stroke-width="2.5" stroke-dasharray="4,4" />
         <line x1="95" y1="60" x2="145" y2="85" stroke="#5dade2" stroke-width="2.5" stroke-dasharray="4,4" />
         <line x1="145" y1="85" x2="245" y2="50" stroke="#5dade2" stroke-width="2.5" stroke-dasharray="4,4" />
 
-        <!-- 1. 白羊 -->
         <circle cx="45" cy="95" r="6" fill="#eaf2f8" />
         <text x="45" y="82" font-size="11" fill="#aed6f1" text-anchor="middle" font-family="serif">白羊</text>
 
-        <!-- 2. 獅子 -->
         <circle cx="95" cy="60" r="6" fill="#eaf2f8" />
         <text x="95" y="48" font-size="11" fill="#aed6f1" text-anchor="middle" font-family="serif">獅子</text>
 
-        <!-- 3. 天蠍 -->
         <circle cx="145" cy="85" r="6" fill="#eaf2f8" />
         <text x="145" y="72" font-size="11" fill="#aed6f1" text-anchor="middle" font-family="serif">天蠍</text>
 
-        <!-- 4. 射手 -->
         <circle cx="245" cy="50" r="6" fill="#eaf2f8" />
         <text x="245" y="38" font-size="11" fill="#aed6f1" text-anchor="middle" font-family="serif">射手</text>
       `;
@@ -1360,7 +1290,6 @@
                 if (isMatch) {
                   soundManager.playSolved();
                   state.booksPuzzleSolved = true;
-                  // 3D空間の本棚を横にスライド
                   if (bookshelfMeshGroup) {
                     bookshelfMeshGroup.position.z = 1.3;
                   }
@@ -1731,7 +1660,6 @@
   }
 
   function checkClockSolution() {
-    // 9時15分で解除
     if (state.clockHour === 9 && state.clockMinute === 15) {
       soundManager.playSolved();
       state.clockPuzzleSolved = true;
@@ -1813,7 +1741,6 @@
         </p>
 
         <div class="door-locks-grid">
-          <!-- 1. 賢者の鍵穴 -->
           <div class="lock-card">
             <span class="lock-card-title">1. 賢者の鍵穴</span>
             <div style="font-size:2rem;">
@@ -1824,7 +1751,6 @@
             </span>
           </div>
 
-          <!-- 2. 電子ダイヤル錠 -->
           <div class="lock-card">
             <span class="lock-card-title">2. 電子ダイヤル錠 (4桁)</span>
             <div class="dials-row">
@@ -1855,7 +1781,6 @@
     `;
 
     openModal('NORTH / EXIT DOOR', '脱出の大扉', html, (container) => {
-      // 鍵穴アイテム使用
       if (!state.doorKeyUnlocked) {
         container.querySelectorAll('.item-picker-btn').forEach(btn => {
           btn.onclick = () => {
@@ -1874,7 +1799,6 @@
         });
       }
 
-      // ダイヤル変更
       container.querySelectorAll('.dial-step-btn').forEach(btn => {
         btn.onclick = () => {
           soundManager.playTick();
@@ -1886,14 +1810,12 @@
             state.doorCode[idx] = (state.doorCode[idx] + 9) % 10;
           }
 
-          // 3928 で照合
           const codeStr = state.doorCode.join('');
           state.doorCodeUnlocked = (codeStr === '3928');
           openDoorModal();
         };
       });
 
-      // 脱出ボタン
       const btnEscape = container.querySelector('#btn-escape-door');
       if (btnEscape) {
         btnEscape.onclick = () => {
@@ -1908,7 +1830,6 @@
             soundManager.playClick();
             setMessage('鍵穴は開いたが、電子暗証番号（4桁）が正しくない！ 金庫の暗号を確かめよう。');
           } else {
-            // 両方解除成功！
             triggerStageClear();
           }
         };
@@ -1928,7 +1849,6 @@
     itemDetailIconLarge.innerHTML = item.icon;
     itemDetailDesc.textContent = item.desc;
 
-    // アクションボタン（分解・合成）の判定
     itemDetailActionContainer.classList.add('hidden');
     btnItemAction.onclick = null;
 
@@ -1998,7 +1918,6 @@
     soundManager.playClear();
     setMessage('ギギギ…！ 二重ロックが解除され、書斎の重厚な大扉が開いた！');
 
-    // 扉の回転アニメーション（奥へ90度開く）
     if (doorPivotGroup) {
       const startRot = doorPivotGroup.rotation.y;
       const targetRot = -Math.PI / 2;
@@ -2035,11 +1954,9 @@
 
   // --- 衝突・境界判定 ---
   function resolveCollisions(nextPos, currentPos) {
-    // 1. 四方の壁境界
     nextPos.x = Math.max(-ROOM.wallBoundary, Math.min(ROOM.wallBoundary, nextPos.x));
     nextPos.z = Math.max(-ROOM.wallBoundary, Math.min(ROOM.wallBoundary, nextPos.z));
 
-    // 2. 家具ボックスとのAABB判定
     const r = PLAYER.radius;
     for (const box of obstacleBoxes) {
       const minX = box.minX - r;
@@ -2102,11 +2019,10 @@
     targetHint.classList.add('hidden');
   }
 
-  // 方位HUD更新（カメラの回転角から計算）
   function updateCompassHUD() {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
-    const angle = Math.atan2(dir.x, -dir.z) * (180 / Math.PI); // 北が0度
+    const angle = Math.atan2(dir.x, -dir.z) * (180 / Math.PI);
     let compass = '北 (脱出の大扉)';
     if (angle > 45 && angle <= 135) {
       compass = '東 (書斎机・本棚)';
@@ -2122,34 +2038,92 @@
 
   // 開始画面クリック
   startOverlay.addEventListener('click', () => {
-    if (!activeModal) controls.lock();
+    if (!activeModal) {
+      isGameStarted = true;
+      controls.lock();
+    }
   });
+
   startBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!activeModal) controls.lock();
+    if (!activeModal) {
+      isGameStarted = true;
+      controls.lock();
+    }
   });
+
+  // UI操作モードバナーの「探索視点に戻る」ボタン
+  if (btnResumeExplore) {
+    btnResumeExplore.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!activeModal) {
+        controls.lock();
+      }
+    });
+  }
 
   controls.addEventListener('lock', () => {
     startOverlay.classList.add('hidden');
+    if (cursorModeBanner) cursorModeBanner.classList.add('hidden');
+    document.body.classList.remove('cursor-mode');
     soundManager.init();
   });
 
   controls.addEventListener('unlock', () => {
     clearHover();
     if (!activeModal && !state.gameCleared) {
-      startOverlay.classList.remove('hidden');
+      if (!isGameStarted) {
+        startOverlay.classList.remove('hidden');
+      } else {
+        // 探索中は全画面オーバーレイで画面を覆わず、UI操作モードバナーを表示！
+        if (cursorModeBanner) cursorModeBanner.classList.remove('hidden');
+        document.body.classList.add('cursor-mode');
+      }
     }
   });
 
-  // マウスクリックで調査
+  // 右クリックメニュー抑止（右クリックをUIトグルに活用）
+  window.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
+  // マウスクリック処理
   window.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
     if (activeModal) return;
 
-    if (controls.isLocked && hoveredObject) {
+    // 右クリック (button === 2) で視点操作とマウスフリーUI操作を即座にトグル！
+    if (e.button === 2) {
+      e.preventDefault();
       soundManager.playClick();
-      if (typeof hoveredObject.userData.action === 'function') {
-        hoveredObject.userData.action();
+      if (controls.isLocked) {
+        controls.unlock();
+      } else if (isGameStarted) {
+        controls.lock();
+      }
+      return;
+    }
+
+    // 左クリック (button === 0)
+    if (e.button === 0) {
+      if (controls.isLocked) {
+        // 視点操作中：照準のオブジェクトを調査
+        if (hoveredObject) {
+          soundManager.playClick();
+          if (typeof hoveredObject.userData.action === 'function') {
+            hoveredObject.userData.action();
+          }
+        }
+      } else if (isGameStarted) {
+        // UI操作モード中：キャンバス余白をクリックしたら探索視点に復帰
+        const clickedEl = e.target;
+        const isUI = clickedEl.closest('#top-menu') ||
+                    clickedEl.closest('#inventory-bar-container') ||
+                    clickedEl.closest('.modal') ||
+                    clickedEl.closest('#start-overlay') ||
+                    clickedEl.closest('#cursor-mode-banner');
+        if (!isUI) {
+          controls.lock();
+        }
       }
     }
   });
@@ -2175,19 +2149,22 @@
   });
 
   // メニュー操作
-  btnSoundToggle.addEventListener('click', () => {
+  btnSoundToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
     const isMuted = soundManager.toggleMute();
     btnSoundToggle.textContent = isMuted ? '🔇' : '🔊';
   });
 
-  btnHelpToggle.addEventListener('click', () => {
+  btnHelpToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
     soundManager.playClick();
     activeModal = helpModal;
     helpModal.classList.remove('hidden');
     if (controls.isLocked) controls.unlock();
   });
 
-  btnResetGame.addEventListener('click', () => {
+  btnResetGame.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (confirm('ゲームを初期状態にリセットしますか？')) {
       location.reload();
     }
@@ -2216,6 +2193,47 @@
       return;
     }
 
+    // Tabキーで視点ロックとUI操作モードをトグル！
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      soundManager.playClick();
+      if (controls.isLocked) {
+        controls.unlock();
+      } else if (isGameStarted) {
+        controls.lock();
+      }
+      return;
+    }
+
+    // 数字キー 1〜6 でインベントリアイテムの即座選択＆詳細表示
+    if (/^(Digit[1-6]|Numpad[1-6])$/.test(e.code)) {
+      const slotNum = parseInt(e.code.replace(/^(Digit|Numpad)/, ''), 10);
+      const slotIdx = slotNum - 1;
+      const item = state.inventory[slotIdx];
+      if (item) {
+        soundManager.playClick();
+        if (state.selectedItem === item.id) {
+          openItemDetailModal(item.id);
+        } else {
+          state.selectedItem = item.id;
+          renderInventory();
+          setMessage(`【${item.name}】を選択した。`);
+        }
+      }
+      return;
+    }
+
+    // EキーまたはIキーで現在選択中のアイテムの詳細を展開
+    if (e.code === 'KeyE' || e.code === 'KeyI') {
+      if (state.selectedItem) {
+        e.preventDefault();
+        soundManager.playClick();
+        openItemDetailModal(state.selectedItem);
+        return;
+      }
+    }
+
+    // 移動キー
     switch (e.code) {
       case 'KeyW':
       case 'ArrowUp':
