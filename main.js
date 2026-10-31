@@ -1993,7 +1993,9 @@
 
     // A. 高級革張りソファ（深いワインレッド roughness: 0.5、丸みのあるクッション、四隅の短い木製丸脚）
     const sofaGroup = new THREE.Group();
-    sofaGroup.position.set(-3.8, 0, -1.0);
+    sofaGroup.position.set(-3.88, 0, -1.0);
+    // 重厚なクラシック3人掛けソファにふさわしいサイズ感へボリュームアップ（幅約2.64m、奥行き約0.98m、高さ約0.96m）
+    sofaGroup.scale.set(1.20, 1.16, 1.22);
 
     const leatherMat = new THREE.MeshStandardMaterial({
       color: 0x4c1218, // 深いワインレッド
@@ -2175,7 +2177,7 @@
         category: 'WEST / LEATHER SOFA',
         action: openSofaModal
       },
-      { minX: -4.6, maxX: -3.1, minZ: -2.4, maxZ: 0.4 }
+      { minX: -4.7, maxX: -3.0, minZ: -2.6, maxZ: 0.6 }
     );
 
     // B. サイドテーブルと天球儀（真鍮の金属支柱・同心円の回転リング群・中心の小さな球体）
