@@ -1990,119 +1990,132 @@
       metalness: 0.15
     });
 
-    // 四隅の短い木製丸脚（CylinderGeometry）＋真鍮リング
+    // 四隅の短い木製丸脚（CylinderGeometry）＋真鍮カップ
     const legPositions = [
-      [-0.44, -1.08],
-      [0.44, -1.08],
-      [-0.44, 1.08],
-      [0.44, 1.08]
+      [-0.40, -1.02],
+      [0.40, -1.02],
+      [-0.40, 1.02],
+      [0.40, 1.02]
     ];
     legPositions.forEach(([lx, lz]) => {
       const woodLeg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.058, 0.036, 0.16, 16),
+        new THREE.CylinderGeometry(0.048, 0.032, 0.14, 16),
         darkWoodMat
       );
-      woodLeg.position.set(lx, 0.08, lz);
+      woodLeg.position.set(lx, 0.07, lz);
       sofaGroup.add(woodLeg);
 
       const legBrassCup = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.040, 0.034, 0.035, 16),
+        new THREE.CylinderGeometry(0.036, 0.030, 0.03, 16),
         polishedBrassMat
       );
-      legBrassCup.position.set(lx, 0.02, lz);
+      legBrassCup.position.set(lx, 0.015, lz);
       sofaGroup.add(legBrassCup);
     });
 
-    // ソファ下部フレーム台座（脚の上に載る）
+    // ソファ下部メインベースフレーム（脚の上に載る）
     const sofaBaseFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(1.06, 0.16, 2.32),
+      new THREE.BoxGeometry(0.96, 0.16, 2.24),
       leatherMat
     );
     sofaBaseFrame.position.set(0, 0.22, 0);
     sofaGroup.add(sofaBaseFrame);
 
-    // フロント下部の木製飾り幕板
+    // フロント下部の木製飾り枠
     const woodApron = new THREE.Mesh(
-      new THREE.BoxGeometry(0.04, 0.05, 2.28),
+      new THREE.BoxGeometry(0.03, 0.06, 2.22),
       darkWoodMat
     );
-    woodApron.position.set(0.52, 0.155, 0);
+    woodApron.position.set(0.485, 0.17, 0);
     sofaGroup.add(woodApron);
 
-    // 丸みを持たせた3連座面クッション（小箱が隠されている隙間付き）
-    [-0.66, 0.0, 0.66].forEach((cz) => {
-      const cushionCore = new THREE.Mesh(
-        new THREE.BoxGeometry(0.86, 0.16, 0.63),
-        leatherMat
-      );
-      cushionCore.position.set(0.08, 0.37, cz);
-      sofaGroup.add(cushionCore);
-
-      // 座面前端の丸みロール（CylinderGeometry）
-      const frontRoll = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.08, 0.63, 18),
-        leatherMat
-      );
-      frontRoll.position.set(0.51, 0.37, cz);
-      sofaGroup.add(frontRoll);
-
-      // 座面上面のふっくらした膨らみパッド
-      const topPillow = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.30, 0.30, 0.82, 18),
-        leatherMat
-      );
-      topPillow.rotation.z = Math.PI / 2;
-      topPillow.scale.set(0.22, 1.0, 1.02);
-      topPillow.position.set(0.10, 0.42, cz);
-      sofaGroup.add(topPillow);
-    });
-
-    // 背もたれ（丸みのある上部ロール CylinderGeometry ＋ ふっくらした3連バックレスト）
-    const backCore = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.72, 2.28), leatherMat);
-    backCore.position.set(-0.40, 0.66, 0);
+    // 背もたれ（Backrest）
+    // 背もたれ本体
+    const backCore = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.54, 2.06), leatherMat);
+    backCore.position.set(-0.35, 0.57, 0);
     sofaGroup.add(backCore);
 
+    // 背もたれ上部のロール（Z軸方向に横たえる）
     const backTopRoll = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 2.34, 20),
+      new THREE.CylinderGeometry(0.12, 0.12, 2.06, 20),
       leatherMat
     );
-    backTopRoll.position.set(-0.39, 1.02, 0);
+    backTopRoll.rotation.x = Math.PI / 2;
+    backTopRoll.position.set(-0.35, 0.84, 0);
     sofaGroup.add(backTopRoll);
 
-    // 左右のチェスターフィールド風ロールアームレスト（丸みのある円柱巻肘）
-    [-1.12, 1.12].forEach((az) => {
-      const armBox = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.42, 0.24), leatherMat);
-      armBox.position.set(0.02, 0.48, az);
+    // 左右アームレスト（肘掛け）
+    [-1.03, 1.03].forEach((az) => {
+      // アーム下部ブロック
+      const armBox = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.44, 0.20), leatherMat);
+      armBox.position.set(0.01, 0.44, az);
       sofaGroup.add(armBox);
 
+      // アーム上部のロール（X軸方向に横たえる）
       const armRoll = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.15, 1.10, 20),
+        new THREE.CylinderGeometry(0.12, 0.12, 0.96, 20),
         leatherMat
       );
       armRoll.rotation.z = Math.PI / 2;
-      armRoll.position.set(0.03, 0.68, az);
+      armRoll.position.set(0.01, 0.66, az);
       sofaGroup.add(armRoll);
 
-      // アーム前面の円形フェイシングと真鍮鋲（スタッズ）装飾
+      // アーム前面（+X）の丸い化粧キャップ
       const armFrontCap = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.15, 0.03, 20),
+        new THREE.CylinderGeometry(0.12, 0.12, 0.03, 20),
         darkLeatherSeamMat
       );
       armFrontCap.rotation.z = Math.PI / 2;
-      armFrontCap.position.set(0.57, 0.68, az);
+      armFrontCap.position.set(0.49, 0.66, az);
       sofaGroup.add(armFrontCap);
+
+      // アーム前面の装飾スタッズ（真鍮鋲）
+      const studMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.018, 10, 10),
+        polishedBrassMat
+      );
+      studMesh.position.set(0.505, 0.66, az);
+      sofaGroup.add(studMesh);
+    });
+
+    // 3連座面クッション（小箱が隠されている隙間構造）
+    [-0.64, 0.0, 0.64].forEach((cz) => {
+      // クッション本体
+      const cushion = new THREE.Mesh(
+        new THREE.BoxGeometry(0.70, 0.14, 0.60),
+        leatherMat
+      );
+      cushion.position.set(0.10, 0.37, cz);
+      sofaGroup.add(cushion);
+
+      // クッション前縁ロール（Z軸方向に横たえる）
+      const frontRoll = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07, 0.07, 0.60, 16),
+        leatherMat
+      );
+      frontRoll.rotation.x = Math.PI / 2;
+      frontRoll.position.set(0.45, 0.37, cz);
+      sofaGroup.add(frontRoll);
+
+      // ふくらみトップ
+      const cushionTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.66, 0.02, 0.58),
+        darkLeatherSeamMat
+      );
+      cushionTop.position.set(0.10, 0.44, cz);
+      sofaGroup.add(cushionTop);
     });
 
     // 背もたれのタフティング（ボタン留め）2段配置
-    for (let bz = -0.78; bz <= 0.78; bz += 0.39) {
-      [0.64, 0.84].forEach((by, rIdx) => {
-        const zShift = rIdx === 1 ? 0.195 : 0;
-        if (Math.abs(bz + zShift) > 0.85) return;
+    for (let bz = -0.72; bz <= 0.72; bz += 0.36) {
+      [0.54, 0.72].forEach((by, rIdx) => {
+        const zShift = rIdx === 1 ? 0.18 : 0;
+        if (Math.abs(bz + zShift) > 0.82) return;
         const btn = new THREE.Mesh(
-          new THREE.SphereGeometry(0.022, 12, 12),
+          new THREE.SphereGeometry(0.018, 10, 10),
           darkLeatherSeamMat
         );
-        btn.position.set(-0.25, by, bz + zShift);
+        btn.position.set(-0.22, by, bz + zShift);
         sofaGroup.add(btn);
       });
     }
