@@ -221,6 +221,7 @@
   let deskShadeLight = null;    // ランプシェード内部の補助点光源
   let ceilingBulbMesh = null;   // 天井電球
   let deskBulbMesh = null;      // デスク電球
+  let deskShadeMesh = null;     // デスクランプの緑シェード
 
   // カメラズーム演出用ステート（机・手帳の調査時 0.6秒補間）
   const cameraZoom = {
@@ -509,10 +510,10 @@
     fireplaceLight.shadow.bias = -0.002;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のランプシェードから机上の手帳へ斜め下向きに暖色(#ffebc2)のSpotLightを照射
-    deskSpotLight = new THREE.SpotLight(0xffebc2, 1.85, 4.2, Math.PI / 3.8, 0.92, 1.5);
-    deskSpotLight.position.set(3.94, 1.17, -1.48);
-    deskSpotLight.target.position.set(3.58, 0.86, -2.08);
+    // 4. 補助光源 B：書斎机（East）のランプ周囲と天板・手帳を自然に照らす暖色(#ffebc2)ライト
+    deskSpotLight = new THREE.SpotLight(0xffebc2, 2.1, 3.8, Math.PI / 2.1, 0.98, 1.4);
+    deskSpotLight.position.set(3.94, 1.16, -1.48);
+    deskSpotLight.target.position.set(3.84, 0.86, -1.60);
     deskSpotLight.castShadow = true;
     deskSpotLight.shadow.mapSize.width = 1024;
     deskSpotLight.shadow.mapSize.height = 1024;
@@ -520,9 +521,9 @@
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
 
-    // シェード内側の柔らかな発光補助PointLight
-    deskShadeLight = new THREE.PointLight(0xffebc2, 0.45, 1.6, 2.0);
-    deskShadeLight.position.set(3.94, 1.16, -1.48);
+    // ランプの周囲360度（台座・支柱・天板・壁面・手帳）をふんわり照らすPointLight
+    deskShadeLight = new THREE.PointLight(0xffebc2, 1.15, 2.8, 1.5);
+    deskShadeLight.position.set(3.94, 1.10, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -530,12 +531,13 @@
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 1.85;
-      if (deskShadeLight) deskShadeLight.intensity = 0.45;
+      deskSpotLight.intensity = 2.1;
+      if (deskShadeLight) deskShadeLight.intensity = 1.15;
       fireplaceLight.intensity = 0.95;
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 1.25;
-      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 1.4;
+      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 1.5;
+      if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.35;
 
       darknessVignette.classList.add('hidden');
       scene.background.set(0x140e09);
@@ -550,6 +552,7 @@
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 0.05;
       if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 0.0;
+      if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.0;
 
       darknessVignette.classList.remove('hidden');
       scene.background.set(0x040507);
@@ -692,6 +695,9 @@
         if (c.userData && c.userData.isHitBox) {
           c.castShadow = false;
           c.receiveShadow = false;
+        } else if (c.userData && c.userData.noCastShadow) {
+          c.castShadow = false;
+          c.receiveShadow = true;
         } else {
           c.castShadow = true;
           c.receiveShadow = true;
@@ -918,6 +924,8 @@
     });
     const lampShadeMat = new THREE.MeshStandardMaterial({
       color: 0x14452e,
+      emissive: 0x194228,
+      emissiveIntensity: 0.35,
       roughness: 0.4,
       metalness: 0.12,
       side: THREE.DoubleSide
@@ -957,6 +965,7 @@
       lampShadeMat
     );
     lampShade.position.set(0, 0.34, 0);
+    deskShadeMesh = lampShade;
     deskLampGroup.add(lampShade);
 
     // シェード天頂の真鍮キャップ＆フィニアル（支柱頂点と傘の頂点をシームレスに結合）
@@ -980,12 +989,19 @@
       new THREE.MeshStandardMaterial({
         color: 0xfff3d6,
         emissive: 0xffebc2,
-        emissiveIntensity: 1.4,
+        emissiveIntensity: 1.5,
         roughness: 0.2
       })
     );
     deskBulbMesh.position.set(0, 0.31, 0);
     deskLampGroup.add(deskBulbMesh);
+
+    // ランプ自身のパーツが内部光源を遮って真下に不自然な影を作らないよう設定
+    deskLampGroup.traverse((part) => {
+      if (part.isMesh) {
+        part.userData.noCastShadow = true;
+      }
+    });
 
     deskGroup.add(deskLampGroup);
 
