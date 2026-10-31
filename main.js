@@ -132,7 +132,17 @@
   const crosshair = document.getElementById('crosshair');
   const targetHint = document.getElementById('target-hint');
   const targetHintText = document.getElementById('target-hint-text');
+  const resumeHint = document.getElementById('resume-hint');
   const darknessVignette = document.getElementById('darkness-vignette');
+
+  function updateResumeHint() {
+    if (!resumeHint) return;
+    if (isGameStarted && menuScreen.classList.contains('hidden') && !activeModal && !controls.isLocked) {
+      resumeHint.classList.remove('hidden');
+    } else {
+      resumeHint.classList.add('hidden');
+    }
+  }
   const hudCompass = document.getElementById('hud-compass');
   const messageText = document.getElementById('message-text');
   const messageBar = document.getElementById('message-bar');
@@ -2698,27 +2708,51 @@
     });
   }
 
-  // --- メッセージ表示ヘルパー（一定時間で自動的にデフォルトナレーションへフェード復帰） ---
-  const DEFAULT_MESSAGE = '古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。';
+  // --- メッセージ表示ヘルパー（一定時間で自動的に上品にフェードアウト） ---
   let messageClearTimer = null;
 
   function setMessage(text, autoResetDelay = 4000) {
-    if (!messageText) return;
-    messageText.innerHTML = text.replace(/\n/g, '<br>');
+    if (!messageText || !messageBarContainer) return;
 
     if (messageClearTimer) {
       clearTimeout(messageClearTimer);
       messageClearTimer = null;
     }
 
-    // アイテム入手や操作通知など、一時的なメッセージは数秒後に自然にデフォルト表示へ復帰
-    if (autoResetDelay > 0 && text !== DEFAULT_MESSAGE) {
+    if (!text || text.trim() === '') {
+      messageBarContainer.classList.remove('visible');
+      if (messageBar) messageBar.classList.remove('item-highlight');
+      return;
+    }
+
+    messageText.innerHTML = text.replace(/\n/g, '<br>');
+    messageBarContainer.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      messageBarContainer.classList.add('visible');
+    });
+
+    // 指定秒数後に自動フェードアウト（デフォルトメッセージへの居座りを防止）
+    if (autoResetDelay > 0) {
       messageClearTimer = setTimeout(() => {
-        messageText.innerHTML = DEFAULT_MESSAGE;
+        messageBarContainer.classList.remove('visible');
         if (messageBar) {
           messageBar.classList.remove('item-highlight');
         }
       }, autoResetDelay);
+    }
+  }
+
+  function clearMessage() {
+    if (messageClearTimer) {
+      clearTimeout(messageClearTimer);
+      messageClearTimer = null;
+    }
+    if (messageBarContainer) {
+      messageBarContainer.classList.remove('visible');
+      messageBarContainer.classList.add('hidden');
+    }
+    if (messageBar) {
+      messageBar.classList.remove('item-highlight');
     }
   }
 
@@ -2738,6 +2772,9 @@
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       itemGetToast.classList.add('hidden');
+      if (messageBar) {
+        messageBar.classList.remove('item-highlight');
+      }
     }, 3200);
   }
 
@@ -2803,9 +2840,7 @@
     isObjectInteracting = false;
 
     // オブジェクト調査モーダル表示中はメッセージバーを非表示にしてUI重なりを防止
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    clearMessage();
 
     activeModal = inspectModal;
     modalCategory.textContent = category;
@@ -2876,9 +2911,7 @@
     cameraZoom.active = true;
     soundManager.playZoom(false);
 
-    if (controls.isLocked) {
-      controls.unlock();
-    }
+    // ズームイン中（0.6秒）はPointerLockを維持（モーダル立ち上がり時にunlockされる）
 
     cameraZoom.onComplete = () => {
       cameraZoom.isZoomedIn = true;
@@ -2926,6 +2959,7 @@
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
+      updateResumeHint();
     };
   }
   const startDeskZoomOut = startCameraZoomOut;
@@ -3993,9 +4027,7 @@
 
   function showClearModal() {
     state.gameCleared = true;
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    clearMessage();
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
     const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
     const s = String(elapsed % 60).padStart(2, '0');
@@ -4169,7 +4201,7 @@
 
     // 4. UIのリセット
     renderInventory();
-    setMessage('古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。');
+    setMessage('古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。', 5000);
 
     // 5. そのまま直ちに探索プレイを開始！
     soundManager.init();
@@ -4216,7 +4248,7 @@
 
     crosshair.classList.add('hidden');
     hudEl.classList.add('hidden');
-    messageBarContainer.classList.add('hidden');
+    clearMessage();
     inventoryBarContainer.classList.add('hidden');
     topMenuEl.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
@@ -4243,9 +4275,7 @@
   }
 
   function openSettingsModal() {
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    clearMessage();
     soundManager.playClick();
     updateSoundSettingUI();
     activeModal = settingsModal;
@@ -4328,10 +4358,12 @@
   controls.addEventListener('lock', () => {
     document.body.classList.remove('cursor-mode');
     soundManager.init();
+    updateResumeHint();
   });
 
   controls.addEventListener('unlock', () => {
     clearHover();
+    updateResumeHint();
     // ズーム演出中、ズーム注視中、またはモーダル表示中は設定画面オープンを安全に抑止
     if (cameraZoom.active || cameraZoom.isZoomedIn || activeModal) {
       return;
@@ -4356,20 +4388,22 @@
 
     // 左クリック (button === 0)
     if (e.button === 0) {
-      if (controls.isLocked) {
-        if (hoveredObject) {
-          isObjectInteracting = true;
-          soundManager.playClick();
-          if (typeof hoveredObject.userData.action === 'function') {
-            hoveredObject.userData.action();
-          }
-          if (!cameraZoom.active && !activeModal) {
-            isObjectInteracting = false;
-          }
-        }
-      } else if (isGameStarted) {
-        // ポインターロックが外れている場合はクリックで即座に探索視点に復帰
+      if (!controls.isLocked && isGameStarted) {
+        // ポインターロックが外れている場合はクリックで最優先に探索視点へ完全復帰！
         controls.lock();
+        if (resumeHint) resumeHint.classList.add('hidden');
+        return;
+      }
+
+      if (controls.isLocked && hoveredObject) {
+        isObjectInteracting = true;
+        soundManager.playClick();
+        if (typeof hoveredObject.userData.action === 'function') {
+          hoveredObject.userData.action();
+        }
+        if (!cameraZoom.active && !activeModal) {
+          isObjectInteracting = false;
+        }
       }
     }
   });

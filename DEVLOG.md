@@ -41,6 +41,33 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - メッセージバーとインベントリの重なり解消・自動フェードアウト化 ＆ ズーム中Esc押下時の操作復帰プロンプト実装 (`feat-main-menu-settings`)
+
+1. **メッセージバーとインベントリバーの被り解消 ＆ 自然な自動フェードアウト仕様（画面常駐の撤廃）**
+   - **事象**:
+     - 画面下部のメッセージバー（ナレーションバー）の配置高さ（`bottom: 128px`）が、6スロットインベントリバーの上部（`bottom: 14px` + 高さ約122〜130px）と重なり、「INVENTORY」の見出しテキストを隠してしまうレイアウト崩れが発生していた。
+     - また、ゲーム開始時の「古びた書斎に閉じ込められているようだ…」や各種調査メッセージが、一定時間経過後にデフォルト文言のまま画面中央下に永久常駐してしまい、探索中の視界の邪魔になっていた。
+   - **対策と実装**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#message-bar-container` の位置を `bottom: 156px` に引き上げ。インベントリバーの上端から20px以上の十分な余白を確保し、文字やスロット枠の被りを完全防止。
+       - 初期状態を `opacity: 0; transform: translateY(8px); pointer-events: none;` とし、`.visible` クラス付与で滑らかにフェードイン・フェードアウト（Cubic Ease-Out 0.35s）する洗練されたトランジションを実装。
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `setMessage(text, autoResetDelay = 4000)` のロジックを刷新。メッセージ表示から指定時間（デフォルト4秒、開始時5秒）経過後に `.visible` を外して自然に画面からフェードアウト消去。デフォルト文言を永久に居座らせる仕様を撤廃。
+       - `clearMessage()` ヘルパーを新設し、モーダル展開時やメニュー移行時にタイマー・ハイライト・表示を確実にクリーンアップ。
+
+2. **ズームイン中Escキー押下時の移動不能バグ解消 ＆ 早期PointerLock解除の撤廃とクリック復帰プロンプト**
+   - **事象**:
+     - ズームイン演出中（0.6秒補間中）にEscキーを押すと、元の視点へズームアウトするものの、ブラウザのPointerLockセキュリティ制約（Esc直後のプログラムによる自動requestPointerLock禁止）によりロックが拒否され、画面上は通常視点なのにWASD移動が動かない「移動不能状態」が発生していた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `triggerZoomAndInspect` 開始時の不要な早期 `controls.unlock()` を撤廃。ズームイン演出中はポインターロックを維持し、モーダルが開いた瞬間のみアンロックする安全設計へ変更。
+       - ポインターロック解除時に画面中央へ真鍮枠の復帰プロンプト「クリックして探索を再開」（`#resume-hint`）を表示する `updateResumeHint()` を実装。
+       - 画面上の任意の左クリックで最優先に `controls.lock()` を呼び出し、1クリックで直ちに探索視点・WASD移動へ完全復帰可能にした。
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html), [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#resume-hint` 要素の追加およびパルスアニメーション付き真鍮ピル装飾を追加。
+
+---
+
 ### 2026-11-01 (日) - オブジェクトクリック無反応バグの解消（ズームイン開始時のunlock誤検知ループ修正） (`feat-main-menu-settings`)
 
 1. **オブジェクトをクリックしても調査・ズームインが反応しなかった致命的バグの解消**
