@@ -129,14 +129,17 @@
   const stage1Meta = document.getElementById('stage-1-meta');
   const menuBtnSettings = document.getElementById('menu-btn-settings');
 
-  const cursorModeBanner = document.getElementById('cursor-mode-banner');
-  const btnResumeExplore = document.getElementById('btn-resume-explore');
   const crosshair = document.getElementById('crosshair');
   const targetHint = document.getElementById('target-hint');
   const targetHintText = document.getElementById('target-hint-text');
   const darknessVignette = document.getElementById('darkness-vignette');
   const hudCompass = document.getElementById('hud-compass');
   const messageText = document.getElementById('message-text');
+  const messageBar = document.getElementById('message-bar');
+
+  const itemGetToast = document.getElementById('item-get-toast');
+  const toastItemIcon = document.getElementById('toast-item-icon');
+  const toastItemName = document.getElementById('toast-item-name');
 
   const hudEl = document.getElementById('hud');
   const messageBarContainer = document.getElementById('message-bar-container');
@@ -1813,7 +1816,8 @@
     });
 
     shelfSystem.add(bookshelfMeshGroup);
-    attachInvisibleCollider(shelfSystem, 0.85, 2.75, 2.30, 0, 1.37, 0);
+    // コライダーを bookshelfMeshGroup に追加することで、本棚スライド時にコライダーも一緒に退避する
+    attachInvisibleCollider(bookshelfMeshGroup, 0.85, 2.75, 2.30, 0, 1.37, 0);
 
     registerInteractive(
       shelfSystem,
@@ -1870,17 +1874,24 @@
     safeHandle.position.set(-0.09, 0.0, 0.20);
     safeGroup.add(safeHandle);
 
-    attachInvisibleCollider(safeGroup, 0.25, 0.95, 0.95, -0.05, 0, 0);
+    // 金庫の不可視コライダーを手前側（x負方向）に広げ、本棚スライド後に確実にRaycastがヒットするようにする
+    attachInvisibleCollider(safeGroup, 0.60, 1.15, 1.15, -0.25, 0, 0);
 
     registerInteractive(safeGroup, {
       id: 'wall_safe',
       name: '本棚奥の壁金庫',
       category: 'EAST / HIDDEN SAFE',
-      action: () => triggerZoomAndInspect(
-        new THREE.Vector3(3.6, 1.4, 1.2),
-        new THREE.Vector3(4.88, 1.4, 1.2),
-        openSafeModal
-      )
+      action: () => {
+        if (!state.booksPuzzleSolved) {
+          setMessage('本棚の奥に何かが隠されているようだが、本棚が遮っていて手が届かない。');
+          return;
+        }
+        triggerZoomAndInspect(
+          new THREE.Vector3(3.6, 1.4, 1.2),
+          new THREE.Vector3(4.88, 1.4, 1.2),
+          openSafeModal
+        );
+      }
     });
 
     // ==========================================
@@ -2580,6 +2591,28 @@
     messageText.innerHTML = text.replace(/\n/g, '<br>');
   }
 
+  // --- アイテム入手トースト通知（黒背景でも確実に読み取れる最前面通知） ---
+  let toastTimer = null;
+  function showItemGetToast(def) {
+    if (!itemGetToast || !def) return;
+    if (toastItemIcon) toastItemIcon.innerHTML = def.icon;
+    if (toastItemName) toastItemName.textContent = `【${def.name}】`;
+
+    itemGetToast.classList.remove('hidden');
+
+    if (messageBar) {
+      messageBar.classList.add('item-highlight');
+    }
+
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      itemGetToast.classList.add('hidden');
+      if (messageBar) {
+        messageBar.classList.remove('item-highlight');
+      }
+    }, 3200);
+  }
+
   // --- インベントリ管理 ---
   function addItem(itemId) {
     const def = ITEMS[itemId];
@@ -2590,7 +2623,8 @@
     state.inventory.push(def);
     state.selectedItem = itemId;
     renderInventory();
-    setMessage(`【${def.name}】を手に入れた！`);
+    setMessage(`【${def.name}】を手に入れた！［キー ${state.inventory.length} で選択］`);
+    showItemGetToast(def);
   }
 
   function removeItem(itemId) {
@@ -2807,7 +2841,13 @@
           </div>
         `;
       } else {
-        bodyHtml += `<p style="color:#888; font-size:0.85rem;">引き出しの中はもう空だ。</p>`;
+        bodyHtml += `
+          <div style="background:rgba(202,168,106,0.18); border:1.5px solid var(--accent-gold); border-radius:8px; padding:10px 14px; margin:10px auto; max-width:380px; box-shadow:0 0 16px rgba(241,196,15,0.25);">
+            <p style="color:#ffd700; font-weight:bold; font-size:1.0rem; margin-bottom:2px;">★【照明盤の真鍮鍵】を入手しました！★</p>
+            <p style="color:#ffffff; font-size:0.84rem;">北の壁の施錠されたスイッチカバーを開けられそうだ。</p>
+          </div>
+          <p style="color:#aaa; font-size:0.85rem; margin-top:6px;">引き出しの中はもう空だ。</p>
+        `;
       }
     }
 
@@ -3065,6 +3105,11 @@
                   if (bookshelfMeshGroup) {
                     bookshelfMeshGroup.position.z = 1.3;
                   }
+                  // 金庫の前までプレイヤーが近づけるよう障害物ボックスを更新
+                  const obsIdx = obstacleBoxes.findIndex(b => b.minX === 3.9 && b.minZ === 0.0);
+                  if (obsIdx !== -1) {
+                    obstacleBoxes[obsIdx] = { minX: 3.9, maxX: 5.0, minZ: 1.3, maxZ: 3.7 };
+                  }
                   setMessage('ゴゴゴ…！ 本棚が横にスライドし、壁から真鍮の金庫が現れた！');
                   setTimeout(openBookshelfModal, 500);
                 } else {
@@ -3133,7 +3178,13 @@
           </div>
         `;
       } else {
-        html += `<p style="color:#888; font-size:0.85rem;">ピンは回収済みだ。</p>`;
+        html += `
+          <div style="background:rgba(202,168,106,0.18); border:1.5px solid var(--accent-gold); border-radius:8px; padding:10px 14px; margin:10px auto; max-width:380px; box-shadow:0 0 16px rgba(241,196,15,0.25);">
+            <p style="color:#ffd700; font-weight:bold; font-size:1.0rem; margin-bottom:2px;">★【星辰の固定ピン】を入手しました！★</p>
+            <p style="color:#ffffff; font-size:0.84rem;">天球儀のロック穴に嵌めて回転機構を解放しよう。</p>
+          </div>
+          <p style="color:#aaa; font-size:0.85rem; margin-top:6px;">ピンは回収済みだ。</p>
+        `;
       }
       html += `</div>`;
     }
@@ -3302,8 +3353,12 @@
       `;
     } else {
       html += `
+        <div style="background:rgba(202,168,106,0.18); border:1.5px solid var(--accent-gold); border-radius:8px; padding:12px; margin-bottom:14px; box-shadow:0 0 16px rgba(241,196,15,0.25);">
+          <p style="color:#ffd700; font-weight:bold; font-size:1.05rem; margin-bottom:4px;">★【青玉の紋章メダル】を入手しました！★</p>
+          <p style="color:#ffffff; font-size:0.86rem;">所持品バーに収められました。壊れた鍵の頭部と結合できそうだ。</p>
+        </div>
         <p style="color:#b2aba0;">鉄格子が外された暖炉の火室だ。</p>
-        <p style="color:#888; font-size:0.88rem; margin-top:8px;">灰の中はもう探り尽くした。</p>
+        <p style="color:#aaa; font-size:0.88rem; margin-top:6px;">灰の中はもう探り尽くした。</p>
       `;
     }
 
@@ -3406,7 +3461,13 @@
           <button id="btn-take-broken-key" class="primary-btn" style="max-width:240px; margin:0 auto;">鍵身を拾い上げる</button>
         `;
       } else {
-        html += `<p style="color:#888; font-size:0.85rem;">パーツは回収済みだ。</p>`;
+        html += `
+          <div style="background:rgba(202,168,106,0.18); border:1.5px solid var(--accent-gold); border-radius:8px; padding:10px 14px; margin:12px auto; max-width:380px; box-shadow:0 0 16px rgba(241,196,15,0.25);">
+            <p style="color:#ffd700; font-weight:bold; font-size:1.0rem; margin-bottom:2px;">★【壊れた賢者の鍵】を入手しました！★</p>
+            <p style="color:#ffffff; font-size:0.84rem;">頭部の紋章が欠けている。適合する紋章パーツと結合できそうだ。</p>
+          </div>
+          <p style="color:#aaa; font-size:0.85rem; margin-top:6px;">パーツは回収済みだ。</p>
+        `;
       }
       html += `</div>`;
     }
@@ -3899,7 +3960,6 @@
     messageBarContainer.classList.add('hidden');
     inventoryBarContainer.classList.add('hidden');
     topMenuEl.classList.add('hidden');
-    if (cursorModeBanner) cursorModeBanner.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
 
     menuScreen.classList.remove('hidden');
@@ -4000,28 +4060,19 @@
     }
   });
 
-  // UI操作モードバナーの「探索視点に戻る」ボタン
-  if (btnResumeExplore) {
-    btnResumeExplore.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!activeModal && menuScreen.classList.contains('hidden')) {
-        controls.lock();
-      }
-    });
-  }
-
   controls.addEventListener('lock', () => {
-    if (cursorModeBanner) cursorModeBanner.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
     soundManager.init();
   });
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    if (!activeModal && !state.gameCleared && !cameraZoom.active) {
+    if (!state.gameCleared && !cameraZoom.active) {
       if (menuScreen.classList.contains('hidden') && isGameStarted) {
-        if (cursorModeBanner) cursorModeBanner.classList.remove('hidden');
-        document.body.classList.add('cursor-mode');
+        // Escキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
+        if (!activeModal) {
+          openSettingsModal();
+        }
       }
     }
   });
@@ -4031,21 +4082,9 @@
     e.preventDefault();
   });
 
-  // マウスクリック処理
+  // マウスクリック処理（常時PointerLock探索、UIモードなし）
   window.addEventListener('mousedown', (e) => {
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
-
-    // 右クリック (button === 2) で視点操作とUI操作を即座にトグル
-    if (e.button === 2) {
-      e.preventDefault();
-      soundManager.playClick();
-      if (controls.isLocked) {
-        controls.unlock();
-      } else if (isGameStarted) {
-        controls.lock();
-      }
-      return;
-    }
 
     // 左クリック (button === 0)
     if (e.button === 0) {
@@ -4057,15 +4096,8 @@
           }
         }
       } else if (isGameStarted) {
-        const clickedEl = e.target;
-        const isUI = clickedEl.closest('#top-menu') ||
-                    clickedEl.closest('#inventory-bar-container') ||
-                    clickedEl.closest('.modal') ||
-                    clickedEl.closest('#menu-screen') ||
-                    clickedEl.closest('#cursor-mode-banner');
-        if (!isUI) {
-          controls.lock();
-        }
+        // ポインターロックが外れている場合はクリックで即座に探索視点に復帰
+        controls.lock();
       }
     }
   });
@@ -4092,10 +4124,28 @@
     returnToMainMenu();
   });
 
-  // キーボード移動＆ショートカット
+  // キーボード移動＆ショートカット（Escで設定画面、数字キー1〜6でアイテム選択・詳細）
   window.addEventListener('keydown', (e) => {
+    // Escキーのハンドリング：モーダル開閉 / 設定画面の展開
+    if (e.code === 'Escape') {
+      e.preventDefault();
+      if (activeModal) {
+        if (activeModal === inspectModal) closeModal();
+        else if (activeModal === itemDetailModal) {
+          itemDetailModal.classList.add('hidden');
+          activeModal = null;
+          controls.lock();
+        } else if (activeModal === settingsModal) {
+          closeSettingsModal();
+        }
+      } else if (isGameStarted && menuScreen.classList.contains('hidden')) {
+        openSettingsModal();
+      }
+      return;
+    }
+
     if (activeModal) {
-      if (e.code === 'Enter' || e.code === 'Escape') {
+      if (e.code === 'Enter') {
         e.preventDefault();
         if (activeModal === inspectModal) closeModal();
         else if (activeModal === itemDetailModal) {
@@ -4105,17 +4155,6 @@
         } else if (activeModal === settingsModal) {
           closeSettingsModal();
         }
-      }
-      return;
-    }
-
-    if (e.code === 'Tab') {
-      e.preventDefault();
-      soundManager.playClick();
-      if (controls.isLocked) {
-        controls.unlock();
-      } else if (isGameStarted) {
-        controls.lock();
       }
       return;
     }

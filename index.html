@@ -44,24 +44,24 @@
     <span class="hint-key">[左クリック]</span>
   </div>
 
-  <!-- UI操作モード（マウスカーソル解放中）の案内バナー -->
-  <div id="cursor-mode-banner" class="hidden">
-    <div class="banner-content">
-      <span class="banner-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="6" y="3" width="12" height="18" rx="6"></rect>
-          <line x1="12" y1="7" x2="12" y2="11"></line>
-        </svg>
-      </span>
-      <span class="banner-text">【UI操作モード】アイテム選択や右上のメニューをクリック可能</span>
-      <button id="btn-resume-explore" class="banner-resume-btn" type="button">探索視点に戻る [左クリック / Tab]</button>
+  <!-- アイテム入手ポップアップトースト（どんな背景・モーダル時でも絶対に読み取れる高コントラスト最前面通知） -->
+  <div id="item-get-toast" class="hidden" role="alert" aria-live="assertive">
+    <div class="toast-card">
+      <div class="toast-icon-wrap" id="toast-item-icon"></div>
+      <div class="toast-content">
+        <span class="toast-badge">ITEM ACQUIRED</span>
+        <div class="toast-title" id="toast-item-name">アイテム名</div>
+        <div class="toast-tip">［数字キーで選択 ｜ 同じキーをもう一度押して詳細］</div>
+      </div>
     </div>
   </div>
 
-  <!-- 画面右上：設定・メニューボタン（単一アイコンに統合） -->
+  <!-- 画面右上：設定・メニュー案内（Escキー連動） -->
   <div id="top-menu" class="hidden">
-    <button id="btn-game-settings" class="menu-icon-btn" title="設定・メニュー" aria-label="設定・メニュー">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <button id="btn-game-settings" class="menu-setting-pill" title="設定・メニューを開く [Esc]" aria-label="設定・メニュー">
+      <span class="esc-badge">Esc</span>
+      <span class="setting-pill-label">設定</span>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3.5"></circle>
         <path d="M12 2v2.5m0 15V22M2 12h2.5m15 0H22m-3.5-6.5l-1.8 1.8m-9.4 9.4l-1.8 1.8m0-13l1.8 1.8m9.4 9.4l1.8 1.8"></path>
       </svg>
@@ -86,7 +86,7 @@
   <div id="inventory-bar-container" class="hidden">
     <div class="inventory-header">
       <span class="inventory-label">INVENTORY</span>
-      <span class="inventory-quick-tip">[キー 1〜6 で選択 ｜ 右クリック/Tabでマウス操作]</span>
+      <span class="inventory-quick-tip">[キー 1〜6 で選択 ｜ 同じキーを再度押して詳細・分解・合成]</span>
     </div>
     <div id="inventory-bar">
       <div class="inv-slot" data-slot="0"><span class="slot-key">1</span><div class="slot-inner"></div></div>
@@ -96,7 +96,7 @@
       <div class="inv-slot" data-slot="4"><span class="slot-key">5</span><div class="slot-inner"></div></div>
       <div class="inv-slot" data-slot="5"><span class="slot-key">6</span><div class="slot-inner"></div></div>
     </div>
-    <div class="inv-hint">※ アイテムクリックで選択（対象に使用） ｜ 選択中を再度クリックで【調べる・分解・合成】</div>
+    <div class="inv-hint">※ 数字キー 1〜6 でアイテムを選択して対象を調査 ｜ ［Esc］キーで設定メニュー</div>
   </div>
 
   <!-- タイトル & ステージ選択 メインメニュー画面 -->
