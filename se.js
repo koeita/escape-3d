@@ -83,7 +83,7 @@ class SoundManager {
     noise.start(now);
   }
 
-  // 2. 調べる・クリック音：照準を合わせて家具をクリックした際の上品なクリック音（高めの短音）
+  // 2. 調べる・クリック音：存在感を抑えた上品で繊細なソフトクリック音（耳に刺さらない柔らかな短音）
   playClick() {
     if (this.muted) return;
     this.init();
@@ -92,38 +92,23 @@ class SoundManager {
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    // メインの澄んだ高めの短音（サイン波）
+    // 控えめで丸みのあるソフトな短音（サイン波、耳に優しい中域と極小ボリューム）
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(980, now);
-    osc.frequency.exponentialRampToValueAtTime(460, now + 0.045);
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + 0.026);
 
-    gain.gain.setValueAtTime(0.11, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.048);
+    // 存在感を抑えた極めて繊細な音量（耳障りにならず心地よい手応えのみ残す）
+    gain.gain.setValueAtTime(0.035, now);
+    gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.026);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.048);
-
-    // 微かな真鍮・ガラス調の倍音アタック
-    const harmOsc = ctx.createOscillator();
-    const harmGain = ctx.createGain();
-    harmOsc.type = 'sine';
-    harmOsc.frequency.setValueAtTime(1960, now);
-    harmOsc.frequency.exponentialRampToValueAtTime(980, now + 0.022);
-
-    harmGain.gain.setValueAtTime(0.04, now);
-    harmGain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
-
-    harmOsc.connect(harmGain);
-    harmGain.connect(ctx.destination);
-
-    harmOsc.start(now);
-    harmOsc.stop(now + 0.024);
+    osc.stop(now + 0.026);
   }
 
   // 3. ズーム演出音：カメラが対象に寄る・戻る際の微かな風切り音（低音のスウッという音）
@@ -312,7 +297,7 @@ class SoundManager {
     });
   }
 
-  // 時計の針を動かす音 (チクッ、カチッ)
+  // 時計の針を動かす音 (チクッ、カチッ：耳に刺さらない上品な時計ステップ音)
   playTick() {
     if (this.muted) return;
     this.init();
@@ -324,20 +309,20 @@ class SoundManager {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(1250, now);
-    osc.frequency.exponentialRampToValueAtTime(620, now + 0.03);
+    osc.frequency.setValueAtTime(1050, now);
+    osc.frequency.exponentialRampToValueAtTime(540, now + 0.025);
 
-    gain.gain.setValueAtTime(0.09, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    gain.gain.setValueAtTime(0.048, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.03);
+    osc.stop(now + 0.025);
   }
 
-  // ダイヤル・機器ボタン操作音 (ピッ / カチッ)
+  // ダイヤル・機器ボタン操作音 (カチッ)
   playDial() {
     if (this.muted) return;
     this.init();
@@ -349,17 +334,17 @@ class SoundManager {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(440, now + 0.04);
+    osc.frequency.setValueAtTime(740, now);
+    osc.frequency.exponentialRampToValueAtTime(380, now + 0.035);
 
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    gain.gain.setValueAtTime(0.055, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.04);
+    osc.stop(now + 0.035);
   }
 
   // 灰を払うブラシ音 (サッサッ)
