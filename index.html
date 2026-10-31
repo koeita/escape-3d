@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D密室脱出 - First-Person Escape Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Three.js (r128) & PointerLockControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+</head>
+<body>
+  <!-- 3D描画用コンテナ -->
+  <div id="canvas-container"></div>
+
+  <!-- 画面中央の常時表示クロスヘア（照準点） -->
+  <div id="crosshair">
+    <div class="crosshair-dot"></div>
+    <div class="crosshair-ring"></div>
+  </div>
+
+  <!-- 照準がオブジェクトに合った際のターゲット名ツールチップ -->
+  <div id="target-hint" class="hidden">
+    <span class="hint-icon">🔍</span>
+    <span id="target-hint-text">調べる</span>
+    <span class="hint-key">[左クリック]</span>
+  </div>
+
+  <!-- 画面左上の簡易ステータス＆操作ガイドHUD -->
+  <div id="hud">
+    <div class="hud-title">STAGE 1 : 古びた書斎の密室 (3D Prototype)</div>
+    <div class="hud-controls">移動: WASD / 矢印キー ｜ 視点: マウス ｜ 調べる: 左クリック ｜ 中断: Esc</div>
+  </div>
+
+  <!-- 開始・一時停止オーバーレイUI（PointerLock解除時に表示） -->
+  <div id="start-overlay" class="overlay">
+    <div class="overlay-card">
+      <div class="overlay-badge">3D FIRST-PERSON ESCAPE</div>
+      <h1 class="overlay-title">密室の謎解き脱出 3D</h1>
+      <p class="overlay-lead">画面をクリックして探索開始（Escで解除）</p>
+      <div class="controls-guide">
+        <div class="guide-item">
+          <span class="guide-key">マウス移動</span>
+          <span class="guide-desc">360度 室内を見渡す</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">W A S D / 矢印</span>
+          <span class="guide-desc">前後左右へ移動</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">左クリック</span>
+          <span class="guide-desc">照準の対象を調べる</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-key">Esc キー</span>
+          <span class="guide-desc">マウス固定を解除 / 一時停止</span>
+        </div>
+      </div>
+      <button id="start-btn" class="primary-btn" type="button">画面をクリックして探索開始</button>
+    </div>
+  </div>
+
+  <!-- 調べるウィンドウ（調査モーダル） -->
+  <div id="inspect-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-category" id="modal-category">OBJECT INSPECTION</span>
+        <h2 id="modal-title">オブジェクト名</h2>
+      </div>
+      <div class="modal-body">
+        <p id="modal-description">ここに調査テキストが表示されます。</p>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-close-btn" class="secondary-btn" type="button">閉じる [Enter / クリック]</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
