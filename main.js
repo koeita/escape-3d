@@ -511,17 +511,17 @@
     fireplaceLight.shadow.bias = -0.002;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のランプ真下・周囲を丸く自然に照らす暖色(#ffebc2)ライト
-    deskSpotLight = new THREE.SpotLight(0xffebc2, 4.2, 3.6, Math.PI / 3.8, 0.88, 1.3);
-    deskSpotLight.position.set(3.94, 1.65, -1.48);
+    // 4. 補助光源 B：書斎机（East）のランプ直下・周囲を丸く自然に照らす暖色(#ffebd2)ライト
+    deskSpotLight = new THREE.SpotLight(0xffebd2, 3.2, 4.2, Math.PI / 2.7, 0.88, 1.2);
+    deskSpotLight.position.set(3.94, 1.40, -1.48);
     deskSpotLight.target.position.set(3.94, 0.86, -1.48);
     deskSpotLight.castShadow = false;
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
 
-    // ランプの周囲360度（台座・支柱・天板・背後のレンガ壁・手帳）をふんわり照らすPointLight
-    deskShadeLight = new THREE.PointLight(0xffdf9e, 1.8, 2.5, 1.4);
-    deskShadeLight.position.set(3.94, 1.15, -1.48);
+    // ランプの周囲360度（台座・支柱・天板全体・手帳・背後の壁）をふんわり温かく照らすPointLight
+    deskShadeLight = new THREE.PointLight(0xffdfa8, 2.4, 3.4, 1.2);
+    deskShadeLight.position.set(3.94, 1.18, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -529,8 +529,8 @@
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 4.2;
-      if (deskShadeLight) deskShadeLight.intensity = 1.8;
+      deskSpotLight.intensity = 3.2;
+      if (deskShadeLight) deskShadeLight.intensity = 2.4;
       if (deskLightPoolMesh) deskLightPoolMesh.visible = true;
       fireplaceLight.intensity = 0.95;
 
@@ -1319,14 +1319,14 @@
     const lampCenterX = ((0.14 + 0.60) / 1.20) * poolCanvas.width;
     const lampCenterY = ((0.52 + 1.10) / 2.20) * poolCanvas.height;
     const poolGrad = poolCtx.createRadialGradient(
-      lampCenterX, lampCenterY, 10,
-      lampCenterX, lampCenterY, 340
+      lampCenterX, lampCenterY, 8,
+      lampCenterX, lampCenterY, 440
     );
-    poolGrad.addColorStop(0.0, 'rgba(255, 232, 175, 0.68)');
-    poolGrad.addColorStop(0.22, 'rgba(255, 218, 145, 0.48)');
-    poolGrad.addColorStop(0.50, 'rgba(255, 198, 110, 0.22)');
-    poolGrad.addColorStop(0.78, 'rgba(255, 180, 90, 0.06)');
-    poolGrad.addColorStop(1.0, 'rgba(255, 170, 80, 0.0)');
+    poolGrad.addColorStop(0.0, 'rgba(255, 235, 185, 0.50)');
+    poolGrad.addColorStop(0.20, 'rgba(255, 222, 160, 0.36)');
+    poolGrad.addColorStop(0.48, 'rgba(255, 205, 130, 0.18)');
+    poolGrad.addColorStop(0.76, 'rgba(255, 190, 105, 0.05)');
+    poolGrad.addColorStop(1.0, 'rgba(255, 180, 90, 0.0)');
     poolCtx.fillStyle = poolGrad;
     poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
 
@@ -1354,13 +1354,13 @@
     diaryGroup.rotation.y = THREE.MathUtils.degToRad(13);
 
     const diaryLeatherMat = new THREE.MeshStandardMaterial({
-      color: 0x581814, // 深いワインレッド〜ダークブラウンのアンティーク革表紙
-      roughness: 0.52,
+      color: 0x6e201b, // 深いアンティークワインレッド
+      roughness: 0.55,
       metalness: 0.08
     });
     const diaryPagesMat = new THREE.MeshStandardMaterial({
-      color: 0xf2e5cc, // 羊皮紙・古紙のクリーム色
-      roughness: 0.82,
+      color: 0xf6ede0, // 羊皮紙・古紙のクリーム色
+      roughness: 0.72,
       metalness: 0.02
     });
 
@@ -1433,10 +1433,12 @@
     ribbonMesh.rotation.y = 0.18;
     diaryGroup.add(ribbonMesh);
 
-    // 手帳の横に不自然な濃い影が出ないよう設定
+    // 手帳の自己遮蔽による不自然な真っ黒影を排除し、ランプ光と環境光で常に鮮明に視認可能に設定
     diaryGroup.traverse((part) => {
       if (part.isMesh) {
         part.userData.noCastShadow = true;
+        part.castShadow = false;
+        part.receiveShadow = false;
       }
     });
 
@@ -1990,137 +1992,166 @@
       metalness: 0.15
     });
 
-    // 四隅の短い木製丸脚（CylinderGeometry）＋真鍮カップ
+    // 1. 木製丸脚（4本）＋真鍮カップ（台座の下 y = 0 〜 0.10）
     const legPositions = [
-      [-0.40, -1.02],
-      [0.40, -1.02],
-      [-0.40, 1.02],
-      [0.40, 1.02]
+      [-0.32, -0.92],
+      [0.38, -0.92],
+      [-0.32, 0.92],
+      [0.38, 0.92]
     ];
     legPositions.forEach(([lx, lz]) => {
       const woodLeg = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.048, 0.032, 0.14, 16),
+        new THREE.CylinderGeometry(0.042, 0.026, 0.10, 16),
         darkWoodMat
       );
-      woodLeg.position.set(lx, 0.07, lz);
+      woodLeg.position.set(lx, 0.05, lz);
       sofaGroup.add(woodLeg);
 
       const legBrassCup = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.036, 0.030, 0.03, 16),
+        new THREE.CylinderGeometry(0.030, 0.025, 0.025, 16),
         polishedBrassMat
       );
-      legBrassCup.position.set(lx, 0.015, lz);
+      legBrassCup.position.set(lx, 0.0125, lz);
       sofaGroup.add(legBrassCup);
     });
 
-    // ソファ下部メインベースフレーム（脚の上に載る）
+    // 2. ソファ下部メインベースフレーム（脚の上 y: 0.10 〜 0.24, 幅 2.16m, 奥行 0.82m）
     const sofaBaseFrame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.96, 0.16, 2.24),
+      new THREE.BoxGeometry(0.82, 0.14, 2.16),
       leatherMat
     );
-    sofaBaseFrame.position.set(0, 0.22, 0);
+    sofaBaseFrame.position.set(0.05, 0.17, 0);
     sofaGroup.add(sofaBaseFrame);
 
     // フロント下部の木製飾り枠
     const woodApron = new THREE.Mesh(
-      new THREE.BoxGeometry(0.03, 0.06, 2.22),
+      new THREE.BoxGeometry(0.025, 0.03, 2.14),
       darkWoodMat
     );
-    woodApron.position.set(0.485, 0.17, 0);
+    woodApron.position.set(0.465, 0.115, 0);
     sofaGroup.add(woodApron);
 
-    // 背もたれ（Backrest）
-    // 背もたれ本体
-    const backCore = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.54, 2.06), leatherMat);
-    backCore.position.set(-0.35, 0.57, 0);
+    // 3. 左右アームレスト（肘掛け：外幅 2.16m、内幅 1.80m、厚み 0.18m）
+    // 左アーム: az = +0.99 (z: 0.90 〜 1.08)、右アーム: az = -0.99 (z: -1.08 〜 -0.90)
+    [-0.99, 0.99].forEach((az) => {
+      // アーム側板ベース（y: 0.24 〜 0.60, 奥行 x: -0.29 〜 0.41）
+      const armBody = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.36, 0.18), leatherMat);
+      armBody.position.set(0.06, 0.42, az);
+      sofaGroup.add(armBody);
+
+      // アーム上部の丸みロール（上端 y = 0.60 に乗せる：半径 0.09, 長さ 0.70）
+      const armTopRoll = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.09, 0.70, 24),
+        leatherMat
+      );
+      armTopRoll.rotation.z = Math.PI / 2;
+      armTopRoll.position.set(0.06, 0.60, az);
+      sofaGroup.add(armTopRoll);
+
+      // アーム前面の化粧フェイシア下部パネル（x = 0.43, y: 0.24 〜 0.60）
+      const armFrontFace = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.36, 0.18),
+        leatherMat
+      );
+      armFrontFace.position.set(0.43, 0.42, az);
+      sofaGroup.add(armFrontFace);
+
+      // アーム前面上部の丸型スクロールヘッド（上部の丸みと前面を直角の隙間なく美しく結合）
+      const armScrollHead = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.09, 0.04, 28),
+        leatherMat
+      );
+      armScrollHead.rotation.z = Math.PI / 2;
+      armScrollHead.position.set(0.43, 0.60, az);
+      sofaGroup.add(armScrollHead);
+
+      // アーム前面の装飾トリムプレート（わずかに浮き上がったダークレザー縁取り）
+      const armTrimPlate = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.01, 24),
+        darkLeatherSeamMat
+      );
+      armTrimPlate.rotation.z = Math.PI / 2;
+      armTrimPlate.position.set(0.455, 0.60, az);
+      sofaGroup.add(armTrimPlate);
+
+      // アーム前面スクロール中心の真鍮飾りスタッズ（鋲）
+      const centerStud = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 12, 12),
+        polishedBrassMat
+      );
+      centerStud.position.set(0.465, 0.60, az);
+      sofaGroup.add(centerStud);
+
+      // アーム前面の縦ラインに並ぶ真鍮スタッズ鋲（3個）
+      [0.50, 0.40, 0.30].forEach((sy) => {
+        const vertStud = new THREE.Mesh(
+          new THREE.SphereGeometry(0.012, 10, 10),
+          polishedBrassMat
+        );
+        vertStud.position.set(0.455, sy, az);
+        sofaGroup.add(vertStud);
+      });
+    });
+
+    // 4. 背もたれ（Backrest：アーム内寸幅 1.80m 内にぴったり収まり、貫通ゼロ）
+    // 背もたれ本体（x: -0.33 〜 -0.15, y: 0.24 〜 0.74, 幅 1.78m: z = -0.89 〜 +0.89）
+    const backCore = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.50, 1.78), leatherMat);
+    backCore.position.set(-0.24, 0.49, 0);
     sofaGroup.add(backCore);
 
-    // 背もたれ上部のロール（Z軸方向に横たえる）
+    // 背もたれ上部のロール（上端 y = 0.74 に乗せる：半径 0.09, 長さ 1.78）
     const backTopRoll = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 2.06, 20),
+      new THREE.CylinderGeometry(0.09, 0.09, 1.78, 24),
       leatherMat
     );
     backTopRoll.rotation.x = Math.PI / 2;
-    backTopRoll.position.set(-0.35, 0.84, 0);
+    backTopRoll.position.set(-0.24, 0.74, 0);
     sofaGroup.add(backTopRoll);
 
-    // 左右アームレスト（肘掛け）
-    [-1.03, 1.03].forEach((az) => {
-      // アーム下部ブロック
-      const armBox = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.44, 0.20), leatherMat);
-      armBox.position.set(0.01, 0.44, az);
-      sofaGroup.add(armBox);
-
-      // アーム上部のロール（X軸方向に横たえる）
-      const armRoll = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 0.96, 20),
-        leatherMat
-      );
-      armRoll.rotation.z = Math.PI / 2;
-      armRoll.position.set(0.01, 0.66, az);
-      sofaGroup.add(armRoll);
-
-      // アーム前面（+X）の丸い化粧キャップ
-      const armFrontCap = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 0.03, 20),
-        darkLeatherSeamMat
-      );
-      armFrontCap.rotation.z = Math.PI / 2;
-      armFrontCap.position.set(0.49, 0.66, az);
-      sofaGroup.add(armFrontCap);
-
-      // アーム前面の装飾スタッズ（真鍮鋲）
-      const studMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.018, 10, 10),
-        polishedBrassMat
-      );
-      studMesh.position.set(0.505, 0.66, az);
-      sofaGroup.add(studMesh);
-    });
-
-    // 3連座面クッション（小箱が隠されている隙間構造）
-    [-0.64, 0.0, 0.64].forEach((cz) => {
-      // クッション本体
-      const cushion = new THREE.Mesh(
-        new THREE.BoxGeometry(0.70, 0.14, 0.60),
-        leatherMat
-      );
-      cushion.position.set(0.10, 0.37, cz);
-      sofaGroup.add(cushion);
-
-      // クッション前縁ロール（Z軸方向に横たえる）
-      const frontRoll = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.07, 0.07, 0.60, 16),
-        leatherMat
-      );
-      frontRoll.rotation.x = Math.PI / 2;
-      frontRoll.position.set(0.45, 0.37, cz);
-      sofaGroup.add(frontRoll);
-
-      // ふくらみトップ
-      const cushionTop = new THREE.Mesh(
-        new THREE.BoxGeometry(0.66, 0.02, 0.58),
-        darkLeatherSeamMat
-      );
-      cushionTop.position.set(0.10, 0.44, cz);
-      sofaGroup.add(cushionTop);
-    });
-
-    // 背もたれのタフティング（ボタン留め）2段配置
-    for (let bz = -0.72; bz <= 0.72; bz += 0.36) {
-      [0.54, 0.72].forEach((by, rIdx) => {
-        const zShift = rIdx === 1 ? 0.18 : 0;
-        if (Math.abs(bz + zShift) > 0.82) return;
+    // 背もたれのタフティング（ボタン留め）2段×5列
+    for (let bz = -0.68; bz <= 0.68; bz += 0.34) {
+      [0.45, 0.62].forEach((by, rIdx) => {
+        const zShift = rIdx === 1 ? 0.17 : 0;
+        if (Math.abs(bz + zShift) > 0.72) return;
         const btn = new THREE.Mesh(
-          new THREE.SphereGeometry(0.018, 10, 10),
+          new THREE.SphereGeometry(0.015, 10, 10),
           darkLeatherSeamMat
         );
-        btn.position.set(-0.22, by, bz + zShift);
+        btn.position.set(-0.145, by, bz + zShift);
         sofaGroup.add(btn);
       });
     }
 
-    attachInvisibleCollider(sofaGroup, 1.25, 1.18, 2.50, 0.05, 0.59, 0);
+    // 5. 3分割座面クッション（小箱が隠されている隙間ギミック：各幅 0.56m, アーム内壁 0.90m からのクリアランスを厳格維持）
+    // cz = -0.58, 0.0, +0.58 （端 z = ±0.86 < アーム内壁 0.90 なので貫通・干渉ゼロ）
+    [-0.58, 0.0, 0.58].forEach((cz) => {
+      // クッション本体（y: 0.24 〜 0.36, 奥行 x: -0.14 〜 0.41）
+      const cushion = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.12, 0.56),
+        leatherMat
+      );
+      cushion.position.set(0.135, 0.30, cz);
+      sofaGroup.add(cushion);
+
+      // クッション前縁ロール（前端 x = 0.41 に丸みを付与：半径 0.06, 長さ 0.54）
+      const frontRoll = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.06, 0.54, 20),
+        leatherMat
+      );
+      frontRoll.rotation.x = Math.PI / 2;
+      frontRoll.position.set(0.41, 0.30, cz);
+      sofaGroup.add(frontRoll);
+
+      // クッション上面のふっくらトップ面
+      const cushionTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.51, 0.02, 0.52),
+        darkLeatherSeamMat
+      );
+      cushionTop.position.set(0.135, 0.365, cz);
+      sofaGroup.add(cushionTop);
+    });
+
+    attachInvisibleCollider(sofaGroup, 1.15, 1.05, 2.30, 0.05, 0.52, 0);
 
     registerInteractive(
       sofaGroup,
