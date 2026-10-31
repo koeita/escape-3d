@@ -218,8 +218,25 @@
   let ambientLight = null;      // 環境光
   let fireplaceLight = null;    // 暖炉の揺らめく補助光
   let deskSpotLight = null;     // 書斎机のスポットライト
+  let deskShadeLight = null;    // ランプシェード内部の補助点光源
   let ceilingBulbMesh = null;   // 天井電球
   let deskBulbMesh = null;      // デスク電球
+
+  // カメラズーム演出用ステート（机・手帳の調査時 0.6秒補間）
+  const cameraZoom = {
+    active: false,
+    isZoomedIn: false,
+    mode: 'in', // 'in' | 'out'
+    startTime: 0,
+    duration: 600,
+    fromPos: new THREE.Vector3(),
+    toPos: new THREE.Vector3(),
+    fromQuat: new THREE.Quaternion(),
+    toQuat: new THREE.Quaternion(),
+    savedPos: new THREE.Vector3(),
+    savedQuat: new THREE.Quaternion(),
+    onComplete: null
+  };
   let clockPendulumGroup = null;// 時計の振り子
   let paintingCanvasMesh = null;// 南の絵画メッシュ
 
@@ -492,27 +509,33 @@
     fireplaceLight.shadow.bias = -0.002;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のデスクライト SpotLight（天板と手帳を下向き照射）
-    deskSpotLight = new THREE.SpotLight(0xffd599, 1.35, 4.5, Math.PI / 4, 0.45, 1.6);
-    deskSpotLight.position.set(3.95, 1.25, -1.35);
-    deskSpotLight.target.position.set(3.65, 0.82, -1.8);
+    // 4. 補助光源 B：書斎机（East）のランプシェードから机上の手帳へ斜め下向きに暖色(#ffebc2)のSpotLightを照射
+    deskSpotLight = new THREE.SpotLight(0xffebc2, 1.85, 4.2, Math.PI / 3.8, 0.92, 1.5);
+    deskSpotLight.position.set(3.89, 1.19, -1.52);
+    deskSpotLight.target.position.set(3.58, 0.86, -2.08);
     deskSpotLight.castShadow = true;
-    deskSpotLight.shadow.mapSize.width = 512;
-    deskSpotLight.shadow.mapSize.height = 512;
-    deskSpotLight.shadow.bias = -0.002;
+    deskSpotLight.shadow.mapSize.width = 1024;
+    deskSpotLight.shadow.mapSize.height = 1024;
+    deskSpotLight.shadow.bias = -0.0012;
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
+
+    // シェード内側の柔らかな発光補助PointLight
+    deskShadeLight = new THREE.PointLight(0xffebc2, 0.45, 1.6, 2.0);
+    deskShadeLight.position.set(3.89, 1.17, -1.52);
+    scene.add(deskShadeLight);
   }
 
   function updateLightingState() {
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 1.35;
+      deskSpotLight.intensity = 1.85;
+      if (deskShadeLight) deskShadeLight.intensity = 0.45;
       fireplaceLight.intensity = 0.95;
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 1.25;
-      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 1.3;
+      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 1.4;
 
       darknessVignette.classList.add('hidden');
       scene.background.set(0x140e09);
@@ -522,6 +545,7 @@
       ceilingPointLight.intensity = 0.02;
       ambientLight.intensity = 0.08;
       deskSpotLight.intensity = 0.0;
+      if (deskShadeLight) deskShadeLight.intensity = 0.0;
       fireplaceLight.intensity = 0.15; // 暖炉の微かな残り火
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 0.05;
@@ -840,7 +864,7 @@
     // 【2. 東の壁 (East)】
     // ==========================================
 
-    // A. アンティーク書斎机（GLTFLoaderによる外部3Dモデル assets/models/desk.glb 読み込み＆不可視バウンディングボックス判定）
+    // A. アンティーク書斎机（GLTFLoaderによる外部3Dモデル assets/models/desk.glb 読み込み＆立体小物配置）
     const deskGroup = new THREE.Group();
     deskGroup.position.set(3.8, 0, -2.0);
     deskGroup.rotation.set(0, 0, 0);
@@ -858,11 +882,11 @@
     deskHitBox.userData.isHitBox = true;
     deskGroup.add(deskHitBox);
 
-    // 既存の仮置きCube机オブジェクト群（非表示化・フォールバック用）
+    // 既存の仮置きCube机本体（非表示化・フォールバック用）
     const deskPlaceholderGroup = new THREE.Group();
-    deskPlaceholderGroup.visible = false; // 外部3Dモデル（desk.glb）への差し替えのため非表示
+    deskPlaceholderGroup.visible = false;
 
-    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 2.2), darkWoodMat);
+    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 2.2), darkWoodMat);
     deskTop.position.set(0, 0.82, 0);
     deskPlaceholderGroup.add(deskTop);
 
@@ -874,59 +898,199 @@
     legRight.position.set(0, 0.39, 0.75);
     deskPlaceholderGroup.add(legRight);
 
-    const drawer = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.18, 0.82), darkWoodMat);
+    const drawer = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.82), darkWoodMat);
     drawer.position.set(-0.02, 0.68, 0);
     deskPlaceholderGroup.add(drawer);
 
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.16), brassMat);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.16), brassMat);
     handle.position.set(-0.56, 0.68, 0);
     deskPlaceholderGroup.add(handle);
 
-    const diary = new THREE.Mesh(
-      new THREE.BoxGeometry(0.44, 0.05, 0.34),
-      new THREE.MeshStandardMaterial({ color: 0x6e241c, roughness: 0.65, metalness: 0.08 })
-    );
-    diary.position.set(-0.1, 0.89, -0.2);
-    diary.rotation.y = 0.2;
-    deskPlaceholderGroup.add(diary);
-
-    const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.03, 16), brassMat);
-    lampBase.position.set(0.15, 0.88, 0.65);
-    deskPlaceholderGroup.add(lampBase);
-
-    const lampArm = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.35, 12), brassMat);
-    lampArm.position.set(0.15, 1.05, 0.65);
-    deskPlaceholderGroup.add(lampArm);
-
-    const lampShade = new THREE.Mesh(
-      new THREE.ConeGeometry(0.16, 0.18, 16),
-      new THREE.MeshStandardMaterial({ color: 0x163f2e, roughness: 0.35, metalness: 0.2 })
-    );
-    lampShade.position.set(0.15, 1.2, 0.65);
-    deskPlaceholderGroup.add(lampShade);
-
     deskGroup.add(deskPlaceholderGroup);
 
-    // デスクライトの発光電球（暗闇モード連動用）
+    // =========================================================================
+    // 1. スタンドライト（Desk Lamp）：円柱台座・真鍮ポール・深緑の円錐シェード
+    // =========================================================================
+    const lampBrassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.85,
+      roughness: 0.3
+    });
+    const lampShadeMat = new THREE.MeshStandardMaterial({
+      color: 0x14452e,
+      roughness: 0.4,
+      metalness: 0.12,
+      side: THREE.DoubleSide
+    });
+
+    const deskLampGroup = new THREE.Group();
+    deskLampGroup.position.set(0.14, 0.86, 0.52);
+
+    // 台座：薄い金色の円柱 CylinderGeometry(0.12, 0.14, 0.03, 24)
+    const lampBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.14, 0.03, 24),
+      lampBrassMat
+    );
+    lampBase.position.set(0, 0.015, 0);
+    deskLampGroup.add(lampBase);
+
+    // 台座上の装飾段差リング
+    const lampCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.045, 0.075, 0.022, 24),
+      lampBrassMat
+    );
+    lampCollar.position.set(0, 0.038, 0);
+    deskLampGroup.add(lampCollar);
+
+    // 支柱：真鍮の金属製ポール CylinderGeometry(0.015, 0.015, 0.35, 12)
+    const lampPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 0.35, 12),
+      lampBrassMat
+    );
+    lampPole.position.set(0, 0.21, 0);
+    deskLampGroup.add(lampPole);
+
+    // 支柱上部の真鍮ボールジョイント
+    const lampJoint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.024, 16, 16),
+      lampBrassMat
+    );
+    lampJoint.position.set(0, 0.385, 0);
+    deskLampGroup.add(lampJoint);
+
+    // シェードと内部電球を格納する角度調整ピボット（手帳の方向へ斜め下向きに傾ける）
+    const shadePivot = new THREE.Group();
+    shadePivot.position.set(-0.04, 0.36, -0.04);
+    shadePivot.rotation.set(-0.28, 0.0, 0.26);
+
+    // ランプシェード（傘）：深緑の円錐 ConeGeometry(0.18, 0.14, 24, 1, true)
+    const lampShade = new THREE.Mesh(
+      new THREE.ConeGeometry(0.18, 0.14, 24, 1, true),
+      lampShadeMat
+    );
+    shadePivot.add(lampShade);
+
+    // シェード天頂の真鍮キャップ
+    const shadeCap = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.016, 0.038, 0.022, 16),
+      lampBrassMat
+    );
+    shadeCap.position.set(0, 0.068, 0);
+    shadePivot.add(shadeCap);
+
+    // シェード内側の発光電球
     deskBulbMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.04, 12, 12),
+      new THREE.SphereGeometry(0.036, 16, 16),
       new THREE.MeshStandardMaterial({
-        color: 0x332211,
-        emissive: 0xffaa44,
-        emissiveIntensity: 1.3,
+        color: 0xfff3d6,
+        emissive: 0xffebc2,
+        emissiveIntensity: 1.4,
         roughness: 0.2
       })
     );
-    deskBulbMesh.position.set(0.15, 1.15, 0.65);
-    deskGroup.add(deskBulbMesh);
+    deskBulbMesh.position.set(0, -0.02, 0);
+    shadePivot.add(deskBulbMesh);
+
+    deskLampGroup.add(shadePivot);
+    deskGroup.add(deskLampGroup);
+
+    // =========================================================================
+    // 2. 手帳（Diary）：天板の中央手前に配置、革の表紙＋丸背表紙＋紙束＋13度傾き
+    // =========================================================================
+    const diaryGroup = new THREE.Group();
+    // 天板の中央手前（机の西端から少し引いた位置）に配置し、Y軸回転で約13度傾ける
+    diaryGroup.position.set(-0.22, 0.86, -0.08);
+    diaryGroup.rotation.y = THREE.MathUtils.degToRad(13);
+
+    const diaryLeatherMat = new THREE.MeshStandardMaterial({
+      color: 0x581814, // 深いワインレッド〜ダークブラウンのアンティーク革表紙
+      roughness: 0.52,
+      metalness: 0.08
+    });
+    const diaryPagesMat = new THREE.MeshStandardMaterial({
+      color: 0xf2e5cc, // 羊皮紙・古紙のクリーム色
+      roughness: 0.82,
+      metalness: 0.02
+    });
+
+    // 下表紙
+    const bottomCover = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.008, 0.34),
+      diaryLeatherMat
+    );
+    bottomCover.position.set(0, 0.004, 0);
+    diaryGroup.add(bottomCover);
+
+    // 中身のページ束（表紙よりわずかに内側に収まる）
+    const pageBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(0.245, 0.032, 0.324),
+      diaryPagesMat
+    );
+    pageBlock.position.set(-0.004, 0.024, 0);
+    diaryGroup.add(pageBlock);
+
+    // 上表紙
+    const topCover = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.008, 0.34),
+      diaryLeatherMat
+    );
+    topCover.position.set(0, 0.044, 0);
+    diaryGroup.add(topCover);
+
+    // 丸みを帯びた背表紙（CylinderGeometry）
+    const spineMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.024, 0.024, 0.34, 16),
+      diaryLeatherMat
+    );
+    spineMesh.rotation.x = Math.PI / 2;
+    spineMesh.position.set(0.125, 0.024, 0);
+    diaryGroup.add(spineMesh);
+
+    // 背表紙のクラシックなバンド装飾（4本）
+    [-0.11, -0.038, 0.038, 0.11].forEach((zOff) => {
+      const hub = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.0265, 0.0265, 0.012, 16),
+        lampBrassMat
+      );
+      hub.rotation.x = Math.PI / 2;
+      hub.position.set(0.126, 0.024, zOff);
+      diaryGroup.add(hub);
+    });
+
+    // 表紙中央の真鍮天体メダリオン装飾
+    const coverMedallion = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.038, 0.038, 0.004, 24),
+      lampBrassMat
+    );
+    coverMedallion.position.set(-0.01, 0.049, 0);
+    diaryGroup.add(coverMedallion);
+
+    const coverRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.056, 0.003, 8, 24),
+      lampBrassMat
+    );
+    coverRing.rotation.x = Math.PI / 2;
+    coverRing.position.set(-0.01, 0.049, 0);
+    diaryGroup.add(coverRing);
+
+    // ページの間から覗く真鍮ゴールドの栞リボン
+    const ribbonMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.018, 0.003, 0.09),
+      new THREE.MeshStandardMaterial({ color: 0xc59b27, roughness: 0.45, metalness: 0.3 })
+    );
+    ribbonMesh.position.set(-0.04, 0.006, 0.19);
+    ribbonMesh.rotation.y = 0.18;
+    diaryGroup.add(ribbonMesh);
+
+    deskGroup.add(diaryGroup);
 
     registerInteractive(
       deskGroup,
       {
         id: 'desk',
-        name: 'アンティーク書斎机',
-        category: 'EAST / STUDY DESK',
-        action: openDeskModal
+        name: '古びた手帳とアンティーク書斎机',
+        category: 'EAST / STUDY DESK & DIARY',
+        action: triggerDeskZoomAndInspect
       },
       { minX: 3.1, maxX: 4.6, minZ: -3.2, maxZ: -0.8 }
     );
@@ -1331,7 +1495,77 @@
     activeModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
+
+    // 手帳・机のズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかにズームアウト
+    if (cameraZoom.isZoomedIn) {
+      startDeskZoomOut();
+    } else {
+      controls.lock();
+    }
+  }
+
+  // 机・手帳クリック時の0.6秒カメラズームイン演出
+  function triggerDeskZoomAndInspect() {
+    if (cameraZoom.active) return;
+    if (cameraZoom.isZoomedIn) {
+      openDeskModal();
+      return;
+    }
+
+    clearHover();
+    cameraZoom.savedPos.copy(camera.position);
+    cameraZoom.savedQuat.copy(camera.quaternion);
+
+    // 机上の手帳(3.58, 0.88, -2.08)を斜め上方から見下ろす近接位置と角度を算出
+    const targetPos = new THREE.Vector3(2.96, 1.38, -2.22);
+    const diaryLookAt = new THREE.Vector3(3.58, 0.88, -2.08);
+    const tempCam = camera.clone();
+    tempCam.position.copy(targetPos);
+    tempCam.up.set(0, 1, 0);
+    tempCam.lookAt(diaryLookAt);
+
+    cameraZoom.fromPos.copy(camera.position);
+    cameraZoom.toPos.copy(targetPos);
+    cameraZoom.fromQuat.copy(camera.quaternion);
+    cameraZoom.toQuat.copy(tempCam.quaternion);
+    cameraZoom.mode = 'in';
+    cameraZoom.duration = 600; // 0.6秒
+    cameraZoom.startTime = performance.now();
+    cameraZoom.active = true;
+
+    if (controls.isLocked) {
+      controls.unlock();
+    }
+
+    cameraZoom.onComplete = () => {
+      cameraZoom.isZoomedIn = true;
+      setMessage('古びた手帳を開いた…星辰と古時計の針に関する記述が記されている。');
+      openDeskModal();
+    };
+  }
+
+  // モーダルを閉じた際の元の探索視点へのスムーズなズームアウト演出
+  function startDeskZoomOut() {
+    cameraZoom.fromPos.copy(camera.position);
+    cameraZoom.toPos.copy(cameraZoom.savedPos);
+    cameraZoom.fromQuat.copy(camera.quaternion);
+    cameraZoom.toQuat.copy(cameraZoom.savedQuat);
+    cameraZoom.mode = 'out';
+    cameraZoom.duration = 600; // 0.6秒
+    cameraZoom.startTime = performance.now();
+    cameraZoom.active = true;
+
+    // ユーザージェスチャ内でポインタロックを要求
     controls.lock();
+
+    cameraZoom.onComplete = () => {
+      cameraZoom.isZoomedIn = false;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+      if (!controls.isLocked && !activeModal) {
+        controls.lock();
+      }
+    };
   }
 
   function getItemPickerHtml(promptText) {
@@ -1360,44 +1594,57 @@
 
   // --- 各パズルモーダル実装 ---
 
-  // 1. 机モーダル
+  // 1. 手帳・書斎机の調査モーダル（ズーム完了時に表示）
   function openDeskModal() {
+    soundManager.playTurn();
     let bodyHtml = `
-      <div style="text-align:center;">
+      <div>
+        <p style="text-align:center; color:#e5c88e; font-weight:600; margin-bottom:10px;">
+          古びた手帳を開いた…ランプの灯りの下に万年筆の記述が浮かび上がる。
+        </p>
+        <div class="diary-book" style="margin-bottom:16px;">
+          <div class="diary-title">書斎主の天体日誌</div>
+          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
+          <div class="diary-poem">
+            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
+            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
+            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+          </div>
+          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+        </div>
+        <div style="text-align:center; border-top:1px solid rgba(202,168,106,0.3); padding-top:14px;">
     `;
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
-        <p style="margin-bottom:12px;">上段の引き出しには銀色の小さな鍵穴がついている。</p>
-        <div style="width:120px; height:60px; margin:12px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
-          <span style="font-size:1.8rem; color:#bdc3c7;">🔒</span>
+        <p style="margin-bottom:10px; font-size:0.9rem;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
+        <div style="width:110px; height:50px; margin:8px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:1.5rem; color:#bdc3c7;">🔒</span>
         </div>
         ${getItemPickerHtml('引き出しの鍵穴に使うアイテムを選んでください')}
       `;
     } else {
       bodyHtml += `
-        <p style="color:#58d68d; font-weight:bold; margin-bottom:10px;">★ 引き出しは解錠されている ★</p>
+        <p style="color:#58d68d; font-weight:bold; margin-bottom:8px;">★ 机の引き出しは解錠されている ★</p>
       `;
       if (!state.hasSwitchKey) {
         bodyHtml += `
-          <div style="margin:16px 0;">
+          <div style="margin:12px 0;">
             <p style="font-size:0.9rem; margin-bottom:10px;">引き出しの奥に真鍮の小さな鍵が収められている！</p>
             <button id="btn-take-switch-key" class="primary-btn" style="max-width:240px; margin:0 auto;">端子盤の鍵を取る</button>
           </div>
         `;
       } else {
-        bodyHtml += `<p style="color:#888; font-size:0.88rem;">引き出しの中はもう空だ。</p>`;
+        bodyHtml += `<p style="color:#888; font-size:0.86rem;">引き出しの中はもう空だ。</p>`;
       }
     }
 
     bodyHtml += `
-        <div style="margin-top:20px; border-top:1px solid rgba(202,168,106,0.3); padding-top:14px;">
-          <button id="btn-read-diary" class="secondary-btn">机の上の天体日誌を開く</button>
         </div>
       </div>
     `;
 
-    openModal('EAST / STUDY DESK', 'アンティーク書斎机', bodyHtml, (container) => {
+    openModal('EAST / DIARY & STUDY DESK', '古びた手帳とアンティーク書斎机', bodyHtml, (container) => {
       const btnDiary = container.querySelector('#btn-read-diary');
       if (btnDiary) {
         btnDiary.onclick = openDiaryModal;
@@ -2412,7 +2659,7 @@
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    if (!activeModal && !state.gameCleared) {
+    if (!activeModal && !state.gameCleared && !cameraZoom.active) {
       if (!isGameStarted) {
         startOverlay.classList.remove('hidden');
       } else {
@@ -2639,7 +2886,25 @@
       clockPendulumGroup.rotation.z = Math.sin(time * 0.0035) * 0.16;
     }
 
-    if (controls.isLocked && !activeModal) {
+    // カメラズームイン・ズームアウト補間アニメーション
+    if (cameraZoom.active) {
+      const elapsed = time - cameraZoom.startTime;
+      const t = Math.min(elapsed / cameraZoom.duration, 1.0);
+      // Cubic Ease-In-Out 補間
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      camera.position.lerpVectors(cameraZoom.fromPos, cameraZoom.toPos, ease);
+      camera.quaternion.slerpQuaternions(cameraZoom.fromQuat, cameraZoom.toQuat, ease);
+
+      if (t >= 1.0) {
+        cameraZoom.active = false;
+        const doneCb = cameraZoom.onComplete;
+        cameraZoom.onComplete = null;
+        if (typeof doneCb === 'function') {
+          doneCb();
+        }
+      }
+    } else if (controls.isLocked && !activeModal && !cameraZoom.isZoomedIn) {
       velocity.x -= velocity.x * PLAYER.damping * delta;
       velocity.z -= velocity.z * PLAYER.damping * delta;
 
