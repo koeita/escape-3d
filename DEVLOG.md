@@ -12,8 +12,9 @@
 
 ### ■ 技術スタック & アーキテクチャ
 - **3D描画エンジン**: Three.js (`r128` / CDN読み込み)
+- **外部3Dモデルローダー**: `THREE.GLTFLoader`（`.glb` / glTF 2.0 バイナリ3Dモデルの非同期読み込み・自動スケール調整・シャドウ適用）
 - **一人称カメラ・視点制御**: `THREE.PointerLockControls`
-- **インタラクション判定**: `THREE.Raycaster`（画面中央のクロスヘアからの距離制限付きレイキャスト）
+- **インタラクション判定**: `THREE.Raycaster`（画面中央のクロスヘアからの距離制限付きレイキャスト + 不可視バウンディングボックス併用）
 - **タイポグラフィ & デザイン**: Google Fonts（`Shippori Mincho`, `Share Tech Mono`, `Noto Sans JP`）によるクラシカルなアンティーク調UI
 - **プロシージャルグラフィック**: 外部画像アセットに依存しない HTML5 Canvas プロシージャル生成テクスチャ（木目調フロア・書斎机、漆喰石壁、ペルシャ風絨毯、油絵『星辰の夜』）
 - **ライティング・シャドウ**: 天井の暖色点光源（`PointLight` + `PCFSoftShadowMap`）および環境光（`AmbientLight`）、暖炉のフリッカー光、デスクの集光スポットライト。照明スイッチによるリアルタイムな「暗闇モード」切り替え。
@@ -23,19 +24,40 @@
 ### ■ ファイル構成
 ```text
 c:\Users\xcang\Desktop\Antigravity\escape-3d\
-├── index.html   # メインDOM構造、Google Fonts、Three.js/PointerLockControls CDN読込、インベントリバー、各種モーダル
-├── style.css    # 全画面3D Canvas、クロスヘア、HUD、メッセージバー、6枠インベントリ、パズルモーダル装飾
-├── main.js      # 3D書斎空間構築、東西南北オブジェクト、一人称移動＆AABB衝突判定、Stage 1完全移植ゲームロジック
-├── se.js        # Web Audio API シンセ効果音マネージャー
-├── wrangler.json# Cloudflare Workers Builds 静的アセット＆プレビュー配信設定
-├── DEVLOG.md    # 本開発日記・技術ドキュメント・ロードマップ
-├── README.md    # リポジトリ概要
-└── .gitignore   # OS生成ファイル・エディタ設定等のGit除外定義
+├── assets/
+│   └── models/
+│       └── desk.glb # アンティーク書斎机の外部3Dモデル（glTF 2.0 Binary）
+├── index.html       # メインDOM構造、Google Fonts、Three.js/PointerLockControls/GLTFLoader CDN読込
+├── style.css        # 全画面3D Canvas、クロスヘア、HUD、メッセージバー、6枠インベントリ、パズルモーダル装飾
+├── main.js          # 3D書斎空間構築、GLTFLoader非同期読込、東西南北オブジェクト、一人称移動＆AABB衝突判定
+├── se.js            # Web Audio API シンセ効果音マネージャー
+├── wrangler.json    # Cloudflare Workers Builds 静的アセット＆プレビュー配信設定
+├── DEVLOG.md        # 本開発日記・技術ドキュメント・ロードマップ
+├── README.md        # リポジトリ概要
+└── .gitignore       # OS生成ファイル・エディタ設定等のGit除外定義
 ```
 
 ---
 
 ## 2. 開発記録 (Development Log)
+
+### 2026-10-31 (土) - 外部3Dモデル（.glb）導入検証・GLTFLoader対応 (`feat-custom-3d-model`)
+
+1. **`THREE.GLTFLoader` の導入と非同期モデル読み込み**
+   - [index.html](file:///c:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) に Three.js (`r128`) 対応の `GLTFLoader.js` CDNスクリプトを追加。
+   - [assets/models/desk.glb](file:///c:/Users/xcang/Desktop/Antigravity/escape-3d/assets/models/desk.glb)（アンティーク書斎机のglTF 2.0バイナリモデル：ダークウォルナット天板・マホガニーモールディング・左右袖引き出し・真鍮取っ手・緑革デスクマット・天体日誌・バンカーズランプ付き）を配置し、`GLTFLoader` で非同期読み込みを実装。
+
+2. **仮置きCubeオブジェクトの非表示化・自動スケール調整・シャドウ適用**
+   - 既存の仮置きしていた書斎机のCubeオブジェクト群（`deskPlaceholderGroup`）を非表示化（読み込み完了時にシーンから削除）し、同じ位置（`x: 3.8, y: 0, z: -2.0`）・同じ向きに読み込んだ3Dモデルを配置。
+   - `THREE.Box3().setFromObject()` を用いて読み込んだ `.glb` モデルのバウンディングボックスを算出し、部屋のスケール（奥行 `2.22m` 基準）に合うよう `scale` と床面接地位置（`y = 0`）を自動正規化。任意の外部 `.glb` モデルに差し替えた場合でも部屋のスケールに破綻なく収まる設計を実現。
+   - `deskModel.traverse()` でモデルの全子メッシュに対して `castShadow = true` および `receiveShadow = true` を一括適用し、天井主光源やデスクライトのSpotLightによるリアルな陰影を投影。
+
+3. **当たり判定（AABB）とクリック判定（Raycaster）の完全維持**
+   - 読み込んだ `.glb` モデルの全メッシュに `userData.interactiveRoot = deskGroup` を設定して `interactables` 配列へ登録。
+   - さらにモデルの形状や階層構造に依存せず安定した照準クリック判定を保証するため、不要な影を落とさない不可視のバウンディングボックス（`deskHitBox` / `isHitBox: true`）を当たり判定用として併設。
+   - 近づいてクリックした際に従来通り「アンティーク書斎机」の調査モーダル（天体日誌の閲覧・銀の鍵による引き出し解錠・端子盤の鍵入手）が正常に動作することを確認。
+
+---
 
 ### 2026-10-31 (土) - ビジュアル＆ライティングの刷新・重厚な陰影表現 (`feat-visual-upgrade`)
 
@@ -98,10 +120,9 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 3. 今後のタスク (Roadmap / Next Steps)
 
+- [ ] **他オブジェクトへの外部3Dモデル（.glb）展開**
+  - ソファ、天球儀、古時計、本棚等の家具オブジェクトへの `.glb` モデル順次適用。
 - [ ] **Stage 2「暴走AIと閉鎖シェルター」の3D化**
   - SFサバイバル地下施設、配電グリッド盤、オシロスコープ波形同調、火災温度センサー、耐爆ハッチの3D移植。
-- [ ] **グラフィックとマテリアルのさらなる高精細化**
-  - ノーマルマップ（法線マップ）のプロシージャル生成による凹凸表現の強化。
-  - 暖炉の炎やほこりパーティクル、足音サウンドの追加。
 - [ ] **オートセーブ（localStorage）機能の追加**
   - ゲーム中断・再開に対応する進行フラグと所持アイテムのローカルストレージ保存。

@@ -665,8 +665,13 @@
     group.userData = { isInteractiveRoot: true, ...metadata };
     group.traverse((c) => {
       if (c.isMesh) {
-        c.castShadow = true;
-        c.receiveShadow = true;
+        if (c.userData && c.userData.isHitBox) {
+          c.castShadow = false;
+          c.receiveShadow = false;
+        } else {
+          c.castShadow = true;
+          c.receiveShadow = true;
+        }
         c.userData.interactiveRoot = group;
         interactables.push(c);
       }
@@ -835,55 +840,74 @@
     // 【2. 東の壁 (East)】
     // ==========================================
 
-    // A. アンティーク書斎机
+    // A. アンティーク書斎机（GLTFLoaderによる外部3Dモデル assets/models/desk.glb 読み込み＆不可視バウンディングボックス判定）
     const deskGroup = new THREE.Group();
     deskGroup.position.set(3.8, 0, -2.0);
+    deskGroup.rotation.set(0, 0, 0);
+
+    // Raycaster（照準クリック）判定を確実に維持する不可視バウンディングボックス
+    const deskHitBox = new THREE.Mesh(
+      new THREE.BoxGeometry(1.26, 1.25, 2.26),
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.0,
+        depthWrite: false
+      })
+    );
+    deskHitBox.position.set(0, 0.625, 0);
+    deskHitBox.userData.isHitBox = true;
+    deskGroup.add(deskHitBox);
+
+    // 既存の仮置きCube机オブジェクト群（非表示化・フォールバック用）
+    const deskPlaceholderGroup = new THREE.Group();
+    deskPlaceholderGroup.visible = false; // 外部3Dモデル（desk.glb）への差し替えのため非表示
 
     const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.1, 2.2), darkWoodMat);
     deskTop.position.set(0, 0.82, 0);
-    deskGroup.add(deskTop);
+    deskPlaceholderGroup.add(deskTop);
 
     const legLeft = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.78, 0.55), darkWoodMat);
     legLeft.position.set(0, 0.39, -0.75);
-    deskGroup.add(legLeft);
+    deskPlaceholderGroup.add(legLeft);
 
     const legRight = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.78, 0.55), darkWoodMat);
     legRight.position.set(0, 0.39, 0.75);
-    deskGroup.add(legRight);
+    deskPlaceholderGroup.add(legRight);
 
     const drawer = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.18, 0.82), darkWoodMat);
     drawer.position.set(-0.02, 0.68, 0);
-    deskGroup.add(drawer);
+    deskPlaceholderGroup.add(drawer);
 
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.16), brassMat);
     handle.position.set(-0.56, 0.68, 0);
-    deskGroup.add(handle);
+    deskPlaceholderGroup.add(handle);
 
-    // 机の上の手帳
     const diary = new THREE.Mesh(
       new THREE.BoxGeometry(0.44, 0.05, 0.34),
       new THREE.MeshStandardMaterial({ color: 0x6e241c, roughness: 0.65, metalness: 0.08 })
     );
     diary.position.set(-0.1, 0.89, -0.2);
     diary.rotation.y = 0.2;
-    deskGroup.add(diary);
+    deskPlaceholderGroup.add(diary);
 
-    // デスクライト（真鍮スタンド＋クラシカルな緑シェード＋発光電球）
     const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.03, 16), brassMat);
     lampBase.position.set(0.15, 0.88, 0.65);
-    deskGroup.add(lampBase);
+    deskPlaceholderGroup.add(lampBase);
 
     const lampArm = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.35, 12), brassMat);
     lampArm.position.set(0.15, 1.05, 0.65);
-    deskGroup.add(lampArm);
+    deskPlaceholderGroup.add(lampArm);
 
     const lampShade = new THREE.Mesh(
       new THREE.ConeGeometry(0.16, 0.18, 16),
       new THREE.MeshStandardMaterial({ color: 0x163f2e, roughness: 0.35, metalness: 0.2 })
     );
     lampShade.position.set(0.15, 1.2, 0.65);
-    deskGroup.add(lampShade);
+    deskPlaceholderGroup.add(lampShade);
 
+    deskGroup.add(deskPlaceholderGroup);
+
+    // デスクライトの発光電球（暗闇モード連動用）
     deskBulbMesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.04, 12, 12),
       new THREE.MeshStandardMaterial({
@@ -906,6 +930,63 @@
       },
       { minX: 3.1, maxX: 4.6, minZ: -3.2, maxZ: -0.8 }
     );
+
+    // GLTFLoader で assets/models/desk.glb を非同期読み込み
+    if (typeof THREE.GLTFLoader !== 'undefined') {
+      const gltfLoader = new THREE.GLTFLoader();
+      gltfLoader.load(
+        'assets/models/desk.glb',
+        (gltf) => {
+          const deskModel = gltf.scene;
+
+          // 仮置きCubeグループを完全に非表示＆削除
+          deskPlaceholderGroup.visible = false;
+          if (deskPlaceholderGroup.parent) {
+            deskGroup.remove(deskPlaceholderGroup);
+          }
+
+          // 部屋のスケール（奥行 約2.22m・高さ 約0.85〜1.25m）に合うようにモデルのサイズ(scale)と位置を自動調整
+          const rawBox = new THREE.Box3().setFromObject(deskModel);
+          const rawSize = new THREE.Vector3();
+          rawBox.getSize(rawSize);
+
+          if (rawSize.x > 0 && rawSize.y > 0 && rawSize.z > 0) {
+            const targetSpanZ = 2.22;
+            const scaleFactor = targetSpanZ / Math.max(rawSize.z, 0.001);
+            deskModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+            // スケール適用後のバウンディングボックスを再計算して床面(y=0)および中心に配置
+            const scaledBox = new THREE.Box3().setFromObject(deskModel);
+            const scaledCenter = new THREE.Vector3();
+            scaledBox.getCenter(scaledCenter);
+            deskModel.position.set(
+              -scaledCenter.x,
+              -scaledBox.min.y,
+              -scaledCenter.z
+            );
+          }
+
+          // 読み込んだ3Dモデルの全メッシュに影設定（castShadow / receiveShadow）とRaycaster判定を適用
+          deskModel.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              child.userData.interactiveRoot = deskGroup;
+              interactables.push(child);
+            }
+          });
+
+          deskGroup.add(deskModel);
+        },
+        undefined,
+        (error) => {
+          console.warn('desk.glb の非同期読み込みに失敗したため仮置きモデルを表示します:', error);
+          deskPlaceholderGroup.visible = true;
+        }
+      );
+    } else {
+      deskPlaceholderGroup.visible = true;
+    }
 
     // B. 本棚
     const shelfSystem = new THREE.Group();
