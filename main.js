@@ -2686,9 +2686,28 @@
     });
   }
 
-  // --- メッセージ表示ヘルパー ---
-  function setMessage(text) {
+  // --- メッセージ表示ヘルパー（一定時間で自動的にデフォルトナレーションへフェード復帰） ---
+  const DEFAULT_MESSAGE = '古びた書斎に閉じ込められているようだ…部屋を探索して脱出の手がかりを探そう。';
+  let messageClearTimer = null;
+
+  function setMessage(text, autoResetDelay = 4000) {
+    if (!messageText) return;
     messageText.innerHTML = text.replace(/\n/g, '<br>');
+
+    if (messageClearTimer) {
+      clearTimeout(messageClearTimer);
+      messageClearTimer = null;
+    }
+
+    // アイテム入手や操作通知など、一時的なメッセージは数秒後に自然にデフォルト表示へ復帰
+    if (autoResetDelay > 0 && text !== DEFAULT_MESSAGE) {
+      messageClearTimer = setTimeout(() => {
+        messageText.innerHTML = DEFAULT_MESSAGE;
+        if (messageBar) {
+          messageBar.classList.remove('item-highlight');
+        }
+      }, autoResetDelay);
+    }
   }
 
   // --- アイテム入手トースト通知（黒背景でも確実に読み取れる最前面通知） ---
@@ -2707,9 +2726,6 @@
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       itemGetToast.classList.add('hidden');
-      if (messageBar) {
-        messageBar.classList.remove('item-highlight');
-      }
     }, 3200);
   }
 
@@ -2772,6 +2788,11 @@
 
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
+    // オブジェクト調査モーダル表示中はメッセージバーを非表示にしてUI重なりを防止
+    if (messageBarContainer) {
+      messageBarContainer.classList.add('hidden');
+    }
+
     activeModal = inspectModal;
     modalCategory.textContent = category;
     modalTitle.textContent = title;
@@ -2793,10 +2814,14 @@
     activeModal = null;
     soundManager.playClick();
 
-    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
+    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト（完了時にメッセージバー復帰）
     if (cameraZoom.isZoomedIn) {
       startCameraZoomOut();
     } else {
+      // ズームアウトしない場合のみ即時メッセージバーを再表示
+      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
+        messageBarContainer.classList.remove('hidden');
+      }
       controls.lock();
     }
   }
@@ -2804,6 +2829,10 @@
   // 汎用カメラズームイン演出（0.6秒補間）：任意のオブジェクトに対して近接注視位置へ滑らかにズーム
   function triggerZoomAndInspect(targetPos, lookAtPos, inspectAction, message = null) {
     if (cameraZoom.active) return;
+    // ズーム注視時はメッセージバーを非表示
+    if (messageBarContainer) {
+      messageBarContainer.classList.add('hidden');
+    }
     if (cameraZoom.isZoomedIn) {
       if (typeof inspectAction === 'function') inspectAction();
       return;
@@ -2868,6 +2897,9 @@
       cameraZoom.isZoomedIn = false;
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
+      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
+        messageBarContainer.classList.remove('hidden');
+      }
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
@@ -3814,6 +3846,10 @@
     const item = ITEMS[itemId];
     if (!item) return;
 
+    if (messageBarContainer) {
+      messageBarContainer.classList.add('hidden');
+    }
+
     detailedItemId = itemId;
     activeModal = itemDetailModal;
 
@@ -3840,13 +3876,25 @@
     }
   }
 
+  function closeItemDetailModal(lockControls = true) {
+    if (!itemDetailModal) return;
+    itemDetailModal.classList.add('hidden');
+    activeModal = null;
+    soundManager.playClick();
+    if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
+      messageBarContainer.classList.remove('hidden');
+    }
+    if (lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
+      controls.lock();
+    }
+  }
+
   function handleDisassembleBox() {
     if (state.inventory.some(i => i.id === 'screwdriver')) {
       soundManager.playScrewdriver();
       removeItem('music_box');
       state.boxDisassembled = true;
-      itemDetailModal.classList.add('hidden');
-      activeModal = null;
+      closeItemDetailModal(false);
 
       setTimeout(() => {
         addItem('silver_key');
@@ -3868,8 +3916,7 @@
       removeItem('broken_key');
       removeItem('emblem');
       state.keyAssembled = true;
-      itemDetailModal.classList.add('hidden');
-      activeModal = null;
+      closeItemDetailModal(false);
 
       setTimeout(() => {
         addItem('brass_key');
@@ -3913,6 +3960,9 @@
 
   function showClearModal() {
     state.gameCleared = true;
+    if (messageBarContainer) {
+      messageBarContainer.classList.add('hidden');
+    }
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
     const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
     const s = String(elapsed % 60).padStart(2, '0');
@@ -4154,6 +4204,9 @@
   }
 
   function openSettingsModal() {
+    if (messageBarContainer) {
+      messageBarContainer.classList.add('hidden');
+    }
     soundManager.playClick();
     updateSoundSettingUI();
     activeModal = settingsModal;
@@ -4168,6 +4221,9 @@
     activeModal = null;
     soundManager.playClick();
     if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
+      if (messageBarContainer) {
+        messageBarContainer.classList.remove('hidden');
+      }
       controls.lock();
     }
   }
@@ -4279,10 +4335,10 @@
   });
 
   itemDetailCloseBtn.addEventListener('click', () => {
-    itemDetailModal.classList.add('hidden');
-    activeModal = null;
-    soundManager.playClick();
-    controls.lock();
+    closeItemDetailModal(true);
+  });
+  itemDetailModal.addEventListener('click', (e) => {
+    if (e.target === itemDetailModal) closeItemDetailModal(true);
   });
 
   // クリアモーダルのボタン
@@ -4305,13 +4361,8 @@
       e.preventDefault();
       if (activeModal) {
         if (activeModal === inspectModal) closeModal();
-        else if (activeModal === itemDetailModal) {
-          itemDetailModal.classList.add('hidden');
-          activeModal = null;
-          controls.lock();
-        } else if (activeModal === settingsModal) {
-          closeSettingsModal();
-        }
+        else if (activeModal === itemDetailModal) closeItemDetailModal(true);
+        else if (activeModal === settingsModal) closeSettingsModal();
       } else if (isGameStarted && menuScreen.classList.contains('hidden')) {
         openSettingsModal();
       }
@@ -4322,13 +4373,8 @@
       if (e.code === 'Enter') {
         e.preventDefault();
         if (activeModal === inspectModal) closeModal();
-        else if (activeModal === itemDetailModal) {
-          itemDetailModal.classList.add('hidden');
-          activeModal = null;
-          controls.lock();
-        } else if (activeModal === settingsModal) {
-          closeSettingsModal();
-        }
+        else if (activeModal === itemDetailModal) closeItemDetailModal(true);
+        else if (activeModal === settingsModal) closeSettingsModal();
       }
       return;
     }

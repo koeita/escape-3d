@@ -344,7 +344,7 @@ body.cursor-mode #crosshair {
   color: var(--text-sub);
 }
 
-/* 下部メッセージバー（モーダル表示時でも絶対に隠れない前面階層 z-index: 100 & ハイコントラスト） */
+/* 下部メッセージバー（探索画面用ナレーションバー z-index: 30） */
 #message-bar-container {
   position: fixed;
   bottom: 128px;
@@ -353,7 +353,7 @@ body.cursor-mode #crosshair {
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 100;
+  z-index: 30;
   padding: 0 20px;
 }
 
