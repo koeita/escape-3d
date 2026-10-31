@@ -2360,9 +2360,9 @@
       { minX: -4.4, maxX: -3.2, minZ: 1.2, maxZ: 2.4 }
     );
 
-    // C. ペルシャ風絨毯
+    // C. ペルシャ風絨毯（ソファの横中央 z = -1.0 に合わせて配置）
     const carpetGroup = new THREE.Group();
-    carpetGroup.position.set(-2.3, 0.008, -0.8);
+    carpetGroup.position.set(-2.3, 0.008, -1.0);
 
     const rugTex = createPersianRugTexture();
     const rugMat = new THREE.MeshStandardMaterial({ map: rugTex, roughness: 0.88, metalness: 0.02 });
