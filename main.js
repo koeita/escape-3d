@@ -262,6 +262,10 @@
     savedQuat: new THREE.Quaternion(),
     onComplete: null
   };
+
+  // オブジェクトクリック・インタラクション状態フラグ（クリック中・ズーム演出中のEsc誤動作防止用）
+  let isMouseDown = false;
+  let isObjectInteracting = false;
   let clockPendulumGroup = null;    // 時計の振り子
   let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
   let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
@@ -2788,6 +2792,8 @@
 
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
+    isObjectInteracting = false;
+
     // オブジェクト調査モーダル表示中はメッセージバーを非表示にしてUI重なりを防止
     if (messageBarContainer) {
       messageBarContainer.classList.add('hidden');
@@ -2810,6 +2816,7 @@
 
   function closeModal() {
     if (!activeModal) return;
+    isObjectInteracting = false;
     activeModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
@@ -2829,11 +2836,14 @@
   // 汎用カメラズームイン演出（0.6秒補間）：任意のオブジェクトに対して近接注視位置へ滑らかにズーム
   function triggerZoomAndInspect(targetPos, lookAtPos, inspectAction, message = null) {
     if (cameraZoom.active) return;
+    isObjectInteracting = true;
+
     // ズーム注視時はメッセージバーを非表示
     if (messageBarContainer) {
       messageBarContainer.classList.add('hidden');
     }
     if (cameraZoom.isZoomedIn) {
+      isObjectInteracting = false;
       if (typeof inspectAction === 'function') inspectAction();
       return;
     }
@@ -2863,6 +2873,7 @@
 
     cameraZoom.onComplete = () => {
       cameraZoom.isZoomedIn = true;
+      isObjectInteracting = false;
       if (message) setMessage(message);
       if (typeof inspectAction === 'function') inspectAction();
     };
@@ -2880,6 +2891,7 @@
 
   // モーダルを閉じた際の元の探索視点へのスムーズなズームアウト演出
   function startCameraZoomOut() {
+    isObjectInteracting = false;
     cameraZoom.fromPos.copy(camera.position);
     cameraZoom.toPos.copy(cameraZoom.savedPos);
     cameraZoom.fromQuat.copy(camera.quaternion);
@@ -2895,6 +2907,7 @@
 
     cameraZoom.onComplete = () => {
       cameraZoom.isZoomedIn = false;
+      isObjectInteracting = false;
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
       if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
@@ -4293,12 +4306,14 @@
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    if (!state.gameCleared && !cameraZoom.active) {
-      if (menuScreen.classList.contains('hidden') && isGameStarted) {
-        // Escキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
-        if (!activeModal) {
-          openSettingsModal();
-        }
+    // オブジェクトクリック中・ズーム演出中・調査画面遷移中・ズームイン状態はEsc等による設定オープンを完全に抑止
+    if (isMouseDown || cameraZoom.active || isObjectInteracting || cameraZoom.isZoomedIn) {
+      return;
+    }
+    if (!state.gameCleared && menuScreen.classList.contains('hidden') && isGameStarted) {
+      // Escキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
+      if (!activeModal) {
+        openSettingsModal();
       }
     }
   });
@@ -4310,15 +4325,22 @@
 
   // マウスクリック処理（常時PointerLock探索、UIモードなし）
   window.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+      isMouseDown = true;
+    }
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
 
     // 左クリック (button === 0)
     if (e.button === 0) {
       if (controls.isLocked) {
         if (hoveredObject) {
+          isObjectInteracting = true;
           soundManager.playClick();
           if (typeof hoveredObject.userData.action === 'function') {
             hoveredObject.userData.action();
+          }
+          if (!cameraZoom.active && !activeModal) {
+            isObjectInteracting = false;
           }
         }
       } else if (isGameStarted) {
@@ -4326,6 +4348,16 @@
         controls.lock();
       }
     }
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 0) {
+      isMouseDown = false;
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    isMouseDown = false;
   });
 
   // モーダル閉じるボタン
@@ -4356,6 +4388,16 @@
 
   // キーボード移動＆ショートカット（Escで設定画面、数字キー1〜6でアイテム選択・詳細）
   window.addEventListener('keydown', (e) => {
+    // オブジェクトをクリックしている最中（マウス押下中、ズームイン・アウト演出中、調査画面遷移中）は
+    // エスケープキーを含めすべてのキー入力を安全に無視・遮断
+    if (isMouseDown || cameraZoom.active || isObjectInteracting) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+      return;
+    }
+
     // Escキーのハンドリング：モーダル開閉 / 設定画面の展開
     if (e.code === 'Escape') {
       e.preventDefault();
@@ -4364,7 +4406,10 @@
         else if (activeModal === itemDetailModal) closeItemDetailModal(true);
         else if (activeModal === settingsModal) closeSettingsModal();
       } else if (isGameStarted && menuScreen.classList.contains('hidden')) {
-        openSettingsModal();
+        // カメラがズームインしている最中（モーダル準備中など）は直接設定を開かない
+        if (!cameraZoom.isZoomedIn) {
+          openSettingsModal();
+        }
       }
       return;
     }
