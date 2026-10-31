@@ -96,7 +96,7 @@
     armillaryPinInserted: false,
     armillaryAngle: 90,
     armillaryOpened: false,
-    clockHour: 12,
+    clockHour: 0,
     clockMinute: 0,
     clockPuzzleSolved: false,
     hasBrokenKey: false,
@@ -239,8 +239,21 @@
     savedQuat: new THREE.Quaternion(),
     onComplete: null
   };
-  let clockPendulumGroup = null;// 時計の振り子
-  let paintingCanvasMesh = null;// 南の絵画メッシュ
+  let clockPendulumGroup = null;    // 時計の振り子
+  let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
+  let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
+  let paintingCanvasMesh = null;    // 南の絵画メッシュ
+
+  // 3D空間の壁掛け古時計の針を現在の時刻(state.clockHour, state.clockMinute)に同期
+  function updateClockHands3D() {
+    if (!clockHourHandPivot || !clockMinuteHandPivot) return;
+    // 短針角度：(時 % 12) * 30度 + (分 / 60) * 30度（0時0分で真上・時計回りに回転）
+    const hourAngleDeg = (state.clockHour % 12) * 30 + (state.clockMinute / 60) * 30;
+    // 長針角度：分 * 6度（0分で真上・時計回りに回転）
+    const minuteAngleDeg = (state.clockMinute % 60) * 6;
+    clockHourHandPivot.rotation.z = -THREE.MathUtils.degToRad(hourAngleDeg);
+    clockMinuteHandPivot.rotation.z = -THREE.MathUtils.degToRad(minuteAngleDeg);
+  }
 
   // --- プロシージャルテクスチャ生成 ---
 
@@ -1101,29 +1114,30 @@
     centerPin.position.set(0, 0.26, 0.115);
     clockGroup.add(centerPin);
 
-    // 短針（真鍮製）
-    const hourHandPivot = new THREE.Group();
-    hourHandPivot.position.set(0, 0.26, 0.115);
-    hourHandPivot.rotation.z = Math.PI / 3; // 初期角度（10時方向）
+    // 短針（真鍮製：初期状態0時0分・真上方向、モーダル操作と連動）
+    clockHourHandPivot = new THREE.Group();
+    clockHourHandPivot.position.set(0, 0.26, 0.115);
     const hourHandMesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.018, 0.13, 0.008),
       polishedBrassMat
     );
     hourHandMesh.position.set(0, 0.055, 0);
-    hourHandPivot.add(hourHandMesh);
-    clockGroup.add(hourHandPivot);
+    clockHourHandPivot.add(hourHandMesh);
+    clockGroup.add(clockHourHandPivot);
 
-    // 長針（真鍮製）
-    const minuteHandPivot = new THREE.Group();
-    minuteHandPivot.position.set(0, 0.26, 0.12);
-    minuteHandPivot.rotation.z = -Math.PI / 6; // 初期角度（2時方向）
+    // 長針（真鍮製：初期状態0時0分・真上方向、モーダル操作と連動）
+    clockMinuteHandPivot = new THREE.Group();
+    clockMinuteHandPivot.position.set(0, 0.26, 0.12);
     const minuteHandMesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.013, 0.185, 0.008),
       polishedBrassMat
     );
     minuteHandMesh.position.set(0, 0.08, 0);
-    minuteHandPivot.add(minuteHandMesh);
-    clockGroup.add(minuteHandPivot);
+    clockMinuteHandPivot.add(minuteHandMesh);
+    clockGroup.add(clockMinuteHandPivot);
+
+    // 3D空間の針の角度を初期状態（0時0分）に同期
+    updateClockHands3D();
 
     // 下部ケースの振り子窓（奥まった黒室＋真鍮縁取り枠）
     const pendWindow = new THREE.Mesh(
@@ -3147,11 +3161,15 @@
         <div class="clock-time-digital">
           ${String(state.clockHour).padStart(2, '0')}:${String(state.clockMinute).padStart(2, '0')}
         </div>
-        <div class="clock-btn-row">
-          <button id="btn-clock-hour" class="secondary-btn">+1 時間</button>
-          <button id="btn-clock-min" class="secondary-btn">+15 分</button>
+        <div class="clock-btn-row" style="margin-bottom:8px;">
+          <button id="btn-clock-hour-minus" class="secondary-btn" style="flex:1;">-1 時間</button>
+          <button id="btn-clock-hour-plus" class="secondary-btn" style="flex:1;">+1 時間</button>
         </div>
-        <p style="color:#b2aba0; font-size:0.85rem; text-align:center;">
+        <div class="clock-btn-row">
+          <button id="btn-clock-min-minus" class="secondary-btn" style="flex:1;">-15 分</button>
+          <button id="btn-clock-min-plus" class="secondary-btn" style="flex:1;">+15 分</button>
+        </div>
+        <p style="color:#b2aba0; font-size:0.85rem; text-align:center; margin-top:10px;">
           天体日誌の詩：「短針は沈む【西】へ、長針は昇る【東】へ」
         </p>
       `;
@@ -3175,19 +3193,44 @@
 
     openModal('NORTH / ANTIQUE CLOCK', '壁掛けの古時計', html, (container) => {
       if (!state.clockPuzzleSolved) {
-        const btnHour = container.querySelector('#btn-clock-hour');
-        const btnMin = container.querySelector('#btn-clock-min');
-        if (btnHour) {
-          btnHour.onclick = () => {
+        const btnHourPlus = container.querySelector('#btn-clock-hour-plus');
+        const btnHourMinus = container.querySelector('#btn-clock-hour-minus');
+        const btnMinPlus = container.querySelector('#btn-clock-min-plus');
+        const btnMinMinus = container.querySelector('#btn-clock-min-minus');
+
+        if (btnHourPlus) {
+          btnHourPlus.onclick = () => {
             soundManager.playTick();
-            state.clockHour = (state.clockHour % 12) + 1;
+            state.clockHour = (state.clockHour + 1) % 12;
             checkClockSolution();
           };
         }
-        if (btnMin) {
-          btnMin.onclick = () => {
+        if (btnHourMinus) {
+          btnHourMinus.onclick = () => {
             soundManager.playTick();
-            state.clockMinute = (state.clockMinute + 15) % 60;
+            state.clockHour = (state.clockHour + 11) % 12;
+            checkClockSolution();
+          };
+        }
+        if (btnMinPlus) {
+          btnMinPlus.onclick = () => {
+            soundManager.playTick();
+            state.clockMinute += 15;
+            if (state.clockMinute >= 60) {
+              state.clockMinute -= 60;
+              state.clockHour = (state.clockHour + 1) % 12; // 分の繰り上がりで時間を自動連動
+            }
+            checkClockSolution();
+          };
+        }
+        if (btnMinMinus) {
+          btnMinMinus.onclick = () => {
+            soundManager.playTick();
+            state.clockMinute -= 15;
+            if (state.clockMinute < 0) {
+              state.clockMinute += 60;
+              state.clockHour = (state.clockHour + 11) % 12; // 分の繰り下がりで時間を自動連動
+            }
             checkClockSolution();
           };
         }
@@ -3205,7 +3248,8 @@
   }
 
   function checkClockSolution() {
-    if (state.clockHour === 9 && state.clockMinute === 15) {
+    updateClockHands3D(); // 3D空間の壁掛け時計の針をリアルタイム連動
+    if (!state.clockPuzzleSolved && state.clockHour % 12 === 9 && state.clockMinute === 15) {
       soundManager.playSolved();
       state.clockPuzzleSolved = true;
       setMessage('ガチャン！ 時計の中から重厚な金属パーツが落ちてきた！');
