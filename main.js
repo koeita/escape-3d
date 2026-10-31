@@ -235,6 +235,8 @@
 
   // 動的ライト・オブジェクト参照
   let doorPivotGroup = null;
+  let exitHallGroup = null;     // 脱出の光の回廊グループ
+  let exitSunLight = null;      // 出口からの逆光ライト
   let bookshelfMeshGroup = null;
   let carpetCornerMesh = null;
   let ceilingPointLight = null; // 主光源（中央天井）
@@ -805,13 +807,13 @@
     const nsGeo = new THREE.BoxGeometry(ROOM.width + thick * 2, ROOM.height, thick);
     const ewGeo = new THREE.BoxGeometry(thick, ROOM.height, ROOM.depth);
 
-    // 北壁（大扉用の開口部 x: [-0.75, 0.75], y: [0, 2.62] を設けた3分割壁構造）
-    const northZ = -ROOM.depth / 2 - thick / 2;
-    const doorHalfWidth = 0.75;
-    const doorOpeningHeight = 2.62;
-    const sideWallWidth = (ROOM.width + thick * 2 - doorHalfWidth * 2) / 2;
+    // 北壁（大扉用の開口部 x: [-0.70, 0.70], y: [0, 2.54] を設けた3分割壁構造）
+    const northZ = -ROOM.depth / 2 - thick / 2; // -5.1m (壁内面は -5.0m)
+    const doorHalfWidth = 0.70;
+    const doorOpeningHeight = 2.54;
+    const sideWallWidth = (ROOM.width + thick * 2 - doorHalfWidth * 2) / 2; // 4.50m
 
-    // 北壁・左側
+    // 北壁・左側 (x: -5.2 ~ -0.70)
     const northLeft = new THREE.Mesh(
       new THREE.BoxGeometry(sideWallWidth, ROOM.height, thick),
       wallMat
@@ -820,7 +822,7 @@
     northLeft.receiveShadow = true;
     scene.add(northLeft);
 
-    // 北壁・右側
+    // 北壁・右側 (x: 0.70 ~ 5.2)
     const northRight = new THREE.Mesh(
       new THREE.BoxGeometry(sideWallWidth, ROOM.height, thick),
       wallMat
@@ -829,8 +831,8 @@
     northRight.receiveShadow = true;
     scene.add(northRight);
 
-    // 北壁・ドア上部壁
-    const topWallHeight = ROOM.height - doorOpeningHeight;
+    // 北壁・ドア上部壁 (x: -0.70 ~ 0.70, y: 2.54 ~ 4.0)
+    const topWallHeight = ROOM.height - doorOpeningHeight; // 1.46m
     const northTop = new THREE.Mesh(
       new THREE.BoxGeometry(doorHalfWidth * 2, topWallHeight, thick),
       wallMat
@@ -839,9 +841,10 @@
     northTop.receiveShadow = true;
     scene.add(northTop);
 
-    // --- 扉の向こう側：脱出の光の回廊 & 外の世界（扉開放時に壁ではなく美しい出口が出現） ---
-    const exitHallGroup = new THREE.Group();
+    // --- 扉の向こう側：脱出の光の回廊 & 外の世界（通常時は非表示にして光漏れを完全防止、扉開放時に劇的フェードイン） ---
+    exitHallGroup = new THREE.Group();
     exitHallGroup.position.set(0, 0, -5.0);
+    exitHallGroup.visible = false; // 扉が閉まっている間は非表示にして部屋への光漏れをゼロに
 
     // 外の回廊の石畳フロア
     const exitFloorMat = new THREE.MeshStandardMaterial({
@@ -882,8 +885,8 @@
     lightGate.position.set(0, 1.6, -5.95);
     exitHallGroup.add(lightGate);
 
-    // 扉の奥から部屋へ差し込む神々しい逆光ライト
-    const exitSunLight = new THREE.PointLight(0xfff3d6, 4.0, 16, 1.1);
+    // 扉の奥から部屋へ差し込む神々しい逆光ライト（初期強度 0、扉開放時にフェードイン）
+    exitSunLight = new THREE.PointLight(0xfff3d6, 0.0, 16, 1.1);
     exitSunLight.position.set(0, 2.2, -4.0);
     exitHallGroup.add(exitSunLight);
 
@@ -945,20 +948,21 @@
     const bbNS = new THREE.BoxGeometry(ROOM.width, bbHeight, bbDepth);
     const bbEW = new THREE.BoxGeometry(bbDepth, bbHeight, ROOM.depth);
 
-    // 北壁の巾木（ドア開口部を避けて左右に分割）
-    const bbSideWidth = (ROOM.width - doorHalfWidth * 2) / 2;
+    // 北壁の巾木（大扉の台座 plinth: x = ±0.88 の外側でピッタリ止めて干渉・貫通を完全解消）
+    const doorPlinthOuterX = 0.88;
+    const bbNorthWidth = (ROOM.width / 2) - doorPlinthOuterX; // 5.0 - 0.88 = 4.12m
     const bbNLeft = new THREE.Mesh(
-      new THREE.BoxGeometry(bbSideWidth, bbHeight, bbDepth),
+      new THREE.BoxGeometry(bbNorthWidth, bbHeight, bbDepth),
       bbMat
     );
-    bbNLeft.position.set(-doorHalfWidth - bbSideWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
+    bbNLeft.position.set(-doorPlinthOuterX - bbNorthWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
     scene.add(bbNLeft);
 
     const bbNRight = new THREE.Mesh(
-      new THREE.BoxGeometry(bbSideWidth, bbHeight, bbDepth),
+      new THREE.BoxGeometry(bbNorthWidth, bbHeight, bbDepth),
       bbMat
     );
-    bbNRight.position.set(doorHalfWidth + bbSideWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
+    bbNRight.position.set(doorPlinthOuterX + bbNorthWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
     scene.add(bbNRight);
 
     const bbS = new THREE.Mesh(bbNS, bbMat);
@@ -1049,9 +1053,9 @@
     // 【1. 北の壁 (North)】
     // ==========================================
 
-    // A. 脱出の大扉（木枠トリム・パネル掘り込み・真鍮丸ノブ・● LOCKED赤色自発光LED）
+    // A. 脱出の大扉（壁面 z = -5.0 に完全密着・隙間ゼロ・台座と枠の美しい接合）
     const doorSystemGroup = new THREE.Group();
-    doorSystemGroup.position.set(0, 0, -4.85);
+    doorSystemGroup.position.set(0, 0, -4.98); // 壁内面 z = -5.0 に奥端を密着
 
     const frameMat = new THREE.MeshStandardMaterial({
       map: darkWoodTex,
@@ -1067,34 +1071,38 @@
     });
 
     // 外枠の立体木枠トリム（左右の柱ピラスター＋台座＋上部2段ペディメント冠）
-    const leftJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.66, 0.22), frameMat);
-    leftJamb.position.set(-0.78, 1.33, 0.02);
+    // 柱: x = ±0.78, 幅 0.16 (内側 x = ±0.70 で開口部と完全一致), 高さ 2.54, 奥行き 0.20
+    const leftJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.54, 0.20), frameMat);
+    leftJamb.position.set(-0.78, 1.27, 0.08);
     doorSystemGroup.add(leftJamb);
 
-    const rightJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.66, 0.22), frameMat);
-    rightJamb.position.set(0.78, 1.33, 0.02);
+    const rightJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.54, 0.20), frameMat);
+    rightJamb.position.set(0.78, 1.27, 0.08);
     doorSystemGroup.add(rightJamb);
 
+    // 柱の足元台座: x = ±0.78, 幅 0.20 (x: ±0.68 ~ ±0.88), 高さ 0.28, 奥行き 0.24 (巾木と接合)
     [-0.78, 0.78].forEach((jx) => {
-      const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.28, 0.25), recessedPanelMat);
-      plinth.position.set(jx, 0.14, 0.03);
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.28, 0.24), recessedPanelMat);
+      plinth.position.set(jx, 0.14, 0.10);
       doorSystemGroup.add(plinth);
     });
 
-    const topHeaderLower = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.12, 0.24), frameMat);
-    topHeaderLower.position.set(0, 2.64, 0.03);
+    // 上部下段梁枠: 幅 1.76 (x: -0.88 ~ 0.88), 高さ 0.10, 奥行き 0.22 (y: 2.54 ~ 2.64)
+    const topHeaderLower = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.10, 0.22), frameMat);
+    topHeaderLower.position.set(0, 2.59, 0.09);
     doorSystemGroup.add(topHeaderLower);
 
-    const topHeaderCrown = new THREE.Mesh(new THREE.BoxGeometry(1.90, 0.10, 0.28), recessedPanelMat);
-    topHeaderCrown.position.set(0, 2.74, 0.04);
+    // 上部上段冠ペディメント: 幅 1.86 (x: -0.93 ~ 0.93), 高さ 0.08, 奥行き 0.26 (y: 2.64 ~ 2.72)
+    const topHeaderCrown = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.08, 0.26), recessedPanelMat);
+    topHeaderCrown.position.set(0, 2.68, 0.11);
     doorSystemGroup.add(topHeaderCrown);
 
-    // 扉本体（ヒンジ回転ピボット）
+    // 扉本体（ヒンジ回転ピボット: x = -0.70）
     doorPivotGroup = new THREE.Group();
-    doorPivotGroup.position.set(-0.7, 0, 0);
+    doorPivotGroup.position.set(-0.70, 0, 0.04);
 
-    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.54, 0.12), darkWoodMat);
-    doorLeaf.position.set(0.7, 1.29, 0.02);
+    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.40, 2.54, 0.10), darkWoodMat);
+    doorLeaf.position.set(0.70, 1.27, 0.01);
     doorPivotGroup.add(doorLeaf);
 
     // 扉表面の4面パネル掘り込み（凹面枠＋中央浮き彫りベベルパネル）
@@ -3956,9 +3964,19 @@
       const duration = 1800;
       const startTime = performance.now();
 
+      if (exitHallGroup) {
+        exitHallGroup.visible = true; // 扉開放開始時に出口回廊を可視化
+      }
+
       function animateDoorOpen(now) {
         const progress = Math.min((now - startTime) / duration, 1.0);
         doorPivotGroup.rotation.y = startRot + (targetRot - startRot) * Math.sin(progress * Math.PI / 2);
+
+        // 扉の開き具合に合わせて神々しい逆光ライトを徐々にフェードイン (0 -> 4.0)
+        if (exitSunLight) {
+          exitSunLight.intensity = progress * 4.0;
+        }
+
         if (progress < 1.0) {
           requestAnimationFrame(animateDoorOpen);
         } else {
@@ -4133,6 +4151,12 @@
     }
     if (doorPivotGroup) {
       doorPivotGroup.rotation.y = 0;
+    }
+    if (exitHallGroup) {
+      exitHallGroup.visible = false;
+    }
+    if (exitSunLight) {
+      exitSunLight.intensity = 0.0;
     }
     updateLightingState();
     updateClockHands3D();
