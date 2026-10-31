@@ -2897,15 +2897,16 @@
     );
   }
 
-  // モーダルを閉じた際の元の探索視点へのスムーズなズームアウト演出
+  // モーダルを閉じた際やEscキャンセル時の元の探索視点へのスムーズなズームアウト演出
   function startCameraZoomOut() {
     isObjectInteracting = false;
+    cameraZoom.onComplete = null; // 以前のズームイン完了コールバックを確実にクリア
     cameraZoom.fromPos.copy(camera.position);
     cameraZoom.toPos.copy(cameraZoom.savedPos);
     cameraZoom.fromQuat.copy(camera.quaternion);
     cameraZoom.toQuat.copy(cameraZoom.savedQuat);
     cameraZoom.mode = 'out';
-    cameraZoom.duration = 600; // 0.6秒
+    cameraZoom.duration = 450; // 0.45秒で素早く滑らかに探索視点へ復帰
     cameraZoom.startTime = performance.now();
     cameraZoom.active = true;
     soundManager.playZoom(true);
@@ -4330,15 +4331,17 @@
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    // オブジェクトクリック中・ズーム演出中・調査画面遷移中・ズームイン状態はEsc等による設定オープンを完全に抑止
-    if (isMouseDown || cameraZoom.active || isObjectInteracting || cameraZoom.isZoomedIn) {
+    // ズーム中やモーダル表示中、ズーム注視状態はブラウザ標準のEscによる自動設定オープンを抑止
+    if (cameraZoom.active || cameraZoom.isZoomedIn || activeModal) {
+      // モーダルが無くズーム中（または注視中）だった場合は、安全にズームアウトして元の探索視点へ復帰
+      if (!activeModal && (cameraZoom.isZoomedIn || (cameraZoom.active && cameraZoom.mode === 'in'))) {
+        startCameraZoomOut();
+      }
       return;
     }
     if (!state.gameCleared && menuScreen.classList.contains('hidden') && isGameStarted) {
-      // Escキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
-      if (!activeModal) {
-        openSettingsModal();
-      }
+      // 通常探索中にEscキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
+      openSettingsModal();
     }
   });
 
@@ -4410,31 +4413,41 @@
     returnToMainMenu();
   });
 
-  // キーボード移動＆ショートカット（Escで設定画面、数字キー1〜6でアイテム選択・詳細）
+  // キーボード移動＆ショートカット（Escで設定画面／ズーム解除／モーダル閉じ、数字キー1〜6でアイテム選択・詳細）
   window.addEventListener('keydown', (e) => {
-    // オブジェクトをクリックしている最中（マウス押下中、ズームイン・アウト演出中、調査画面遷移中）は
-    // エスケープキーを含めすべてのキー入力を安全に無視・遮断
-    if (isMouseDown || cameraZoom.active || isObjectInteracting) {
-      if (e.code === 'Escape') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-      return;
-    }
-
-    // Escキーのハンドリング：モーダル開閉 / 設定画面の展開
+    // Escキーのハンドリング：モーダル閉じる / ズーム解除 / 設定画面の展開
     if (e.code === 'Escape') {
       e.preventDefault();
+
+      // 1. モーダルが開いている場合：該当モーダルを閉じる（ズームインしていた場合は元の視点へズームアウト）
       if (activeModal) {
         if (activeModal === inspectModal) closeModal();
         else if (activeModal === itemDetailModal) closeItemDetailModal(true);
         else if (activeModal === settingsModal) closeSettingsModal();
-      } else if (isGameStarted && menuScreen.classList.contains('hidden')) {
-        // カメラがズームインしている最中（モーダル準備中など）は直接設定を開かない
-        if (!cameraZoom.isZoomedIn) {
-          openSettingsModal();
-        }
+        return;
       }
+
+      // 2. カメラがズーム注視中、またはズームイン演出中の場合：
+      // ズームを直ちに解除して元の探索視点へスムーズに戻す（フリーズを完全防止）
+      if (cameraZoom.isZoomedIn || (cameraZoom.active && cameraZoom.mode === 'in')) {
+        startCameraZoomOut();
+        return;
+      }
+
+      // 3. ズームアウトアニメーション中は連打防止のため安全に待機
+      if (cameraZoom.active && cameraZoom.mode === 'out') {
+        return;
+      }
+
+      // 4. 通常探索中の場合：設定画面（CONFIG & MENU）を開く
+      if (isGameStarted && menuScreen.classList.contains('hidden')) {
+        openSettingsModal();
+      }
+      return;
+    }
+
+    // ズーム演出中やオブジェクト操作中は他のキー入力を安全にガード
+    if (cameraZoom.active || isObjectInteracting) {
       return;
     }
 
