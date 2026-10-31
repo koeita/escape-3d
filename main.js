@@ -2560,7 +2560,7 @@
       new THREE.Vector3(2.96, 1.38, -2.22),
       new THREE.Vector3(3.58, 0.88, -2.08),
       openDeskModal,
-      '古びた手帳を開いた…星辰と古時計の針に関する記述が記されている。'
+      'アンティーク書斎机を調べた…机上に革装丁の手帳と引き出しがある。'
     );
   }
 
@@ -2619,44 +2619,43 @@
   function openDeskModal() {
     soundManager.playTurn();
     let bodyHtml = `
-      <div>
-        <p style="text-align:center; color:#e5c88e; font-weight:600; margin-bottom:10px;">
-          古びた手帳を開いた…ランプの灯りの下に万年筆の記述が浮かび上がる。
+      <div style="text-align:center;">
+        <p style="color:#b2aba0; margin-bottom:12px; font-size:0.92rem;">
+          アンティークな書斎机だ。緑のバンカーズランプの脇に、革装丁の【古びた手帳】が置かれている。
         </p>
-        <div class="diary-book" style="margin-bottom:16px;">
-          <div class="diary-title">書斎主の天体日誌</div>
-          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
-          <div class="diary-poem">
-            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+
+        <div style="background:rgba(20,24,32,0.6); border:1px solid rgba(202,168,106,0.35); border-radius:8px; padding:12px 16px; margin:0 auto 12px auto; max-width:400px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="text-align:left;">
+            <div style="font-family:var(--font-serif); font-size:1.0rem; color:var(--brass-bright); font-weight:bold;">書斎主の天体日誌</div>
+            <div style="font-size:0.8rem; color:#888;">星辰と古時計の運行に関する記録</div>
           </div>
-          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">📖 日誌を開く</button>
         </div>
-        <div style="text-align:center; border-top:1px solid rgba(202,168,106,0.3); padding-top:14px;">
+
+        <div style="border-top:1px solid rgba(202,168,106,0.25); padding-top:10px; margin-top:8px;">
     `;
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
-        <p style="margin-bottom:10px; font-size:0.9rem;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
-        <div style="width:110px; height:50px; margin:8px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <p style="margin-bottom:8px; font-size:0.88rem; color:#b2aba0;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
+        <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="font-size:1.5rem; color:#bdc3c7;">🔒</span>
         </div>
         ${getItemPickerHtml('引き出しの鍵穴に使うアイテムを選んでください')}
       `;
     } else {
       bodyHtml += `
-        <p style="color:#58d68d; font-weight:bold; margin-bottom:8px;">★ 机の引き出しは解錠されている ★</p>
+        <p style="color:#58d68d; font-weight:bold; margin-bottom:6px; font-size:0.95rem;">★ 机の引き出しは解錠されている ★</p>
       `;
       if (!state.hasSwitchKey) {
         bodyHtml += `
-          <div style="margin:12px 0;">
-            <p style="font-size:0.9rem; margin-bottom:10px;">引き出しの奥に真鍮の小さな鍵が収められている！</p>
+          <div style="margin:10px 0;">
+            <p style="font-size:0.88rem; margin-bottom:8px;">引き出しの奥に真鍮の小さな鍵が収められている！</p>
             <button id="btn-take-switch-key" class="primary-btn" style="max-width:240px; margin:0 auto;">端子盤の鍵を取る</button>
           </div>
         `;
       } else {
-        bodyHtml += `<p style="color:#888; font-size:0.86rem;">引き出しの中はもう空だ。</p>`;
+        bodyHtml += `<p style="color:#888; font-size:0.85rem;">引き出しの中はもう空だ。</p>`;
       }
     }
 
@@ -2665,7 +2664,7 @@
       </div>
     `;
 
-    openModal('EAST / DIARY & STUDY DESK', '古びた手帳とアンティーク書斎机', bodyHtml, (container) => {
+    openModal('EAST / STUDY DESK', 'アンティーク書斎机', bodyHtml, (container) => {
       const btnDiary = container.querySelector('#btn-read-diary');
       if (btnDiary) {
         btnDiary.onclick = openDiaryModal;
@@ -2703,18 +2702,30 @@
   function openDiaryModal() {
     soundManager.playTurn();
     const html = `
-      <div class="diary-book">
-        <div class="diary-title">書斎主の天体日誌</div>
-        <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
-        <div class="diary-poem">
-          重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-          軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-          二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+      <div>
+        <div class="diary-book" style="margin-bottom:12px;">
+          <div class="diary-title">書斎主の天体日誌</div>
+          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
+          <div class="diary-poem">
+            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
+            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
+            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+          </div>
+          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
         </div>
-        <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+        <div style="text-align:center;">
+          <button id="btn-back-to-desk" class="secondary-btn" style="font-size:0.85rem; padding:6px 18px;">机の調査に戻る</button>
+        </div>
       </div>
     `;
-    openModal('MANUSCRIPT / ASTRONOMY', '天体日誌の記述', html);
+    openModal('MANUSCRIPT / ASTRONOMY', '天体日誌の記述', html, (container) => {
+      const btnBack = container.querySelector('#btn-back-to-desk');
+      if (btnBack) {
+        btnBack.onclick = () => {
+          openDeskModal();
+        };
+      }
+    });
   }
 
   // 2. ソファモーダル
@@ -2792,7 +2803,7 @@
     const isLightOn = state.isLightOn;
     let html = `
       <div style="text-align:center;">
-        <div style="width:100%; max-width:440px; margin:0 auto 14px auto; border:4px solid var(--brass); border-radius:6px; overflow:hidden;">
+        <div style="width:100%; max-width:300px; margin:0 auto 8px auto; border:4px solid var(--brass); border-radius:6px; overflow:hidden;">
     `;
 
     html += `
@@ -2936,7 +2947,7 @@
     if (!state.safeDiscInserted) {
       html += `
         <p style="margin-bottom:12px;">金庫の中央に円形の窪みがある。何か丸いプレートを嵌め込めそうだ。</p>
-        <div style="width:110px; height:110px; margin:14px auto; background:#1b2028; border:3px dashed var(--brass); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#888;">
+        <div style="width:80px; height:80px; margin:6px auto; background:#1b2028; border:3px dashed var(--brass); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#888;">
           円盤スロット
         </div>
         ${getItemPickerHtml('スロットにはめるアイテムを選んでください')}
@@ -3037,7 +3048,7 @@
     if (!state.armillaryPinInserted) {
       html += `
         <p style="margin-bottom:12px;">細密な真鍮リングで構成された天球儀だ。軸の根元が「星型の穴」でピン留めされロックされている。</p>
-        <div style="width:120px; height:120px; margin:12px auto; display:flex; align-items:center; justify-content:center;">
+        <div style="width:90px; height:90px; margin:6px auto; display:flex; align-items:center; justify-content:center;">
           <svg viewBox="0 0 100 100" style="width:100%; height:100%;">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#b78727" stroke-width="3"/>
             <ellipse cx="50" cy="50" rx="42" ry="16" fill="none" stroke="#f1c40f" stroke-width="2.5" transform="rotate(-30 50 50)"/>
@@ -3050,8 +3061,8 @@
     } else if (!state.armillaryOpened) {
       html += `
         <p style="margin-bottom:12px;">星型ピンでロックが解除された！ リングをタップして回転させ、天頂（0度）に合わせよう。</p>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; margin:16px 0;">
-          <svg id="btn-rotate-armillary" viewBox="0 0 100 100" style="width:140px; height:140px; cursor:pointer; transform:rotate(${state.armillaryAngle}deg); transition:transform 0.25s ease;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin:8px 0;">
+          <svg id="btn-rotate-armillary" viewBox="0 0 100 100" style="width:110px; height:110px; cursor:pointer; transform:rotate(${state.armillaryAngle}deg); transition:transform 0.25s ease;">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#b78727" stroke-width="3"/>
             <ellipse cx="50" cy="50" rx="42" ry="16" fill="none" stroke="#f1c40f" stroke-width="3"/>
             <polygon points="50,6 45,14 55,14" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
@@ -3126,7 +3137,7 @@
     if (!state.fireplaceGrilleRemoved) {
       html += `
         <p style="margin-bottom:12px;">火室の手前に頑丈な鉄格子がはまっており奥に手が届かない。フックのついた道具があれば外せそうだ。</p>
-        <div style="width:160px; height:100px; margin:12px auto; background:#1b1c1e; border:3px solid #34495e; border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:120px; height:65px; margin:6px auto; background:#1b1c1e; border:3px solid #34495e; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <div style="width:100%; height:100%; background:repeating-linear-gradient(90deg, transparent, transparent 16px, #34495e 16px, #34495e 22px);"></div>
         </div>
         ${getItemPickerHtml('鉄格子に使うアイテムを選んでください')}
@@ -3314,7 +3325,7 @@
     if (!state.switchCoverUnlocked) {
       html += `
         <p style="margin-bottom:14px;">大扉の左横にある頑丈な照明端子盤だ。真鍮の鍵穴でカバーが施錠されている。</p>
-        <div style="width:120px; height:80px; margin:14px auto; background:#2b303c; border:2px solid var(--brass); border-radius:6px; display:flex; align-items:center; justify-content:center;">
+        <div style="width:90px; height:55px; margin:6px auto; background:#2b303c; border:2px solid var(--brass); border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="font-size:1.8rem; color:var(--brass-bright);">🔒</span>
         </div>
         ${getItemPickerHtml('カバーの鍵穴に使う鍵を選んでください')}
@@ -3322,7 +3333,7 @@
     } else {
       html += `
         <p style="margin-bottom:14px;">端子盤のカバーが開き、部屋全体の主電源スイッチが露出している。</p>
-        <div style="margin:20px 0;">
+        <div style="margin:10px 0;">
           <button id="btn-toggle-light" class="primary-btn" style="max-width:280px; margin:0 auto; font-size:1.05rem;">
             ${state.isLightOn ? '💡 部屋の明かりを消す (OFF)' : '💡 部屋の明かりをつける (ON)'}
           </button>
@@ -3413,7 +3424,7 @@
     }
 
     html += `
-        <div style="margin-top:16px;">
+        <div style="margin-top:10px;">
           <button id="btn-escape-door" class="primary-btn">大扉を開いて脱出する</button>
         </div>
       </div>
