@@ -9,6 +9,14 @@
   // --- サウンドマネージャー初期化 ---
   const soundManager = new SoundManager();
 
+  // --- クラシック細線SVGアイコン定義（脱・絵文字UI） ---
+  const UI_ICONS = {
+    book: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:5px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`,
+    lockClosed: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path><circle cx="12" cy="16" r="1"></circle></svg>`,
+    lockOpen: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect><path d="M8 11V7a4 4 0 0 1 7.9-1"></path><circle cx="12" cy="16" r="1"></circle></svg>`,
+    bulb: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:6px;"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"></path></svg>`
+  };
+
   // --- アイテム定義 ---
   const ITEMS = {
     screwdriver: {
@@ -242,7 +250,9 @@
   let clockPendulumGroup = null;    // 時計の振り子
   let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
   let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
-  let paintingCanvasMesh = null;    // 南の絵画メッシュ
+  let clockFaceMesh = null;         // 壁掛け時計の文字盤メッシュ（暗闇蓄光用）
+  let paintingCanvasMesh = null;    // 南の絵画メッシュ（暗闇蓄光用）
+  const constellationBookBands = []; // 本棚の仕掛け本背表紙バンド（暗闇蓄光用）
 
   // 3D空間の壁掛け古時計の針を現在の時刻(state.clockHour, state.clockMinute)に同期
   function updateClockHands3D() {
@@ -477,6 +487,121 @@
     return new THREE.CanvasTexture(canvas);
   }
 
+  // 4b. 油絵『星辰の夜』の暗闇自発光（emissiveMap）専用テクスチャ
+  function createPaintingEmissiveTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 384;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 512, 384);
+
+    ctx.shadowColor = '#5dade2';
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4.5;
+    ctx.setLineDash([8, 8]);
+
+    const stars = [
+      { x: 90, y: 170, name: '白羊' },
+      { x: 180, y: 110, name: '獅子' },
+      { x: 270, y: 150, name: '天蠍' },
+      { x: 440, y: 90, name: '射手' }
+    ];
+
+    ctx.beginPath();
+    ctx.moveTo(stars[0].x, stars[0].y);
+    for (let i = 1; i < stars.length; i++) {
+      ctx.lineTo(stars[i].x, stars[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    stars.forEach((st) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#d6eaf8';
+      ctx.font = 'bold 18px "Shippori Mincho", serif';
+      ctx.fillText(st.name, st.x - 18, st.y - 14);
+    });
+    ctx.shadowBlur = 0;
+
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // 5. 古時計の文字盤テクスチャ（通常時：アイボリー ／ 消灯時：淡いシアン #5dade2 蓄光）
+  function createClockDialTexture(isLightOn = true) {
+    const dialCanvas = document.createElement('canvas');
+    dialCanvas.width = 256;
+    dialCanvas.height = 256;
+    const dctx = dialCanvas.getContext('2d');
+
+    if (isLightOn) {
+      dctx.fillStyle = '#f8f2e6';
+      dctx.beginPath();
+      dctx.arc(128, 128, 126, 0, Math.PI * 2);
+      dctx.fill();
+
+      dctx.strokeStyle = '#2b1d12';
+      dctx.lineWidth = 4;
+      dctx.beginPath();
+      dctx.arc(128, 128, 114, 0, Math.PI * 2);
+      dctx.stroke();
+
+      for (let i = 0; i < 12; i++) {
+        const ang = (i * Math.PI) / 6;
+        const x1 = 128 + Math.sin(ang) * 94;
+        const y1 = 128 - Math.cos(ang) * 94;
+        const x2 = 128 + Math.sin(ang) * 110;
+        const y2 = 128 - Math.cos(ang) * 110;
+        dctx.lineWidth = i % 3 === 0 ? 5 : 2.5;
+        dctx.beginPath();
+        dctx.moveTo(x1, y1);
+        dctx.lineTo(x2, y2);
+        dctx.stroke();
+      }
+    } else {
+      // 暗闇蓄光モード：文字盤全体と目盛りが淡いシアン (#5dade2) で自発光
+      dctx.fillStyle = '#102436';
+      dctx.beginPath();
+      dctx.arc(128, 128, 126, 0, Math.PI * 2);
+      dctx.fill();
+
+      dctx.shadowColor = '#5dade2';
+      dctx.shadowBlur = 12;
+      dctx.strokeStyle = '#5dade2';
+      dctx.lineWidth = 4.5;
+      dctx.beginPath();
+      dctx.arc(128, 128, 114, 0, Math.PI * 2);
+      dctx.stroke();
+
+      dctx.lineWidth = 2;
+      dctx.beginPath();
+      dctx.arc(128, 128, 86, 0, Math.PI * 2);
+      dctx.stroke();
+
+      for (let i = 0; i < 12; i++) {
+        const ang = (i * Math.PI) / 6;
+        const x1 = 128 + Math.sin(ang) * 92;
+        const y1 = 128 - Math.cos(ang) * 92;
+        const x2 = 128 + Math.sin(ang) * 110;
+        const y2 = 128 - Math.cos(ang) * 110;
+        dctx.lineWidth = i % 3 === 0 ? 5.5 : 3;
+        dctx.beginPath();
+        dctx.moveTo(x1, y1);
+        dctx.lineTo(x2, y2);
+        dctx.stroke();
+      }
+      dctx.shadowBlur = 0;
+    }
+
+    return new THREE.CanvasTexture(dialCanvas);
+  }
+
   // --- ライティング構築（主光源＋補助光源＋影） ---
   function setupLighting() {
     // 1. 環境光（AmbientLight）：やや暗めの暖色（#2c1d11, 強度0.52）
@@ -541,6 +666,7 @@
   function updateLightingState() {
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
+      ambientLight.color.setHex(0x2c1d11);
       ambientLight.intensity = 0.52;
       deskSpotLight.intensity = 3.2;
       if (deskShadeLight) deskShadeLight.intensity = 2.4;
@@ -552,37 +678,65 @@
       if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.35;
 
       darknessVignette.classList.add('hidden');
-      scene.background.set(0x140e09);
-      scene.fog.color.set(0x140e09);
+      scene.background.setHex(0x140e09);
+      scene.fog.color.setHex(0x140e09);
     } else {
-      // 暗闇モード（蓄光ギミックが浮かび上がる最小限の明かり）
-      ceilingPointLight.intensity = 0.02;
-      ambientLight.intensity = 0.08;
+      // 暗闇モード：主光源を消灯し、部屋全体を深い群青（#060b16 / #132442）の静寂な暗闇に包む
+      ceilingPointLight.intensity = 0.0;
+      ambientLight.color.setHex(0x132442);
+      ambientLight.intensity = 0.32;
       deskSpotLight.intensity = 0.0;
       if (deskShadeLight) deskShadeLight.intensity = 0.0;
       if (deskLightPoolMesh) deskLightPoolMesh.visible = false;
-      fireplaceLight.intensity = 0.15; // 暖炉の微かな残り火
+      fireplaceLight.intensity = 0.14; // 暖炉の微かな残り火
 
-      if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 0.05;
+      if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 0.0;
       if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 0.0;
       if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.0;
 
       darknessVignette.classList.remove('hidden');
-      scene.background.set(0x040507);
-      scene.fog.color.set(0x040507);
+      scene.background.setHex(0x060b16);
+      scene.fog.color.setHex(0x060b16);
     }
 
+    // 壁の絵画『星辰の夜』：消灯時に星座ラインが淡いシアン（#5dade2）で蓄光自発光
     if (paintingCanvasMesh) {
       paintingCanvasMesh.material.map = createPaintingTexture(state.isLightOn);
-      paintingCanvasMesh.material.needsUpdate = true;
       if (!state.isLightOn) {
-        paintingCanvasMesh.material.emissive = new THREE.Color(0x3a6588);
-        paintingCanvasMesh.material.emissiveIntensity = 0.85;
+        paintingCanvasMesh.material.emissive = new THREE.Color(0x5dade2);
+        paintingCanvasMesh.material.emissiveMap = createPaintingEmissiveTexture();
+        paintingCanvasMesh.material.emissiveIntensity = 1.35;
       } else {
         paintingCanvasMesh.material.emissive = new THREE.Color(0x000000);
-        paintingCanvasMesh.material.emissiveIntensity = 0;
+        paintingCanvasMesh.material.emissiveMap = null;
+        paintingCanvasMesh.material.emissiveIntensity = 0.0;
       }
+      paintingCanvasMesh.material.needsUpdate = true;
     }
+
+    // 壁掛けの古時計の文字盤：消灯時に淡いシアン（#5dade2）で蓄光自発光
+    if (clockFaceMesh) {
+      clockFaceMesh.material.map = createClockDialTexture(state.isLightOn);
+      if (!state.isLightOn) {
+        clockFaceMesh.material.emissive = new THREE.Color(0x5dade2);
+        clockFaceMesh.material.emissiveIntensity = 0.72;
+      } else {
+        clockFaceMesh.material.emissive = new THREE.Color(0x000000);
+        clockFaceMesh.material.emissiveIntensity = 0.0;
+      }
+      clockFaceMesh.material.needsUpdate = true;
+    }
+
+    // 本棚最上段の仕掛け星座本：消灯時に背表紙バンドが淡いシアン（#5dade2）で微かに蓄光発光
+    constellationBookBands.forEach((bandMat) => {
+      if (!state.isLightOn) {
+        bandMat.emissive = new THREE.Color(0x5dade2);
+        bandMat.emissiveIntensity = 0.65;
+      } else {
+        bandMat.emissive = new THREE.Color(0x000000);
+        bandMat.emissiveIntensity = 0.0;
+      }
+    });
   }
 
   // --- 密室空間（壁・床・天井・化粧梁）構築 ---
@@ -1073,41 +1227,23 @@
       });
     });
 
-    // 白い円形文字盤（CylinderGeometry + クラシック目盛りテクスチャ）
-    const dialCanvas = document.createElement('canvas');
-    dialCanvas.width = 256;
-    dialCanvas.height = 256;
-    const dctx = dialCanvas.getContext('2d');
-    dctx.fillStyle = '#f8f2e6';
-    dctx.beginPath();
-    dctx.arc(128, 128, 126, 0, Math.PI * 2);
-    dctx.fill();
-    dctx.strokeStyle = '#2b1d12';
-    dctx.lineWidth = 4;
-    dctx.beginPath();
-    dctx.arc(128, 128, 114, 0, Math.PI * 2);
-    dctx.stroke();
-    for (let i = 0; i < 12; i++) {
-      const ang = (i * Math.PI) / 6;
-      const x1 = 128 + Math.sin(ang) * 94;
-      const y1 = 128 - Math.cos(ang) * 94;
-      const x2 = 128 + Math.sin(ang) * 110;
-      const y2 = 128 - Math.cos(ang) * 110;
-      dctx.lineWidth = i % 3 === 0 ? 5 : 2.5;
-      dctx.beginPath();
-      dctx.moveTo(x1, y1);
-      dctx.lineTo(x2, y2);
-      dctx.stroke();
-    }
-    const dialTex = new THREE.CanvasTexture(dialCanvas);
+    // 白い円形文字盤（CylinderGeometry + クラシック目盛りテクスチャ・消灯時シアン蓄光対応）
+    const dialTex = createClockDialTexture(true);
 
-    const faceMesh = new THREE.Mesh(
+    clockFaceMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.24, 0.03, 32),
-      new THREE.MeshStandardMaterial({ map: dialTex, color: 0xf8f2e6, roughness: 0.32, metalness: 0.08 })
+      new THREE.MeshStandardMaterial({
+        map: dialTex,
+        color: 0xf8f2e6,
+        emissive: new THREE.Color(0x000000),
+        emissiveIntensity: 0.0,
+        roughness: 0.32,
+        metalness: 0.08
+      })
     );
-    faceMesh.rotation.x = Math.PI / 2;
-    faceMesh.position.set(0, 0.26, 0.09);
-    clockGroup.add(faceMesh);
+    clockFaceMesh.rotation.x = Math.PI / 2;
+    clockFaceMesh.position.set(0, 0.26, 0.09);
+    clockGroup.add(clockFaceMesh);
 
     const faceRing = new THREE.Mesh(new THREE.TorusGeometry(0.242, 0.018, 16, 36), polishedBrassMat);
     faceRing.position.set(0, 0.26, 0.105);
@@ -1618,11 +1754,13 @@
       spine.position.set(-b.d / 2, b.h / 2, 0);
       bookGroup.add(spine);
 
-      // 背表紙の上下金箔ライン
+      // 背表紙の上下金箔ライン（暗闇時に淡いシアンで蓄光反応する専用マテリアル）
+      const bandMat = polishedBrassMat.clone();
+      constellationBookBands.push(bandMat);
       [-0.12, 0.12].forEach((gy) => {
         const goldBand = new THREE.Mesh(
           new THREE.BoxGeometry(0.012, 0.014, b.t * 0.92),
-          polishedBrassMat
+          bandMat
         );
         goldBand.position.set(-b.d / 2 - b.t * 0.38, b.h / 2 + gy, 0);
         bookGroup.add(goldBand);
@@ -2542,6 +2680,7 @@
     cameraZoom.duration = 600; // 0.6秒
     cameraZoom.startTime = performance.now();
     cameraZoom.active = true;
+    soundManager.playZoom(false);
 
     if (controls.isLocked) {
       controls.unlock();
@@ -2574,6 +2713,7 @@
     cameraZoom.duration = 600; // 0.6秒
     cameraZoom.startTime = performance.now();
     cameraZoom.active = true;
+    soundManager.playZoom(true);
 
     // ユーザージェスチャ内でポインタロックを要求
     controls.lock();
@@ -2629,7 +2769,7 @@
             <div style="font-family:var(--font-serif); font-size:1.0rem; color:var(--brass-bright); font-weight:bold;">書斎主の天体日誌</div>
             <div style="font-size:0.8rem; color:#888;">星辰と古時計の運行に関する記録</div>
           </div>
-          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">📖 日誌を開く</button>
+          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">${UI_ICONS.book}日誌を開く</button>
         </div>
 
         <div style="border-top:1px solid rgba(202,168,106,0.25); padding-top:10px; margin-top:8px;">
@@ -2639,7 +2779,7 @@
       bodyHtml += `
         <p style="margin-bottom:8px; font-size:0.88rem; color:#b2aba0;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
         <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
-          <span style="font-size:1.5rem; color:#bdc3c7;">🔒</span>
+          <span style="display:inline-flex; color:#bdc3c7;">${UI_ICONS.lockClosed}</span>
         </div>
         ${getItemPickerHtml('引き出しの鍵穴に使うアイテムを選んでください')}
       `;
@@ -3201,19 +3341,28 @@
     const mx2 = (cx + 54 * Math.cos(minRad)).toFixed(1);
     const my2 = (cy + 54 * Math.sin(minRad)).toFixed(1);
 
+    const isDark = !state.isLightOn;
+    const dialFillOuter = isDark ? '#0d1e2e' : '#fdfbf7';
+    const dialFillInner = isDark ? '#10263a' : '#f4ebd9';
+    const dialStrokeOuter = isDark ? '#5dade2' : '#8c6a3e';
+    const dialStrokeInner = isDark ? '#5dade2' : '#b89344';
+    const numColor = isDark ? '#aed6f1' : '#333';
+    const hourHandColor = isDark ? '#eaf2f8' : '#2c3e50';
+    const minHandColor = isDark ? '#5dade2' : '#b03a2e';
+
     let html = `
       <div class="clock-display-container">
-        <svg class="clock-svg-box" viewBox="0 0 180 180">
-          <circle cx="90" cy="90" r="82" fill="#fdfbf7" stroke="#8c6a3e" stroke-width="7"/>
-          <circle cx="90" cy="90" r="75" fill="#f4ebd9" stroke="#b89344" stroke-width="2"/>
-          <text x="90" y="36" font-size="16" font-family="serif" text-anchor="middle" fill="#333" font-weight="bold">12</text>
-          <text x="150" y="96" font-size="16" font-family="serif" text-anchor="middle" fill="#333" font-weight="bold">3</text>
-          <text x="90" y="156" font-size="16" font-family="serif" text-anchor="middle" fill="#333" font-weight="bold">6</text>
-          <text x="30" y="96" font-size="16" font-family="serif" text-anchor="middle" fill="#333" font-weight="bold">9</text>
+        <svg class="clock-svg-box" viewBox="0 0 180 180" style="${isDark ? 'filter: drop-shadow(0 0 10px rgba(93, 173, 226, 0.55));' : ''}">
+          <circle cx="90" cy="90" r="82" fill="${dialFillOuter}" stroke="${dialStrokeOuter}" stroke-width="7"/>
+          <circle cx="90" cy="90" r="75" fill="${dialFillInner}" stroke="${dialStrokeInner}" stroke-width="2"/>
+          <text x="90" y="36" font-size="16" font-family="serif" text-anchor="middle" fill="${numColor}" font-weight="bold">12</text>
+          <text x="150" y="96" font-size="16" font-family="serif" text-anchor="middle" fill="${numColor}" font-weight="bold">3</text>
+          <text x="90" y="156" font-size="16" font-family="serif" text-anchor="middle" fill="${numColor}" font-weight="bold">6</text>
+          <text x="30" y="96" font-size="16" font-family="serif" text-anchor="middle" fill="${numColor}" font-weight="bold">9</text>
 
-          <line x1="90" y1="90" x2="${hx2}" y2="${hy2}" stroke="#2c3e50" stroke-width="5" stroke-linecap="round"/>
-          <line x1="90" y1="90" x2="${mx2}" y2="${my2}" stroke="#b03a2e" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="90" cy="90" r="5" fill="#8c6a3e"/>
+          <line x1="90" y1="90" x2="${hx2}" y2="${hy2}" stroke="${hourHandColor}" stroke-width="5" stroke-linecap="round"/>
+          <line x1="90" y1="90" x2="${mx2}" y2="${my2}" stroke="${minHandColor}" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="90" cy="90" r="5" fill="${dialStrokeOuter}"/>
         </svg>
     `;
 
@@ -3326,7 +3475,7 @@
       html += `
         <p style="margin-bottom:14px;">大扉の左横にある頑丈な照明端子盤だ。真鍮の鍵穴でカバーが施錠されている。</p>
         <div style="width:90px; height:55px; margin:6px auto; background:#2b303c; border:2px solid var(--brass); border-radius:6px; display:flex; align-items:center; justify-content:center;">
-          <span style="font-size:1.8rem; color:var(--brass-bright);">🔒</span>
+          <span style="display:inline-flex; color:var(--brass-bright);">${UI_ICONS.lockClosed}</span>
         </div>
         ${getItemPickerHtml('カバーの鍵穴に使う鍵を選んでください')}
       `;
@@ -3335,7 +3484,7 @@
         <p style="margin-bottom:14px;">端子盤のカバーが開き、部屋全体の主電源スイッチが露出している。</p>
         <div style="margin:10px 0;">
           <button id="btn-toggle-light" class="primary-btn" style="max-width:280px; margin:0 auto; font-size:1.05rem;">
-            ${state.isLightOn ? '💡 部屋の明かりを消す (OFF)' : '💡 部屋の明かりをつける (ON)'}
+            ${state.isLightOn ? UI_ICONS.bulb + '部屋の明かりを消す (OFF)' : UI_ICONS.bulb + '部屋の明かりをつける (ON)'}
           </button>
         </div>
         <p style="font-size:0.85rem; color:#b2aba0;">
@@ -3393,8 +3542,8 @@
         <div class="door-locks-grid">
           <div class="lock-card">
             <span class="lock-card-title">1. 賢者の鍵穴</span>
-            <div style="font-size:2rem;">
-              ${state.doorKeyUnlocked ? '🔓' : '🔒'}
+            <div style="display:flex; align-items:center; justify-content:center; height:32px; color:${state.doorKeyUnlocked ? '#58d68d' : 'var(--brass-bright)'};">
+              ${state.doorKeyUnlocked ? UI_ICONS.lockOpen : UI_ICONS.lockClosed}
             </div>
             <span style="font-size:0.82rem; font-weight:bold; color:${state.doorKeyUnlocked ? '#58d68d' : '#e74c3c'};">
               ${state.doorKeyUnlocked ? '解錠済み' : '施錠中'}
@@ -3795,11 +3944,21 @@
     controls.lock();
   });
 
-  // メニュー操作
+  // メニュー操作（サウンドON/OFFの即座切り替え＆細線SVGアイコン連動）
   btnSoundToggle.addEventListener('click', (e) => {
     e.stopPropagation();
     const isMuted = soundManager.toggleMute();
-    btnSoundToggle.textContent = isMuted ? '🔇' : '🔊';
+    const iconOn = btnSoundToggle.querySelector('.icon-sound-on');
+    const iconOff = btnSoundToggle.querySelector('.icon-sound-off');
+    if (iconOn && iconOff) {
+      iconOn.classList.toggle('hidden', isMuted);
+      iconOff.classList.toggle('hidden', !isMuted);
+    }
+    btnSoundToggle.classList.toggle('muted', isMuted);
+    btnSoundToggle.title = isMuted ? 'サウンド切り替え (現在: OFF)' : 'サウンド切り替え (現在: ON)';
+    if (!isMuted) {
+      soundManager.playClick();
+    }
   });
 
   btnHelpToggle.addEventListener('click', (e) => {
@@ -3930,6 +4089,8 @@
 
   // --- アニメーションループ ---
   let prevTime = performance.now();
+  let lastFootstepTime = 0;
+  const FOOTSTEP_INTERVAL = 400; // 約0.4秒ごとに木の床を踏む歩行音
 
   function animate() {
     requestAnimationFrame(animate);
@@ -3988,6 +4149,21 @@
       const nextPos = controls.getObject().position;
       resolveCollisions(nextPos, currentPos);
       nextPos.y = PLAYER.eyeHeight;
+
+      // WASD移動中、一定間隔（約0.4秒ごと）で木の床を踏む歩行音を再生
+      const isMovingInput = moveState.forward || moveState.backward || moveState.left || moveState.right;
+      const movedDistSq =
+        (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
+        (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z);
+      if (isMovingInput && movedDistSq > 0.00001) {
+        if (time - lastFootstepTime >= FOOTSTEP_INTERVAL) {
+          soundManager.playFootstep();
+          lastFootstepTime = time;
+        }
+      } else if (time - lastFootstepTime > 260) {
+        // 次の歩き出しの1歩目が自然に鳴るように待機時間を調整
+        lastFootstepTime = time - 260;
+      }
 
       updateRaycast();
       updateCompassHUD();

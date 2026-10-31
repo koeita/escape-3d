@@ -34,7 +34,12 @@
 
   <!-- 照準が対象に合った際のツールチップ -->
   <div id="target-hint" class="hidden">
-    <span class="hint-icon">🔍</span>
+    <span class="hint-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </span>
     <span id="target-hint-text">調べる</span>
     <span class="hint-key">[左クリック]</span>
   </div>
@@ -42,7 +47,12 @@
   <!-- UI操作モード（マウスカーソル解放中）の案内バナー -->
   <div id="cursor-mode-banner" class="hidden">
     <div class="banner-content">
-      <span class="banner-icon">🖱️</span>
+      <span class="banner-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="3" width="12" height="18" rx="6"></rect>
+          <line x1="12" y1="7" x2="12" y2="11"></line>
+        </svg>
+      </span>
       <span class="banner-text">【UI操作モード】アイテム選択や右上のメニューをクリック可能</span>
       <button id="btn-resume-explore" class="banner-resume-btn" type="button">探索視点に戻る [左クリック / Tab]</button>
     </div>
@@ -50,9 +60,31 @@
 
   <!-- 画面右上：設定・操作ガイドメニューボタン -->
   <div id="top-menu">
-    <button id="btn-sound-toggle" class="menu-icon-btn" title="サウンド切り替え" aria-label="サウンド切り替え">🔊</button>
-    <button id="btn-help-toggle" class="menu-icon-btn" title="操作ヘルプ" aria-label="操作ヘルプ">❓</button>
-    <button id="btn-reset-game" class="menu-icon-btn" title="最初からやり直す" aria-label="最初からやり直す">🔄</button>
+    <button id="btn-sound-toggle" class="menu-icon-btn" title="サウンド切り替え (ON/OFF)" aria-label="サウンド切り替え">
+      <svg class="icon-sound-on" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+      </svg>
+      <svg class="icon-sound-off hidden" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <line x1="23" y1="9" x2="17" y2="15"></line>
+        <line x1="17" y1="9" x2="23" y2="15"></line>
+      </svg>
+    </button>
+    <button id="btn-help-toggle" class="menu-icon-btn" title="操作ヘルプ" aria-label="操作ヘルプ">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </button>
+    <button id="btn-reset-game" class="menu-icon-btn" title="最初からやり直す" aria-label="最初からやり直す">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>
+    </button>
   </div>
 
   <!-- 画面左上：ステージHUD -->
