@@ -2560,7 +2560,7 @@
       new THREE.Vector3(2.96, 1.38, -2.22),
       new THREE.Vector3(3.58, 0.88, -2.08),
       openDeskModal,
-      '古びた手帳を開いた…星辰と古時計の針に関する記述が記されている。'
+      'アンティーク書斎机を調べた…机上に革装丁の手帳と引き出しがある。'
     );
   }
 
@@ -2619,26 +2619,25 @@
   function openDeskModal() {
     soundManager.playTurn();
     let bodyHtml = `
-      <div>
-        <p style="text-align:center; color:#e5c88e; font-weight:600; margin-bottom:10px;">
-          古びた手帳を開いた…ランプの灯りの下に万年筆の記述が浮かび上がる。
+      <div style="text-align:center;">
+        <p style="color:#b2aba0; margin-bottom:12px; font-size:0.92rem;">
+          アンティークな書斎机だ。緑のバンカーズランプの脇に、革装丁の【古びた手帳】が置かれている。
         </p>
-        <div class="diary-book" style="margin-bottom:16px;">
-          <div class="diary-title">書斎主の天体日誌</div>
-          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
-          <div class="diary-poem">
-            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+
+        <div style="background:rgba(20,24,32,0.6); border:1px solid rgba(202,168,106,0.35); border-radius:8px; padding:12px 16px; margin:0 auto 12px auto; max-width:400px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="text-align:left;">
+            <div style="font-family:var(--font-serif); font-size:1.0rem; color:var(--brass-bright); font-weight:bold;">書斎主の天体日誌</div>
+            <div style="font-size:0.8rem; color:#888;">星辰と古時計の運行に関する記録</div>
           </div>
-          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">📖 日誌を開く</button>
         </div>
-        <div style="text-align:center; border-top:1px solid rgba(202,168,106,0.3); padding-top:8px;">
+
+        <div style="border-top:1px solid rgba(202,168,106,0.25); padding-top:10px; margin-top:8px;">
     `;
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
-        <p style="margin-bottom:10px; font-size:0.9rem;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
+        <p style="margin-bottom:8px; font-size:0.88rem; color:#b2aba0;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
         <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="font-size:1.5rem; color:#bdc3c7;">🔒</span>
         </div>
@@ -2646,17 +2645,17 @@
       `;
     } else {
       bodyHtml += `
-        <p style="color:#58d68d; font-weight:bold; margin-bottom:8px;">★ 机の引き出しは解錠されている ★</p>
+        <p style="color:#58d68d; font-weight:bold; margin-bottom:6px; font-size:0.95rem;">★ 机の引き出しは解錠されている ★</p>
       `;
       if (!state.hasSwitchKey) {
         bodyHtml += `
-          <div style="margin:12px 0;">
-            <p style="font-size:0.9rem; margin-bottom:10px;">引き出しの奥に真鍮の小さな鍵が収められている！</p>
+          <div style="margin:10px 0;">
+            <p style="font-size:0.88rem; margin-bottom:8px;">引き出しの奥に真鍮の小さな鍵が収められている！</p>
             <button id="btn-take-switch-key" class="primary-btn" style="max-width:240px; margin:0 auto;">端子盤の鍵を取る</button>
           </div>
         `;
       } else {
-        bodyHtml += `<p style="color:#888; font-size:0.86rem;">引き出しの中はもう空だ。</p>`;
+        bodyHtml += `<p style="color:#888; font-size:0.85rem;">引き出しの中はもう空だ。</p>`;
       }
     }
 
@@ -2665,7 +2664,7 @@
       </div>
     `;
 
-    openModal('EAST / DIARY & STUDY DESK', '古びた手帳とアンティーク書斎机', bodyHtml, (container) => {
+    openModal('EAST / STUDY DESK', 'アンティーク書斎机', bodyHtml, (container) => {
       const btnDiary = container.querySelector('#btn-read-diary');
       if (btnDiary) {
         btnDiary.onclick = openDiaryModal;
@@ -2703,18 +2702,30 @@
   function openDiaryModal() {
     soundManager.playTurn();
     const html = `
-      <div class="diary-book">
-        <div class="diary-title">書斎主の天体日誌</div>
-        <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
-        <div class="diary-poem">
-          重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-          軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-          二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+      <div>
+        <div class="diary-book" style="margin-bottom:12px;">
+          <div class="diary-title">書斎主の天体日誌</div>
+          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
+          <div class="diary-poem">
+            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
+            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
+            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+          </div>
+          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
         </div>
-        <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+        <div style="text-align:center;">
+          <button id="btn-back-to-desk" class="secondary-btn" style="font-size:0.85rem; padding:6px 18px;">机の調査に戻る</button>
+        </div>
       </div>
     `;
-    openModal('MANUSCRIPT / ASTRONOMY', '天体日誌の記述', html);
+    openModal('MANUSCRIPT / ASTRONOMY', '天体日誌の記述', html, (container) => {
+      const btnBack = container.querySelector('#btn-back-to-desk');
+      if (btnBack) {
+        btnBack.onclick = () => {
+          openDeskModal();
+        };
+      }
+    });
   }
 
   // 2. ソファモーダル
