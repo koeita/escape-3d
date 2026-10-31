@@ -801,11 +801,99 @@
     const nsGeo = new THREE.BoxGeometry(ROOM.width + thick * 2, ROOM.height, thick);
     const ewGeo = new THREE.BoxGeometry(thick, ROOM.height, ROOM.depth);
 
-    // 北壁
-    const north = new THREE.Mesh(nsGeo, wallMat);
-    north.position.set(0, ROOM.height / 2, -ROOM.depth / 2 - thick / 2);
-    north.receiveShadow = true;
-    scene.add(north);
+    // 北壁（大扉用の開口部 x: [-0.75, 0.75], y: [0, 2.62] を設けた3分割壁構造）
+    const northZ = -ROOM.depth / 2 - thick / 2;
+    const doorHalfWidth = 0.75;
+    const doorOpeningHeight = 2.62;
+    const sideWallWidth = (ROOM.width + thick * 2 - doorHalfWidth * 2) / 2;
+
+    // 北壁・左側
+    const northLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(sideWallWidth, ROOM.height, thick),
+      wallMat
+    );
+    northLeft.position.set(-doorHalfWidth - sideWallWidth / 2, ROOM.height / 2, northZ);
+    northLeft.receiveShadow = true;
+    scene.add(northLeft);
+
+    // 北壁・右側
+    const northRight = new THREE.Mesh(
+      new THREE.BoxGeometry(sideWallWidth, ROOM.height, thick),
+      wallMat
+    );
+    northRight.position.set(doorHalfWidth + sideWallWidth / 2, ROOM.height / 2, northZ);
+    northRight.receiveShadow = true;
+    scene.add(northRight);
+
+    // 北壁・ドア上部壁
+    const topWallHeight = ROOM.height - doorOpeningHeight;
+    const northTop = new THREE.Mesh(
+      new THREE.BoxGeometry(doorHalfWidth * 2, topWallHeight, thick),
+      wallMat
+    );
+    northTop.position.set(0, doorOpeningHeight + topWallHeight / 2, northZ);
+    northTop.receiveShadow = true;
+    scene.add(northTop);
+
+    // --- 扉の向こう側：脱出の光の回廊 & 外の世界（扉開放時に壁ではなく美しい出口が出現） ---
+    const exitHallGroup = new THREE.Group();
+    exitHallGroup.position.set(0, 0, -5.0);
+
+    // 外の回廊の石畳フロア
+    const exitFloorMat = new THREE.MeshStandardMaterial({
+      color: 0x42382e,
+      roughness: 0.55,
+      metalness: 0.08
+    });
+    const exitFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 6.0), exitFloorMat);
+    exitFloor.rotation.x = -Math.PI / 2;
+    exitFloor.position.set(0, 0.005, -3.0);
+    exitFloor.receiveShadow = true;
+    exitHallGroup.add(exitFloor);
+
+    // 外の回廊の側壁
+    const exitWallMat = new THREE.MeshStandardMaterial({
+      color: 0x2e241c,
+      roughness: 0.75,
+      metalness: 0.05
+    });
+    const exitWallL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.4, 6.0), exitWallMat);
+    exitWallL.position.set(-1.15, 1.7, -3.0);
+    exitHallGroup.add(exitWallL);
+
+    const exitWallR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.4, 6.0), exitWallMat);
+    exitWallR.position.set(1.15, 1.7, -3.0);
+    exitHallGroup.add(exitWallR);
+
+    // 回廊の天井
+    const exitCeil = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.2, 6.0), exitWallMat);
+    exitCeil.position.set(0, 3.3, -3.0);
+    exitHallGroup.add(exitCeil);
+
+    // 突き当たりの外の世界・眩い光のゲート面
+    const lightGateMat = new THREE.MeshBasicMaterial({
+      color: 0xfffaea
+    });
+    const lightGate = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.2), lightGateMat);
+    lightGate.position.set(0, 1.6, -5.95);
+    exitHallGroup.add(lightGate);
+
+    // 扉の奥から部屋へ差し込む神々しい逆光ライト
+    const exitSunLight = new THREE.PointLight(0xfff3d6, 4.0, 16, 1.1);
+    exitSunLight.position.set(0, 2.2, -4.0);
+    exitHallGroup.add(exitSunLight);
+
+    // 光のハロー（光彩ビルボード）
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xffe6a3,
+      transparent: true,
+      opacity: 0.55
+    });
+    const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 3.6), glowMat);
+    glowMesh.position.set(0, 1.6, -5.8);
+    exitHallGroup.add(glowMesh);
+
+    scene.add(exitHallGroup);
 
     // 南壁
     const south = new THREE.Mesh(nsGeo, wallMat);
@@ -853,9 +941,21 @@
     const bbNS = new THREE.BoxGeometry(ROOM.width, bbHeight, bbDepth);
     const bbEW = new THREE.BoxGeometry(bbDepth, bbHeight, ROOM.depth);
 
-    const bbN = new THREE.Mesh(bbNS, bbMat);
-    bbN.position.set(0, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
-    scene.add(bbN);
+    // 北壁の巾木（ドア開口部を避けて左右に分割）
+    const bbSideWidth = (ROOM.width - doorHalfWidth * 2) / 2;
+    const bbNLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(bbSideWidth, bbHeight, bbDepth),
+      bbMat
+    );
+    bbNLeft.position.set(-doorHalfWidth - bbSideWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
+    scene.add(bbNLeft);
+
+    const bbNRight = new THREE.Mesh(
+      new THREE.BoxGeometry(bbSideWidth, bbHeight, bbDepth),
+      bbMat
+    );
+    bbNRight.position.set(doorHalfWidth + bbSideWidth / 2, bbHeight / 2, -ROOM.depth / 2 + bbDepth / 2);
+    scene.add(bbNRight);
 
     const bbS = new THREE.Mesh(bbNS, bbMat);
     bbS.position.set(0, bbHeight / 2, ROOM.depth / 2 - bbDepth / 2);
