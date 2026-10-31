@@ -96,7 +96,7 @@
     armillaryPinInserted: false,
     armillaryAngle: 90,
     armillaryOpened: false,
-    clockHour: 12,
+    clockHour: 0,
     clockMinute: 0,
     clockPuzzleSolved: false,
     hasBrokenKey: false,
@@ -239,8 +239,21 @@
     savedQuat: new THREE.Quaternion(),
     onComplete: null
   };
-  let clockPendulumGroup = null;// 時計の振り子
-  let paintingCanvasMesh = null;// 南の絵画メッシュ
+  let clockPendulumGroup = null;    // 時計の振り子
+  let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
+  let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
+  let paintingCanvasMesh = null;    // 南の絵画メッシュ
+
+  // 3D空間の壁掛け古時計の針を現在の時刻(state.clockHour, state.clockMinute)に同期
+  function updateClockHands3D() {
+    if (!clockHourHandPivot || !clockMinuteHandPivot) return;
+    // 短針角度：(時 % 12) * 30度 + (分 / 60) * 30度（0時0分で真上・時計回りに回転）
+    const hourAngleDeg = (state.clockHour % 12) * 30 + (state.clockMinute / 60) * 30;
+    // 長針角度：分 * 6度（0分で真上・時計回りに回転）
+    const minuteAngleDeg = (state.clockMinute % 60) * 6;
+    clockHourHandPivot.rotation.z = -THREE.MathUtils.degToRad(hourAngleDeg);
+    clockMinuteHandPivot.rotation.z = -THREE.MathUtils.degToRad(minuteAngleDeg);
+  }
 
   // --- プロシージャルテクスチャ生成 ---
 
@@ -511,17 +524,17 @@
     fireplaceLight.shadow.bias = -0.002;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のランプ真下・周囲を丸く自然に照らす暖色(#ffebc2)ライト
-    deskSpotLight = new THREE.SpotLight(0xffebc2, 4.2, 3.6, Math.PI / 3.8, 0.88, 1.3);
-    deskSpotLight.position.set(3.94, 1.65, -1.48);
+    // 4. 補助光源 B：書斎机（East）のランプ直下・周囲を丸く自然に照らす暖色(#ffebd2)ライト
+    deskSpotLight = new THREE.SpotLight(0xffebd2, 3.2, 4.2, Math.PI / 2.7, 0.88, 1.2);
+    deskSpotLight.position.set(3.94, 1.40, -1.48);
     deskSpotLight.target.position.set(3.94, 0.86, -1.48);
     deskSpotLight.castShadow = false;
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
 
-    // ランプの周囲360度（台座・支柱・天板・背後のレンガ壁・手帳）をふんわり照らすPointLight
-    deskShadeLight = new THREE.PointLight(0xffdf9e, 1.8, 2.5, 1.4);
-    deskShadeLight.position.set(3.94, 1.15, -1.48);
+    // ランプの周囲360度（台座・支柱・天板全体・手帳・背後の壁）をふんわり温かく照らすPointLight
+    deskShadeLight = new THREE.PointLight(0xffdfa8, 2.4, 3.4, 1.2);
+    deskShadeLight.position.set(3.94, 1.18, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -529,8 +542,8 @@
     if (state.isLightOn) {
       ceilingPointLight.intensity = 1.45;
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 4.2;
-      if (deskShadeLight) deskShadeLight.intensity = 1.8;
+      deskSpotLight.intensity = 3.2;
+      if (deskShadeLight) deskShadeLight.intensity = 2.4;
       if (deskLightPoolMesh) deskLightPoolMesh.visible = true;
       fireplaceLight.intensity = 0.95;
 
@@ -737,49 +750,218 @@
       metalness: 0.05,
     });
 
+    // Raycaster判定を補助する不可視バウンディングボックス生成ヘルパー
+    function attachInvisibleCollider(targetGroup, w, h, d, cx, cy, cz) {
+      const hitMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0.0,
+          depthWrite: false
+        })
+      );
+      hitMesh.position.set(cx, cy, cz);
+      hitMesh.userData.isHitBox = true;
+      targetGroup.add(hitMesh);
+    }
+
+    // ドアノブ・時計等用の高光沢真鍮マテリアル（metalness: 0.85）
+    const polishedBrassMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.85,
+      roughness: 0.25
+    });
+
     // ==========================================
     // 【1. 北の壁 (North)】
     // ==========================================
 
-    // A. 脱出の大扉
+    // A. 脱出の大扉（木枠トリム・パネル掘り込み・真鍮丸ノブ・● LOCKED赤色自発光LED）
     const doorSystemGroup = new THREE.Group();
     doorSystemGroup.position.set(0, 0, -4.85);
 
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x1f130b, roughness: 0.7 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.68, 2.7, 0.16), frameMat);
-    frame.position.set(0, 1.35, 0);
-    doorSystemGroup.add(frame);
+    const frameMat = new THREE.MeshStandardMaterial({
+      map: darkWoodTex,
+      color: 0x24150c,
+      roughness: 0.62,
+      metalness: 0.06
+    });
+    const recessedPanelMat = new THREE.MeshStandardMaterial({
+      map: darkWoodTex,
+      color: 0x1b0f08,
+      roughness: 0.72,
+      metalness: 0.04
+    });
 
+    // 外枠の立体木枠トリム（左右の柱ピラスター＋台座＋上部2段ペディメント冠）
+    const leftJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.66, 0.22), frameMat);
+    leftJamb.position.set(-0.78, 1.33, 0.02);
+    doorSystemGroup.add(leftJamb);
+
+    const rightJamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.66, 0.22), frameMat);
+    rightJamb.position.set(0.78, 1.33, 0.02);
+    doorSystemGroup.add(rightJamb);
+
+    [-0.78, 0.78].forEach((jx) => {
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.28, 0.25), recessedPanelMat);
+      plinth.position.set(jx, 0.14, 0.03);
+      doorSystemGroup.add(plinth);
+    });
+
+    const topHeaderLower = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.12, 0.24), frameMat);
+    topHeaderLower.position.set(0, 2.64, 0.03);
+    doorSystemGroup.add(topHeaderLower);
+
+    const topHeaderCrown = new THREE.Mesh(new THREE.BoxGeometry(1.90, 0.10, 0.28), recessedPanelMat);
+    topHeaderCrown.position.set(0, 2.74, 0.04);
+    doorSystemGroup.add(topHeaderCrown);
+
+    // 扉本体（ヒンジ回転ピボット）
     doorPivotGroup = new THREE.Group();
     doorPivotGroup.position.set(-0.7, 0, 0);
 
-    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.54, 0.14), darkWoodMat);
-    doorLeaf.position.set(0.7, 1.32, 0.02);
+    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.54, 0.12), darkWoodMat);
+    doorLeaf.position.set(0.7, 1.29, 0.02);
     doorPivotGroup.add(doorLeaf);
 
-    // 電子錠プレート
-    const lockPlateMat = new THREE.MeshStandardMaterial({ color: 0x181c22, roughness: 0.35, metalness: 0.8 });
-    const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.44, 0.04), lockPlateMat);
-    lockPlate.position.set(0.7, 1.35, 0.1);
+    // 扉表面の4面パネル掘り込み（凹面枠＋中央浮き彫りベベルパネル）
+    const panelRows = [
+      { cy: 1.88, h: 0.86 },
+      { cy: 0.72, h: 0.92 }
+    ];
+    const panelCols = [0.40, 1.00];
+
+    panelRows.forEach((row) => {
+      panelCols.forEach((cx) => {
+        // 掘り込み凹みベース
+        const recess = new THREE.Mesh(
+          new THREE.BoxGeometry(0.46, row.h, 0.025),
+          recessedPanelMat
+        );
+        recess.position.set(cx, row.cy, 0.075);
+        doorPivotGroup.add(recess);
+
+        // 中央の浮き彫りレイズドパネル
+        const raised = new THREE.Mesh(
+          new THREE.BoxGeometry(0.36, row.h - 0.12, 0.022),
+          darkWoodMat
+        );
+        raised.position.set(cx, row.cy, 0.09);
+        doorPivotGroup.add(raised);
+      });
+    });
+
+    // 真鍮の蝶番（ヒンジ）3箇所
+    [0.45, 1.30, 2.15].forEach((hy) => {
+      const hinge = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.12, 12),
+        polishedBrassMat
+      );
+      hinge.position.set(0.02, hy, 0.09);
+      doorPivotGroup.add(hinge);
+    });
+
+    // 電子錠プレート：黒い金属ボックス＋「● LOCKED」と赤く自発光（emissive: #e74c3c）するLEDインジケータ
+    const lockPlateMat = new THREE.MeshStandardMaterial({
+      color: 0x14181e,
+      roughness: 0.32,
+      metalness: 0.85
+    });
+    const lockTrim = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.48, 0.03), polishedBrassMat);
+    lockTrim.position.set(0.7, 1.35, 0.088);
+    doorPivotGroup.add(lockTrim);
+
+    const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.44, 0.045), lockPlateMat);
+    lockPlate.position.set(0.7, 1.35, 0.105);
     doorPivotGroup.add(lockPlate);
 
-    // LED（光と影に反応するMeshStandardMaterial + emissive）
+    // 「● LOCKED」赤色自発光インジケータテクスチャ生成
+    const lockScreenCanvas = document.createElement('canvas');
+    lockScreenCanvas.width = 256;
+    lockScreenCanvas.height = 80;
+    const lctx = lockScreenCanvas.getContext('2d');
+    lctx.fillStyle = '#180404';
+    lctx.fillRect(0, 0, 256, 80);
+    lctx.strokeStyle = '#661414';
+    lctx.lineWidth = 4;
+    lctx.strokeRect(4, 4, 248, 72);
+    lctx.fillStyle = '#e74c3c';
+    lctx.font = 'bold 34px "Share Tech Mono", monospace';
+    lctx.textAlign = 'center';
+    lctx.textBaseline = 'middle';
+    lctx.fillText('● LOCKED', 128, 42);
+    const lockScreenTex = new THREE.CanvasTexture(lockScreenCanvas);
+
     const lockLedMat = new THREE.MeshStandardMaterial({
-      color: 0x330000,
+      color: 0xffffff,
+      map: lockScreenTex,
       emissive: 0xe74c3c,
-      emissiveIntensity: 0.9,
-      roughness: 0.3
+      emissiveMap: lockScreenTex,
+      emissiveIntensity: 1.35,
+      roughness: 0.25
     });
-    const lockLed = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.02), lockLedMat);
-    lockLed.position.set(0.7, 1.45, 0.13);
+    const lockLed = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.078, 0.012), lockLedMat);
+    lockLed.position.set(0.7, 1.47, 0.13);
     doorPivotGroup.add(lockLed);
 
-    // 真鍮ノブ＆鍵穴
-    const knob = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.08), brassMat);
-    knob.position.set(1.28, 1.15, 0.11);
-    doorPivotGroup.add(knob);
+    // 丸型赤色LEDランプ球
+    const redLedDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.014, 14, 14),
+      new THREE.MeshStandardMaterial({
+        color: 0xff3322,
+        emissive: 0xe74c3c,
+        emissiveIntensity: 1.8,
+        roughness: 0.2
+      })
+    );
+    redLedDot.position.set(0.55, 1.47, 0.135);
+    doorPivotGroup.add(redLedDot);
+
+    // テンキーボタン群（3×4グリッド）
+    const keyBtnMat = new THREE.MeshStandardMaterial({ color: 0x2c333d, roughness: 0.3, metalness: 0.7 });
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 3; c++) {
+        const kBtn = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.036, 0.012), keyBtnMat);
+        kBtn.position.set(0.63 + c * 0.07, 1.37 - r * 0.052, 0.13);
+        doorPivotGroup.add(kBtn);
+      }
+    }
+
+    // 真鍮の丸型ドアノブ（SphereGeometry / metalness: 0.85）＆台座ロゼット＆鍵穴
+    const knobRosette = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.048, 0.054, 0.016, 24),
+      polishedBrassMat
+    );
+    knobRosette.rotation.x = Math.PI / 2;
+    knobRosette.position.set(1.26, 1.15, 0.088);
+    doorPivotGroup.add(knobRosette);
+
+    const knobSpindle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.055, 16),
+      polishedBrassMat
+    );
+    knobSpindle.rotation.x = Math.PI / 2;
+    knobSpindle.position.set(1.26, 1.15, 0.115);
+    doorPivotGroup.add(knobSpindle);
+
+    const knobSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.052, 24, 24),
+      polishedBrassMat
+    );
+    knobSphere.position.set(1.26, 1.15, 0.155);
+    doorPivotGroup.add(knobSphere);
+
+    // 鍵穴エスカッション
+    const keyholePlate = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.026, 0.026, 0.014, 18),
+      polishedBrassMat
+    );
+    keyholePlate.rotation.x = Math.PI / 2;
+    keyholePlate.position.set(1.26, 1.02, 0.088);
+    doorPivotGroup.add(keyholePlate);
 
     doorSystemGroup.add(doorPivotGroup);
+    attachInvisibleCollider(doorSystemGroup, 1.85, 2.75, 0.35, 0, 1.37, 0.05);
 
     registerInteractive(
       doorSystemGroup,
@@ -804,10 +986,21 @@
 
     const coverMesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.36, 0.5, 0.04),
-      brassMat
+      polishedBrassMat
     );
     coverMesh.position.z = 0.05;
     switchGroup.add(coverMesh);
+
+    // 四隅の真鍮マイナスネジ装飾
+    [[-0.14, 0.20], [0.14, 0.20], [-0.14, -0.20], [0.14, -0.20]].forEach(([sx, sy]) => {
+      const screw = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.014, 0.014, 0.012, 12),
+        new THREE.MeshStandardMaterial({ color: 0x8c7322, metalness: 0.9, roughness: 0.3 })
+      );
+      screw.rotation.x = Math.PI / 2;
+      screw.position.set(sx, sy, 0.072);
+      switchGroup.add(screw);
+    });
 
     registerInteractive(switchGroup, {
       id: 'switch_panel',
@@ -816,48 +1009,172 @@
       action: openSwitchModal
     });
 
-    // C. 壁掛けの古時計（振り子付き）
+    // C. 壁掛けの古時計（木製縦長ケース・白い円形文字盤・真鍮の長針/短針・揺れる金属振り子）
     const clockGroup = new THREE.Group();
     clockGroup.position.set(2.2, 2.2, -4.88);
 
-    const clockCase = new THREE.Mesh(new THREE.BoxGeometry(0.68, 1.35, 0.16), darkWoodMat);
+    // 木製縦長メインケース
+    const clockCase = new THREE.Mesh(new THREE.BoxGeometry(0.66, 1.32, 0.16), darkWoodMat);
     clockGroup.add(clockCase);
 
-    // 文字盤
+    // 上部クラウン冠・アーチ型ペディメントと真鍮フィニアル
+    const clockTopCornice = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.08, 0.22), frameMat);
+    clockTopCornice.position.set(0, 0.68, 0.02);
+    clockGroup.add(clockTopCornice);
+
+    const clockArch = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.28, 0.18, 24, 1, false, 0, Math.PI),
+      darkWoodMat
+    );
+    clockArch.rotation.z = Math.PI / 2;
+    clockArch.rotation.y = Math.PI / 2;
+    clockArch.position.set(0, 0.70, 0.01);
+    clockGroup.add(clockArch);
+
+    // 頂部中央と左右の真鍮フィニアル球
+    [[-0.32, 0.76], [0, 0.92], [0.32, 0.76]].forEach(([fx, fy]) => {
+      const finialSpire = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.022, 0.06, 12), polishedBrassMat);
+      finialSpire.position.set(fx, fy, 0.04);
+      clockGroup.add(finialSpire);
+      const finialBall = new THREE.Mesh(new THREE.SphereGeometry(0.026, 16, 16), polishedBrassMat);
+      finialBall.position.set(fx, fy + 0.04, 0.04);
+      clockGroup.add(finialBall);
+    });
+
+    // 下部台座モールディング
+    const clockBaseMold = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.09, 0.22), frameMat);
+    clockBaseMold.position.set(0, -0.68, 0.02);
+    clockGroup.add(clockBaseMold);
+
+    // 左右の装飾コラム丸柱
+    [-0.31, 0.31].forEach((colX) => {
+      const colShaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.028, 0.028, 1.24, 16),
+        frameMat
+      );
+      colShaft.position.set(colX, 0, 0.09);
+      clockGroup.add(colShaft);
+
+      [-0.58, 0.58].forEach((capY) => {
+        const colRing = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.036, 0.036, 0.03, 16),
+          polishedBrassMat
+        );
+        colRing.position.set(colX, capY, 0.09);
+        clockGroup.add(colRing);
+      });
+    });
+
+    // 白い円形文字盤（CylinderGeometry + クラシック目盛りテクスチャ）
+    const dialCanvas = document.createElement('canvas');
+    dialCanvas.width = 256;
+    dialCanvas.height = 256;
+    const dctx = dialCanvas.getContext('2d');
+    dctx.fillStyle = '#f8f2e6';
+    dctx.beginPath();
+    dctx.arc(128, 128, 126, 0, Math.PI * 2);
+    dctx.fill();
+    dctx.strokeStyle = '#2b1d12';
+    dctx.lineWidth = 4;
+    dctx.beginPath();
+    dctx.arc(128, 128, 114, 0, Math.PI * 2);
+    dctx.stroke();
+    for (let i = 0; i < 12; i++) {
+      const ang = (i * Math.PI) / 6;
+      const x1 = 128 + Math.sin(ang) * 94;
+      const y1 = 128 - Math.cos(ang) * 94;
+      const x2 = 128 + Math.sin(ang) * 110;
+      const y2 = 128 - Math.cos(ang) * 110;
+      dctx.lineWidth = i % 3 === 0 ? 5 : 2.5;
+      dctx.beginPath();
+      dctx.moveTo(x1, y1);
+      dctx.lineTo(x2, y2);
+      dctx.stroke();
+    }
+    const dialTex = new THREE.CanvasTexture(dialCanvas);
+
     const faceMesh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.24, 0.03, 32),
-      new THREE.MeshStandardMaterial({ color: 0xf6efe4, roughness: 0.35, metalness: 0.1 })
+      new THREE.MeshStandardMaterial({ map: dialTex, color: 0xf8f2e6, roughness: 0.32, metalness: 0.08 })
     );
     faceMesh.rotation.x = Math.PI / 2;
-    faceMesh.position.set(0, 0.25, 0.09);
+    faceMesh.position.set(0, 0.26, 0.09);
     clockGroup.add(faceMesh);
 
-    const faceRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.016, 16, 32), brassMat);
-    faceRing.position.set(0, 0.25, 0.1);
+    const faceRing = new THREE.Mesh(new THREE.TorusGeometry(0.242, 0.018, 16, 36), polishedBrassMat);
+    faceRing.position.set(0, 0.26, 0.105);
     clockGroup.add(faceRing);
 
-    // 振り子窓
-    const pendWindow = new THREE.Mesh(
-      new THREE.BoxGeometry(0.36, 0.48, 0.04),
-      new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.2, metalness: 0.7 })
+    // 真鍮の長針・短針と中央ピン
+    const centerPin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.025, 16),
+      polishedBrassMat
     );
-    pendWindow.position.set(0, -0.32, 0.08);
+    centerPin.rotation.x = Math.PI / 2;
+    centerPin.position.set(0, 0.26, 0.115);
+    clockGroup.add(centerPin);
+
+    // 短針（真鍮製：初期状態0時0分・真上方向、モーダル操作と連動）
+    clockHourHandPivot = new THREE.Group();
+    clockHourHandPivot.position.set(0, 0.26, 0.115);
+    const hourHandMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.018, 0.13, 0.008),
+      polishedBrassMat
+    );
+    hourHandMesh.position.set(0, 0.055, 0);
+    clockHourHandPivot.add(hourHandMesh);
+    clockGroup.add(clockHourHandPivot);
+
+    // 長針（真鍮製：初期状態0時0分・真上方向、モーダル操作と連動）
+    clockMinuteHandPivot = new THREE.Group();
+    clockMinuteHandPivot.position.set(0, 0.26, 0.12);
+    const minuteHandMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.013, 0.185, 0.008),
+      polishedBrassMat
+    );
+    minuteHandMesh.position.set(0, 0.08, 0);
+    clockMinuteHandPivot.add(minuteHandMesh);
+    clockGroup.add(clockMinuteHandPivot);
+
+    // 3D空間の針の角度を初期状態（0時0分）に同期
+    updateClockHands3D();
+
+    // 下部ケースの振り子窓（奥まった黒室＋真鍮縁取り枠）
+    const pendWindow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 0.50, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0x0c0e12, roughness: 0.25, metalness: 0.6 })
+    );
+    pendWindow.position.set(0, -0.30, 0.075);
     clockGroup.add(pendWindow);
 
-    // 真鍮の振り子
-    clockPendulumGroup = new THREE.Group();
-    clockPendulumGroup.position.set(0, -0.15, 0.07);
+    const pendFrameTop = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.025, 0.03), polishedBrassMat);
+    pendFrameTop.position.set(0, -0.05, 0.095);
+    clockGroup.add(pendFrameTop);
+    const pendFrameBot = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.025, 0.03), polishedBrassMat);
+    pendFrameBot.position.set(0, -0.55, 0.095);
+    clockGroup.add(pendFrameBot);
 
-    const rodMesh = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.28, 0.01), brassMat);
-    rodMesh.position.set(0, -0.12, 0);
+    // 真鍮の振り子（金属の丸棒＋球体レンズボブ）
+    clockPendulumGroup = new THREE.Group();
+    clockPendulumGroup.position.set(0, -0.10, 0.095);
+
+    const rodMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.30, 12),
+      polishedBrassMat
+    );
+    rodMesh.position.set(0, -0.15, 0);
     clockPendulumGroup.add(rodMesh);
 
-    const bobMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.02, 24), brassMat);
-    bobMesh.rotation.x = Math.PI / 2;
-    bobMesh.position.set(0, -0.26, 0);
+    const bobMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.068, 24, 24),
+      polishedBrassMat
+    );
+    bobMesh.scale.set(1.0, 1.0, 0.42);
+    bobMesh.position.set(0, -0.31, 0);
     clockPendulumGroup.add(bobMesh);
 
     clockGroup.add(clockPendulumGroup);
+    attachInvisibleCollider(clockGroup, 0.82, 1.55, 0.28, 0, 0.05, 0.05);
 
     registerInteractive(clockGroup, {
       id: 'clock',
@@ -1016,14 +1333,14 @@
     const lampCenterX = ((0.14 + 0.60) / 1.20) * poolCanvas.width;
     const lampCenterY = ((0.52 + 1.10) / 2.20) * poolCanvas.height;
     const poolGrad = poolCtx.createRadialGradient(
-      lampCenterX, lampCenterY, 10,
-      lampCenterX, lampCenterY, 340
+      lampCenterX, lampCenterY, 8,
+      lampCenterX, lampCenterY, 440
     );
-    poolGrad.addColorStop(0.0, 'rgba(255, 232, 175, 0.68)');
-    poolGrad.addColorStop(0.22, 'rgba(255, 218, 145, 0.48)');
-    poolGrad.addColorStop(0.50, 'rgba(255, 198, 110, 0.22)');
-    poolGrad.addColorStop(0.78, 'rgba(255, 180, 90, 0.06)');
-    poolGrad.addColorStop(1.0, 'rgba(255, 170, 80, 0.0)');
+    poolGrad.addColorStop(0.0, 'rgba(255, 235, 185, 0.50)');
+    poolGrad.addColorStop(0.20, 'rgba(255, 222, 160, 0.36)');
+    poolGrad.addColorStop(0.48, 'rgba(255, 205, 130, 0.18)');
+    poolGrad.addColorStop(0.76, 'rgba(255, 190, 105, 0.05)');
+    poolGrad.addColorStop(1.0, 'rgba(255, 180, 90, 0.0)');
     poolCtx.fillStyle = poolGrad;
     poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
 
@@ -1051,13 +1368,13 @@
     diaryGroup.rotation.y = THREE.MathUtils.degToRad(13);
 
     const diaryLeatherMat = new THREE.MeshStandardMaterial({
-      color: 0x581814, // 深いワインレッド〜ダークブラウンのアンティーク革表紙
-      roughness: 0.52,
+      color: 0x6e201b, // 深いアンティークワインレッド
+      roughness: 0.55,
       metalness: 0.08
     });
     const diaryPagesMat = new THREE.MeshStandardMaterial({
-      color: 0xf2e5cc, // 羊皮紙・古紙のクリーム色
-      roughness: 0.82,
+      color: 0xf6ede0, // 羊皮紙・古紙のクリーム色
+      roughness: 0.72,
       metalness: 0.02
     });
 
@@ -1130,10 +1447,12 @@
     ribbonMesh.rotation.y = 0.18;
     diaryGroup.add(ribbonMesh);
 
-    // 手帳の横に不自然な濃い影が出ないよう設定
+    // 手帳の自己遮蔽による不自然な真っ黒影を排除し、ランプ光と環境光で常に鮮明に視認可能に設定
     diaryGroup.traverse((part) => {
       if (part.isMesh) {
         part.userData.noCastShadow = true;
+        part.castShadow = false;
+        part.receiveShadow = false;
       }
     });
 
@@ -1213,26 +1532,126 @@
       deskPlaceholderGroup.visible = true;
     }
 
-    // B. 本棚
+    // B. 本棚と星座パズル本（棚板の厚み・側板・最上段の7冊の仕掛け本［色・厚み・高さに自然な個体差］・下段蔵書）
     const shelfSystem = new THREE.Group();
     shelfSystem.position.set(4.5, 0, 1.2);
 
     bookshelfMeshGroup = new THREE.Group();
-    const shelfBody = new THREE.Mesh(new THREE.BoxGeometry(0.75, 2.7, 2.2), oakWoodMat);
-    shelfBody.position.set(0, 1.35, 0);
-    bookshelfMeshGroup.add(shelfBody);
 
-    // 7冊の星座本
-    const bookColors = [0x5c261e, 0x2d4030, 0x4a3b2c, 0x512e5f, 0x1b3d54, 0x194d2e, 0x5e4912];
-    for (let i = 0; i < 7; i++) {
-      const bookMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.3, 0.42, 0.14),
-        new THREE.MeshStandardMaterial({ color: bookColors[i], roughness: 0.6, metalness: 0.05 })
+    // 背板（奥側 x = +0.34）
+    const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.68, 2.18), oakWoodMat);
+    shelfBack.position.set(0.34, 1.34, 0);
+    bookshelfMeshGroup.add(shelfBack);
+
+    // 左右の側板（z = -1.06, +1.06）
+    [-1.06, 1.06].forEach((sz) => {
+      const sidePanel = new THREE.Mesh(new THREE.BoxGeometry(0.72, 2.68, 0.08), oakWoodMat);
+      sidePanel.position.set(0.01, 1.34, sz);
+      bookshelfMeshGroup.add(sidePanel);
+
+      // 前面ピラスター化粧柱
+      const frontTrim = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.68, 0.11), darkWoodMat);
+      frontTrim.position.set(-0.35, 1.34, sz);
+      bookshelfMeshGroup.add(frontTrim);
+    });
+
+    // 上部クラウン冠モールディング＆下部台座ベース
+    const shelfCrown = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.11, 2.30), darkWoodMat);
+    shelfCrown.position.set(-0.01, 2.69, 0);
+    bookshelfMeshGroup.add(shelfCrown);
+
+    const shelfPlinth = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.14, 2.24), darkWoodMat);
+    shelfPlinth.position.set(0.0, 0.07, 0);
+    bookshelfMeshGroup.add(shelfPlinth);
+
+    // 厚みのある4段の棚板（y = 0.16, 0.76, 1.36, 1.96）
+    const shelfLevels = [0.16, 0.76, 1.36, 1.96];
+    shelfLevels.forEach((sy) => {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.055, 2.04), oakWoodMat);
+      plank.position.set(0.0, sy, 0);
+      bookshelfMeshGroup.add(plank);
+    });
+
+    // 最上段（y = 1.987 棚板上）：7冊の星座仕掛け本（一冊ずつ色を変え、厚みや高さをわずかにランダム化）
+    const constellationBooks = [
+      { color: 0x781e19, h: 0.44, t: 0.125, d: 0.31 }, // 1: 白羊 (深紅)
+      { color: 0x1e4d2b, h: 0.39, t: 0.105, d: 0.29 }, // 2: 金牛 (深緑)
+      { color: 0x6e471b, h: 0.42, t: 0.135, d: 0.30 }, // 3: 双子 (琥珀茶)
+      { color: 0x4a235a, h: 0.46, t: 0.115, d: 0.32 }, // 4: 巨蟹 (紫)
+      { color: 0x8c5818, h: 0.41, t: 0.130, d: 0.30 }, // 5: 獅子 (黄金茶)
+      { color: 0x163859, h: 0.45, t: 0.110, d: 0.31 }, // 6: 天蠍 (紺青)
+      { color: 0x145a38, h: 0.38, t: 0.140, d: 0.29 }  // 7: 射手 (翠緑)
+    ];
+
+    const topShelfSurfaceY = 1.96 + 0.0275;
+    let currentBookZ = -0.78;
+    constellationBooks.forEach((b) => {
+      const bookGroup = new THREE.Group();
+      const bMat = new THREE.MeshStandardMaterial({
+        color: b.color,
+        roughness: 0.55,
+        metalness: 0.06
+      });
+
+      // 本の本体
+      const body = new THREE.Mesh(new THREE.BoxGeometry(b.d, b.h, b.t), bMat);
+      body.position.set(0, b.h / 2, 0);
+      bookGroup.add(body);
+
+      // 丸みを帯びた背表紙（前面側 -X）
+      const spine = new THREE.Mesh(
+        new THREE.CylinderGeometry(b.t / 2, b.t / 2, b.h, 12),
+        bMat
       );
-      bookMesh.position.set(-0.25, 1.35, -0.7 + i * 0.23);
-      bookshelfMeshGroup.add(bookMesh);
-    }
+      spine.position.set(-b.d / 2, b.h / 2, 0);
+      bookGroup.add(spine);
+
+      // 背表紙の上下金箔ライン
+      [-0.12, 0.12].forEach((gy) => {
+        const goldBand = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, 0.014, b.t * 0.92),
+          polishedBrassMat
+        );
+        goldBand.position.set(-b.d / 2 - b.t * 0.38, b.h / 2 + gy, 0);
+        bookGroup.add(goldBand);
+      });
+
+      bookGroup.position.set(-0.08, topShelfSurfaceY, currentBookZ + b.t / 2);
+      currentBookZ += b.t + 0.10;
+      bookshelfMeshGroup.add(bookGroup);
+    });
+
+    // 中段・下段（y = 1.36, 0.76, 0.16）のクラシカルな装飾古書群（本棚のリアリティ向上）
+    const decColors = [0x3b2314, 0x4f1d1d, 0x1d3326, 0x2c2238, 0x543d1a, 0x1e2d3b];
+    [1.388, 0.788, 0.188].forEach((rowY, rIdx) => {
+      let zCursor = -0.92;
+      for (let k = 0; k < 10; k++) {
+        const bt = 0.08 + ((k * 3 + rIdx) % 4) * 0.022;
+        const bh = 0.32 + ((k * 7 + rIdx) % 5) * 0.032;
+        const bd = 0.27 + ((k + rIdx) % 3) * 0.02;
+        if (zCursor + bt > 0.92) break;
+        // ところどころ少し隙間や傾きを作る
+        if ((k + rIdx) % 5 === 3) {
+          zCursor += 0.14;
+          continue;
+        }
+        const decMat = new THREE.MeshStandardMaterial({
+          color: decColors[(k + rIdx * 2) % decColors.length],
+          roughness: 0.65,
+          metalness: 0.04
+        });
+        const decBook = new THREE.Mesh(new THREE.BoxGeometry(bd, bh, bt), decMat);
+        decBook.position.set(-0.04, rowY + bh / 2, zCursor + bt / 2);
+        if ((k + rIdx) % 4 === 2) {
+          decBook.rotation.x = 0.08;
+        }
+        bookshelfMeshGroup.add(decBook);
+        zCursor += bt + 0.015;
+      }
+    });
+
     shelfSystem.add(bookshelfMeshGroup);
+    attachInvisibleCollider(shelfSystem, 0.85, 2.75, 2.30, 0, 1.37, 0);
 
     registerInteractive(
       shelfSystem,
@@ -1245,23 +1664,47 @@
       { minX: 3.9, maxX: 5.0, minZ: 0.0, maxZ: 2.4 }
     );
 
-    // C. 壁金庫
+    // C. 壁金庫（重厚な鋼鉄扉・真鍮ダイヤル・ハンドル）
     const safeGroup = new THREE.Group();
     safeGroup.position.set(4.88, 1.4, 1.2);
 
-    const safePlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.85, 0.85),
-      new THREE.MeshStandardMaterial({ color: 0x22262d, roughness: 0.4, metalness: 0.8 })
+    const safeSteelMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2229,
+      roughness: 0.35,
+      metalness: 0.85
+    });
+    const safeOuterFrame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.92, 0.92), safeSteelMat);
+    safeGroup.add(safeOuterFrame);
+
+    const safeDoor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.09, 0.78, 0.78),
+      new THREE.MeshStandardMaterial({ color: 0x282d36, roughness: 0.3, metalness: 0.82 })
     );
-    safeGroup.add(safePlate);
+    safeDoor.position.set(-0.02, 0, 0);
+    safeGroup.add(safeDoor);
 
     const safeCylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.24, 0.24, 0.08, 32),
-      brassMat
+      new THREE.CylinderGeometry(0.18, 0.20, 0.08, 32),
+      polishedBrassMat
     );
     safeCylinder.rotation.z = Math.PI / 2;
-    safeCylinder.position.x = -0.04;
+    safeCylinder.position.set(-0.06, 0.05, -0.08);
     safeGroup.add(safeCylinder);
+
+    const safeDialKnob = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.09, 0.06, 24),
+       safeSteelMat
+    );
+    safeDialKnob.rotation.z = Math.PI / 2;
+    safeDialKnob.position.set(-0.10, 0.05, -0.08);
+    safeGroup.add(safeDialKnob);
+
+    // 金庫レバーハンドル
+    const safeHandle = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.04), polishedBrassMat);
+    safeHandle.position.set(-0.09, 0.0, 0.20);
+    safeGroup.add(safeHandle);
+
+    attachInvisibleCollider(safeGroup, 0.25, 0.95, 0.95, -0.05, 0, 0);
 
     registerInteractive(safeGroup, {
       id: 'wall_safe',
@@ -1274,24 +1717,87 @@
     // 【3. 南の壁 (South)】
     // ==========================================
 
-    // A. 壁の絵画『星辰の夜』
+    // A. 壁の絵画『星辰の夜』（金色の立体モールディング額縁＋四隅装飾＋中央絵画キャンバス）
     const paintingGroup = new THREE.Group();
     paintingGroup.position.set(0, 2.2, 4.88);
 
-    const frameMesh = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.55, 0.08), brassMat);
-    paintingGroup.add(frameMesh);
+    const goldFrameMat = new THREE.MeshStandardMaterial({
+      color: 0xc9a032,
+      roughness: 0.30,
+      metalness: 0.84
+    });
+    const innerGiltMat = new THREE.MeshStandardMaterial({
+      color: 0x9e781e,
+      roughness: 0.38,
+      metalness: 0.78
+    });
 
+    // 背板
+    const paintingBack = new THREE.Mesh(
+      new THREE.BoxGeometry(1.96, 1.40, 0.03),
+      darkWoodMat
+    );
+    paintingBack.position.set(0, 0, -0.01);
+    paintingGroup.add(paintingBack);
+
+    // 上下左右の立体モールディング外枠（2段ステップ構造）
+    // 上枠・下枠
+    [-0.73, 0.73].forEach((fy) => {
+      const outerBar = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.12, 0.09), goldFrameMat);
+      outerBar.position.set(0, fy, -0.03);
+      paintingGroup.add(outerBar);
+
+      const innerLiner = new THREE.Mesh(
+        new THREE.BoxGeometry(1.98, 0.05, 0.065),
+        innerGiltMat
+      );
+      innerLiner.position.set(0, fy > 0 ? fy - 0.06 : fy + 0.06, -0.025);
+      paintingGroup.add(innerLiner);
+    });
+
+    // 左枠・右枠
+    [-1.03, 1.03].forEach((fx) => {
+      const outerSide = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.58, 0.09), goldFrameMat);
+      outerSide.position.set(fx, 0, -0.03);
+      paintingGroup.add(outerSide);
+
+      const innerSide = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 1.38, 0.065),
+        innerGiltMat
+      );
+      innerSide.position.set(fx > 0 ? fx - 0.06 : fx + 0.06, 0, -0.025);
+      paintingGroup.add(innerSide);
+    });
+
+    // 四隅のコーナーロゼット浮き彫り装飾
+    [[-1.03, 0.73], [1.03, 0.73], [-1.03, -0.73], [1.03, -0.73]].forEach(([cx, cy]) => {
+      const cornerBlock = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.105), goldFrameMat);
+      cornerBlock.position.set(cx, cy, -0.035);
+      paintingGroup.add(cornerBlock);
+
+      const rosette = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.048, 0.055, 0.02, 16),
+        polishedBrassMat
+      );
+      rosette.rotation.x = Math.PI / 2;
+      rosette.position.set(cx, cy, -0.09);
+      paintingGroup.add(rosette);
+    });
+
+    // 中央の絵画キャンバス面
     paintingCanvasMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.9, 1.35),
+      new THREE.PlaneGeometry(1.88, 1.32),
       new THREE.MeshStandardMaterial({
         map: createPaintingTexture(true),
-        roughness: 0.6,
+        roughness: 0.58,
         metalness: 0.05
       })
     );
     paintingCanvasMesh.rotation.y = Math.PI;
-    paintingCanvasMesh.position.z = -0.045;
+    paintingCanvasMesh.position.z = -0.032;
     paintingGroup.add(paintingCanvasMesh);
+
+    attachInvisibleCollider(paintingGroup, 2.22, 1.64, 0.18, 0, 0, -0.04);
 
     registerInteractive(paintingGroup, {
       id: 'painting',
@@ -1300,47 +1806,175 @@
       action: openPaintingModal
     });
 
-    // B. 暖炉
+    // B. 暖炉（グレーの石/レンガ調マテリアル・細いCylinder鉄格子バー等間隔配置・赤く発光する薪と炭）
     const fireplaceGroup = new THREE.Group();
     fireplaceGroup.position.set(-2.5, 0, 4.4);
 
-    const brickMat = new THREE.MeshStandardMaterial({ color: 0x3d2720, roughness: 0.9, metalness: 0.02 });
-    const fpTop = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.16, 0.8), brickMat);
-    fpTop.position.set(0, 1.45, 0);
-    fireplaceGroup.add(fpTop);
+    // グレーの石積み・スレート調プロシージャルテクスチャ生成
+    const stoneCanvas = document.createElement('canvas');
+    stoneCanvas.width = 512;
+    stoneCanvas.height = 512;
+    const sctx = stoneCanvas.getContext('2d');
+    sctx.fillStyle = '#3d4147';
+    sctx.fillRect(0, 0, 512, 512);
+    const sRows = 8;
+    const sCols = 4;
+    const sH = 512 / sRows;
+    const sW = 512 / sCols;
+    for (let r = 0; r < sRows; r++) {
+      const offset = (r % 2) * (sW / 2);
+      for (let c = -1; c <= sCols; c++) {
+        const shade = 68 + ((r * 13 + c * 7) % 26);
+        sctx.fillStyle = `rgb(${shade}, ${shade + 2}, ${shade + 6})`;
+        sctx.fillRect(c * sW + offset + 3, r * sH + 3, sW - 6, sH - 6);
+        sctx.strokeStyle = '#25282c';
+        sctx.lineWidth = 3;
+        sctx.strokeRect(c * sW + offset + 3, r * sH + 3, sW - 6, sH - 6);
+      }
+    }
+    const stoneTex = new THREE.CanvasTexture(stoneCanvas);
+    stoneTex.wrapS = THREE.RepeatWrapping;
+    stoneTex.wrapT = THREE.RepeatWrapping;
+    stoneTex.repeat.set(2, 2);
 
-    const fpLeft = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.4, 0.7), brickMat);
-    fpLeft.position.set(-0.75, 0.7, 0);
-    fireplaceGroup.add(fpLeft);
-
-    const fpRight = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.4, 0.7), brickMat);
-    fpRight.position.set(0.75, 0.7, 0);
-    fireplaceGroup.add(fpRight);
-
-    // 火室内部（暗部）
-    const firebox = new THREE.Mesh(
-      new THREE.BoxGeometry(1.15, 1.1, 0.6),
-      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.95 })
-    );
-    firebox.position.set(0, 0.55, 0.05);
-    fireplaceGroup.add(firebox);
-
-    // 暖炉の炭・薪（赤く発光するemissive）
-    const coalsMat = new THREE.MeshStandardMaterial({
-      color: 0x1a0502,
-      emissive: 0xbb3305,
-      emissiveIntensity: 0.75,
-      roughness: 0.85
+    const grayStoneMat = new THREE.MeshStandardMaterial({
+      map: stoneTex,
+      color: 0x8a9098,
+      roughness: 0.85,
+      metalness: 0.06
     });
-    const coalsMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.35), coalsMat);
-    coalsMesh.position.set(0, 0.08, 0.05);
-    fireplaceGroup.add(coalsMesh);
+    const darkSlateMat = new THREE.MeshStandardMaterial({
+      color: 0x33373d,
+      roughness: 0.78,
+      metalness: 0.10
+    });
 
-    // 鉄格子（鋳鉄メタル感 metalness: 0.75, roughness: 0.6）
-    const grilleMat = new THREE.MeshStandardMaterial({ color: 0x1d2024, roughness: 0.6, metalness: 0.75 });
-    const grille = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.9, 0.04), grilleMat);
-    grille.position.set(0, 0.55, -0.25);
-    fireplaceGroup.add(grille);
+    // 床面のハースストーン（炉床石スラブ）
+    const hearthSlab = new THREE.Mesh(new THREE.BoxGeometry(2.26, 0.08, 1.05), darkSlateMat);
+    hearthSlab.position.set(0, 0.04, -0.06);
+    fireplaceGroup.add(hearthSlab);
+
+    // 左右の重厚な石柱ピラー＆段差ベース
+    [-0.78, 0.78].forEach((px) => {
+      const pillarBase = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.22, 0.82), darkSlateMat);
+      pillarBase.position.set(px, 0.15, 0);
+      fireplaceGroup.add(pillarBase);
+
+      const pillarBody = new THREE.Mesh(new THREE.BoxGeometry(0.44, 1.24, 0.74), grayStoneMat);
+      pillarBody.position.set(px, 0.76, 0);
+      fireplaceGroup.add(pillarBody);
+
+      const pillarCap = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.12, 0.80), darkSlateMat);
+      pillarCap.position.set(px, 1.36, 0);
+      fireplaceGroup.add(pillarCap);
+    });
+
+    // 火室上部の石造りリンテル（まぐさ石）と2段マントルピース棚
+    const lintelStone = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.26, 0.72), grayStoneMat);
+    lintelStone.position.set(0, 1.25, 0);
+    fireplaceGroup.add(lintelStone);
+
+    const mantelLower = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.10, 0.86), grayStoneMat);
+    mantelLower.position.set(0, 1.46, -0.02);
+    fireplaceGroup.add(mantelLower);
+
+    const mantelShelf = new THREE.Mesh(new THREE.BoxGeometry(2.30, 0.12, 0.94), darkSlateMat);
+    mantelShelf.position.set(0, 1.56, -0.04);
+    fireplaceGroup.add(mantelShelf);
+
+    // 火室内部の耐火暗壁（奥・左右・天井）
+    const fireboxMat = new THREE.MeshStandardMaterial({ color: 0x101215, roughness: 0.95 });
+    const fireboxBack = new THREE.Mesh(new THREE.BoxGeometry(1.14, 1.12, 0.12), fireboxMat);
+    fireboxBack.position.set(0, 0.60, 0.30);
+    fireplaceGroup.add(fireboxBack);
+
+    // 炉内の微かに赤く発光する炭（Embers）と丸太薪（Logs）
+    const emberMat = new THREE.MeshStandardMaterial({
+      color: 0x240702,
+      emissive: 0xd93809,
+      emissiveIntensity: 0.95,
+      roughness: 0.82
+    });
+    const emberBed = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 0.08, 16), emberMat);
+    emberBed.scale.set(1.1, 1.0, 0.65);
+    emberBed.position.set(0, 0.11, 0.04);
+    fireplaceGroup.add(emberBed);
+
+    // ゴツゴツした赤熱炭塊（複数配置）
+    [
+      [-0.22, 0.14, 0.02, 0.07],
+      [-0.08, 0.15, -0.04, 0.08],
+      [0.08, 0.14, 0.05, 0.075],
+      [0.21, 0.13, -0.02, 0.065],
+      [0.0, 0.16, 0.08, 0.07]
+    ].forEach(([ex, ey, ez, er]) => {
+      const coalChunk = new THREE.Mesh(new THREE.DodecahedronGeometry(er, 0), emberMat);
+      coalChunk.position.set(ex, ey, ez);
+      fireplaceGroup.add(coalChunk);
+    });
+
+    // 薪（丸太 CylinderGeometry を3本交差配置＋赤熱した割れ目）
+    const charredLogMat = new THREE.MeshStandardMaterial({
+      color: 0x21140d,
+      emissive: 0x6e1402,
+      emissiveIntensity: 0.45,
+      roughness: 0.88
+    });
+    const logSpecs = [
+      { pos: [-0.08, 0.20, 0.06], rot: [0.12, 0.25, Math.PI / 2 - 0.12], len: 0.58, rad: 0.055 },
+      { pos: [0.08, 0.21, 0.02],  rot: [-0.1, -0.32, Math.PI / 2 + 0.15], len: 0.56, rad: 0.052 },
+      { pos: [0.0, 0.27, 0.04],   rot: [0.22, 0.05, Math.PI / 2 - 0.05], len: 0.48, rad: 0.048 }
+    ];
+    logSpecs.forEach((lg) => {
+      const logMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(lg.rad, lg.rad * 1.08, lg.len, 14),
+        charredLogMat
+      );
+      logMesh.position.set(lg.pos[0], lg.pos[1], lg.pos[2]);
+      logMesh.rotation.set(lg.rot[0], lg.rot[1], lg.rot[2]);
+      fireplaceGroup.add(logMesh);
+    });
+
+    // 鉄格子（細いCylinderGeometryバーを等間隔配置＋上下鋳鉄横桟＋槍先フィニアル）
+    const wroughtIronMat = new THREE.MeshStandardMaterial({
+      color: 0x1c1f24,
+      roughness: 0.48,
+      metalness: 0.82
+    });
+    const grilleGroup = new THREE.Group();
+    grilleGroup.position.set(0, 0, -0.28);
+
+    // 上下の横レール（丸パイプ）
+    [0.16, 0.62].forEach((railY) => {
+      const rail = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.016, 0.016, 1.12, 12),
+        wroughtIronMat
+      );
+      rail.rotation.z = Math.PI / 2;
+      rail.position.set(0, railY, 0);
+      grilleGroup.add(rail);
+    });
+
+    // 等間隔に並ぶ9本の縦バー（細いCylinderGeometry）＋先端の槍型コーン
+    for (let bi = -4; bi <= 4; bi++) {
+      const bx = bi * 0.125;
+      const barH = 0.62 - Math.abs(bi) * 0.015;
+      const vBar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.013, 0.013, barH, 12),
+        wroughtIronMat
+      );
+      vBar.position.set(bx, 0.08 + barH / 2, 0);
+      grilleGroup.add(vBar);
+
+      const spearTip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.022, 0.055, 12),
+        wroughtIronMat
+      );
+      spearTip.position.set(bx, 0.08 + barH + 0.025, 0);
+      grilleGroup.add(spearTip);
+    }
+    fireplaceGroup.add(grilleGroup);
+    attachInvisibleCollider(fireplaceGroup, 2.20, 1.60, 0.95, 0, 0.80, 0);
 
     registerInteractive(
       fireplaceGroup,
@@ -1357,39 +1991,183 @@
     // 【4. 西の壁 (West)】
     // ==========================================
 
-    // A. 高級革張りソファ（深いワインレッド、roughness: 0.5, metalness: 0.1）
+    // A. 高級革張りソファ（深いワインレッド roughness: 0.5、丸みのあるクッション、四隅の短い木製丸脚）
     const sofaGroup = new THREE.Group();
-    sofaGroup.position.set(-3.8, 0, -1.0);
+    sofaGroup.position.set(-3.88, 0, -1.0);
+    // 重厚なクラシック3人掛けソファにふさわしいサイズ感へボリュームアップ（幅約2.64m、奥行き約0.98m、高さ約0.96m）
+    sofaGroup.scale.set(1.20, 1.16, 1.22);
 
     const leatherMat = new THREE.MeshStandardMaterial({
-      color: 0x481419,
+      color: 0x4c1218, // 深いワインレッド
       roughness: 0.5,
-      metalness: 0.1,
+      metalness: 0.1
+    });
+    const darkLeatherSeamMat = new THREE.MeshStandardMaterial({
+      color: 0x2b080c,
+      roughness: 0.45,
+      metalness: 0.15
     });
 
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 2.3), leatherMat);
-    seat.position.set(0, 0.28, 0);
-    sofaGroup.add(seat);
+    // 1. 木製丸脚（4本）＋真鍮カップ（台座の下 y = 0 〜 0.10）
+    const legPositions = [
+      [-0.32, -0.92],
+      [0.38, -0.92],
+      [-0.32, 0.92],
+      [0.38, 0.92]
+    ];
+    legPositions.forEach(([lx, lz]) => {
+      const woodLeg = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.042, 0.026, 0.10, 16),
+        darkWoodMat
+      );
+      woodLeg.position.set(lx, 0.05, lz);
+      sofaGroup.add(woodLeg);
 
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 2.3), leatherMat);
-    back.position.set(-0.38, 0.7, 0);
-    sofaGroup.add(back);
+      const legBrassCup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.030, 0.025, 0.025, 16),
+        polishedBrassMat
+      );
+      legBrassCup.position.set(lx, 0.0125, lz);
+      sofaGroup.add(legBrassCup);
+    });
 
-    const armNorth = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.68, 0.32), leatherMat);
-    armNorth.position.set(0, 0.45, -1.1);
-    sofaGroup.add(armNorth);
+    // 2. ソファ下部メインベースフレーム（脚の上 y: 0.10 〜 0.24, 幅 2.16m, 奥行 0.82m）
+    const sofaBaseFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(0.82, 0.14, 2.16),
+      leatherMat
+    );
+    sofaBaseFrame.position.set(0.05, 0.17, 0);
+    sofaGroup.add(sofaBaseFrame);
 
-    const armSouth = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.68, 0.32), leatherMat);
-    armSouth.position.set(0, 0.45, 1.1);
-    sofaGroup.add(armSouth);
+    // フロント下部の木製飾り枠
+    const woodApron = new THREE.Mesh(
+      new THREE.BoxGeometry(0.025, 0.03, 2.14),
+      darkWoodMat
+    );
+    woodApron.position.set(0.465, 0.115, 0);
+    sofaGroup.add(woodApron);
 
-    // クッションボタン留めのアクセント
-    const buttonMat = new THREE.MeshStandardMaterial({ color: 0x2d0b0f, roughness: 0.4, metalness: 0.2 });
-    for (let bz = -0.7; bz <= 0.7; bz += 0.46) {
-      const btn = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), buttonMat);
-      btn.position.set(-0.19, 0.75, bz);
-      sofaGroup.add(btn);
+    // 3. 左右アームレスト（肘掛け：外幅 2.16m、内幅 1.80m、厚み 0.18m）
+    // 左アーム: az = +0.99 (z: 0.90 〜 1.08)、右アーム: az = -0.99 (z: -1.08 〜 -0.90)
+    [-0.99, 0.99].forEach((az) => {
+      // アーム側板ベース（y: 0.24 〜 0.60, 奥行 x: -0.29 〜 0.41）
+      const armBody = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.36, 0.18), leatherMat);
+      armBody.position.set(0.06, 0.42, az);
+      sofaGroup.add(armBody);
+
+      // アーム上部の丸みロール（上端 y = 0.60 に乗せる：半径 0.09, 長さ 0.70）
+      const armTopRoll = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.09, 0.70, 24),
+        leatherMat
+      );
+      armTopRoll.rotation.z = Math.PI / 2;
+      armTopRoll.position.set(0.06, 0.60, az);
+      sofaGroup.add(armTopRoll);
+
+      // アーム前面の化粧フェイシア下部パネル（x = 0.43, y: 0.24 〜 0.60）
+      const armFrontFace = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.36, 0.18),
+        leatherMat
+      );
+      armFrontFace.position.set(0.43, 0.42, az);
+      sofaGroup.add(armFrontFace);
+
+      // アーム前面上部の丸型スクロールヘッド（上部の丸みと前面を直角の隙間なく美しく結合）
+      const armScrollHead = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.09, 0.04, 28),
+        leatherMat
+      );
+      armScrollHead.rotation.z = Math.PI / 2;
+      armScrollHead.position.set(0.43, 0.60, az);
+      sofaGroup.add(armScrollHead);
+
+      // アーム前面の装飾トリムプレート（わずかに浮き上がったダークレザー縁取り）
+      const armTrimPlate = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.01, 24),
+        darkLeatherSeamMat
+      );
+      armTrimPlate.rotation.z = Math.PI / 2;
+      armTrimPlate.position.set(0.455, 0.60, az);
+      sofaGroup.add(armTrimPlate);
+
+      // アーム前面スクロール中心の真鍮飾りスタッズ（鋲）
+      const centerStud = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 12, 12),
+        polishedBrassMat
+      );
+      centerStud.position.set(0.465, 0.60, az);
+      sofaGroup.add(centerStud);
+
+      // アーム前面の縦ラインに並ぶ真鍮スタッズ鋲（3個）
+      [0.50, 0.40, 0.30].forEach((sy) => {
+        const vertStud = new THREE.Mesh(
+          new THREE.SphereGeometry(0.012, 10, 10),
+          polishedBrassMat
+        );
+        vertStud.position.set(0.455, sy, az);
+        sofaGroup.add(vertStud);
+      });
+    });
+
+    // 4. 背もたれ（Backrest：アーム内寸幅 1.80m 内にぴったり収まり、貫通ゼロ）
+    // 背もたれ本体（x: -0.33 〜 -0.15, y: 0.24 〜 0.74, 幅 1.78m: z = -0.89 〜 +0.89）
+    const backCore = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.50, 1.78), leatherMat);
+    backCore.position.set(-0.24, 0.49, 0);
+    sofaGroup.add(backCore);
+
+    // 背もたれ上部のロール（上端 y = 0.74 に乗せる：半径 0.09, 長さ 1.78）
+    const backTopRoll = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09, 0.09, 1.78, 24),
+      leatherMat
+    );
+    backTopRoll.rotation.x = Math.PI / 2;
+    backTopRoll.position.set(-0.24, 0.74, 0);
+    sofaGroup.add(backTopRoll);
+
+    // 背もたれのタフティング（ボタン留め）2段×5列
+    for (let bz = -0.68; bz <= 0.68; bz += 0.34) {
+      [0.45, 0.62].forEach((by, rIdx) => {
+        const zShift = rIdx === 1 ? 0.17 : 0;
+        if (Math.abs(bz + zShift) > 0.72) return;
+        const btn = new THREE.Mesh(
+          new THREE.SphereGeometry(0.015, 10, 10),
+          darkLeatherSeamMat
+        );
+        btn.position.set(-0.145, by, bz + zShift);
+        sofaGroup.add(btn);
+      });
     }
+
+    // 5. 3分割座面クッション（小箱が隠されている隙間ギミック：各幅 0.56m, アーム内壁 0.90m からのクリアランスを厳格維持）
+    // cz = -0.58, 0.0, +0.58 （端 z = ±0.86 < アーム内壁 0.90 なので貫通・干渉ゼロ）
+    [-0.58, 0.0, 0.58].forEach((cz) => {
+      // クッション本体（y: 0.24 〜 0.36, 奥行 x: -0.14 〜 0.41）
+      const cushion = new THREE.Mesh(
+        new THREE.BoxGeometry(0.55, 0.12, 0.56),
+        leatherMat
+      );
+      cushion.position.set(0.135, 0.30, cz);
+      sofaGroup.add(cushion);
+
+      // クッション前縁ロール（前端 x = 0.41 に丸みを付与：半径 0.06, 長さ 0.54）
+      const frontRoll = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.06, 0.54, 20),
+        leatherMat
+      );
+      frontRoll.rotation.x = Math.PI / 2;
+      frontRoll.position.set(0.41, 0.30, cz);
+      sofaGroup.add(frontRoll);
+
+      // クッション上面のふっくらトップ面
+      const cushionTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.51, 0.02, 0.52),
+        darkLeatherSeamMat
+      );
+      cushionTop.position.set(0.135, 0.365, cz);
+      sofaGroup.add(cushionTop);
+    });
+
+    attachInvisibleCollider(sofaGroup, 1.15, 1.05, 2.30, 0.05, 0.52, 0);
 
     registerInteractive(
       sofaGroup,
@@ -1399,43 +2177,177 @@
         category: 'WEST / LEATHER SOFA',
         action: openSofaModal
       },
-      { minX: -4.6, maxX: -3.1, minZ: -2.4, maxZ: 0.4 }
+      { minX: -4.7, maxX: -3.0, minZ: -2.6, maxZ: 0.6 }
     );
 
-    // B. サイドテーブルと天球儀
+    // B. サイドテーブルと天球儀（真鍮の金属支柱・同心円の回転リング群・中心の小さな球体）
     const globeGroup = new THREE.Group();
     globeGroup.position.set(-3.8, 0, 1.8);
 
+    // クラシカルな丸天板＋縁の立体モールディング
     const tableTop = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.5, 0.06, 24),
+      new THREE.CylinderGeometry(0.50, 0.50, 0.05, 32),
       darkWoodMat
     );
-    tableTop.position.set(0, 0.72, 0);
+    tableTop.position.set(0, 0.73, 0);
     globeGroup.add(tableTop);
 
-    const tableLeg = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.12, 0.7, 16),
+    const tableRim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.50, 0.024, 14, 36),
       darkWoodMat
     );
-    tableLeg.position.set(0, 0.35, 0);
+    tableRim.rotation.x = Math.PI / 2;
+    tableRim.position.set(0, 0.73, 0);
+    globeGroup.add(tableRim);
+
+    const tableApron = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.42, 0.42, 0.06, 24),
+      frameMat
+    );
+    tableApron.position.set(0, 0.68, 0);
+    globeGroup.add(tableApron);
+
+    // 旋盤加工（バラスター）風のセンター脚柱と三脚ベース
+    const tableLeg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.065, 0.095, 0.64, 20),
+      darkWoodMat
+    );
+    tableLeg.position.set(0, 0.36, 0);
     globeGroup.add(tableLeg);
 
-    // 天球儀（真鍮ゴールド）
-    const armRingOuter = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.02, 16, 32), brassMat);
-    armRingOuter.position.set(0, 1.05, 0);
-    globeGroup.add(armRingOuter);
-
-    const armRingInner = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.015, 16, 32), brassMat);
-    armRingInner.rotation.x = Math.PI / 3;
-    armRingInner.position.set(0, 1.05, 0);
-    globeGroup.add(armRingInner);
-
-    const globeCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 16, 16),
-      new THREE.MeshStandardMaterial({ color: 0x153e5e, roughness: 0.35, metalness: 0.3 })
+    const legBulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 20, 16),
+      darkWoodMat
     );
-    globeCore.position.set(0, 1.05, 0);
+    legBulb.scale.set(1.0, 0.75, 1.0);
+    legBulb.position.set(0, 0.28, 0);
+    globeGroup.add(legBulb);
+
+    const tableBasePlinth = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.34, 0.06, 24),
+      darkWoodMat
+    );
+    tableBasePlinth.position.set(0, 0.03, 0);
+    globeGroup.add(tableBasePlinth);
+
+    // 3本の脚先（三方向へ伸びる安定脚）
+    [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].forEach((ang) => {
+      const foot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.06, 0.42),
+        darkWoodMat
+      );
+      foot.position.set(Math.sin(ang) * 0.18, 0.04, Math.cos(ang) * 0.18);
+      foot.rotation.y = ang;
+      globeGroup.add(foot);
+    });
+
+    // --- 天球儀（Armillary Sphere）本体 ---
+    // 真鍮の段付き円形台座
+    const armBaseLower = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14, 0.18, 0.03, 28),
+      polishedBrassMat
+    );
+    armBaseLower.position.set(0, 0.77, 0);
+    globeGroup.add(armBaseLower);
+
+    const armBaseUpper = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.13, 0.025, 24),
+      polishedBrassMat
+    );
+    armBaseUpper.position.set(0, 0.795, 0);
+    globeGroup.add(armBaseUpper);
+
+    // 真鍮の金属支柱（細い円柱＋装飾球ノード）
+    const armPillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.024, 0.16, 16),
+      polishedBrassMat
+    );
+    armPillar.position.set(0, 0.87, 0);
+    globeGroup.add(armPillar);
+
+    const armPillarNode = new THREE.Mesh(
+      new THREE.SphereGeometry(0.032, 16, 16),
+      polishedBrassMat
+    );
+    armPillarNode.position.set(0, 0.87, 0);
+    globeGroup.add(armPillarNode);
+
+    // 天球中心座標 (y = 1.18)
+    const sphereCenterY = 1.18;
+
+    // 外周の固定子午線リングと水平地平リング
+    const horizonRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.26, 0.014, 16, 40),
+      polishedBrassMat
+    );
+    horizonRing.rotation.x = Math.PI / 2;
+    horizonRing.position.set(0, sphereCenterY, 0);
+    globeGroup.add(horizonRing);
+
+    const meridianRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.25, 0.016, 16, 40),
+      polishedBrassMat
+    );
+    meridianRing.position.set(0, sphereCenterY, 0);
+    globeGroup.add(meridianRing);
+
+    // 同心円の回転リング群（3重のTorusGeometryを異なる傾きで配置）
+    const zodiacBandRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.215, 0.018, 16, 36),
+      polishedBrassMat
+    );
+    zodiacBandRing.rotation.set(Math.PI / 5, Math.PI / 6, 0.2);
+    zodiacBandRing.position.set(0, sphereCenterY, 0);
+    globeGroup.add(zodiacBandRing);
+
+    const eclipticRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.175, 0.013, 16, 36),
+      polishedBrassMat
+    );
+    eclipticRing.rotation.set(-Math.PI / 3.2, 0.35, Math.PI / 4);
+    eclipticRing.position.set(0, sphereCenterY, 0);
+    globeGroup.add(eclipticRing);
+
+    const innerColureRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.135, 0.011, 16, 32),
+      polishedBrassMat
+    );
+    innerColureRing.rotation.set(Math.PI / 2.6, -Math.PI / 4, 0);
+    innerColureRing.position.set(0, sphereCenterY, 0);
+    globeGroup.add(innerColureRing);
+
+    // 天球を貫く斜めの極軸ロッドと頂部フィニアル
+    const polarAxisRod = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.007, 0.007, 0.54, 12),
+      polishedBrassMat
+    );
+    polarAxisRod.position.set(0, sphereCenterY, 0);
+    polarAxisRod.rotation.z = 0.41; // 地軸傾斜角 約23.4度
+    globeGroup.add(polarAxisRod);
+
+    // 中心の小さな球体（ラピスラズリ調の地球・天球コア SphereGeometry）
+    const globeCore = new THREE.Mesh(
+      new THREE.SphereGeometry(0.062, 24, 24),
+      new THREE.MeshStandardMaterial({
+        color: 0x184a6e,
+        roughness: 0.30,
+        metalness: 0.35
+      })
+    );
+    globeCore.position.set(0, sphereCenterY, 0);
     globeGroup.add(globeCore);
+
+    // 中心球体の赤道真鍮ベルト
+    const coreBelt = new THREE.Mesh(
+      new THREE.TorusGeometry(0.064, 0.005, 12, 28),
+      polishedBrassMat
+    );
+    coreBelt.rotation.x = Math.PI / 2;
+    coreBelt.rotation.y = 0.41;
+    coreBelt.position.set(0, sphereCenterY, 0);
+    globeGroup.add(coreBelt);
+
+    attachInvisibleCollider(globeGroup, 1.05, 1.52, 1.05, 0, 0.76, 0);
 
     registerInteractive(
       globeGroup,
@@ -1448,9 +2360,9 @@
       { minX: -4.4, maxX: -3.2, minZ: 1.2, maxZ: 2.4 }
     );
 
-    // C. ペルシャ風絨毯
+    // C. ペルシャ風絨毯（ソファの横中央 z = -1.0 に合わせて配置）
     const carpetGroup = new THREE.Group();
-    carpetGroup.position.set(-2.3, 0.008, -0.8);
+    carpetGroup.position.set(-2.3, 0.008, -1.0);
 
     const rugTex = createPersianRugTexture();
     const rugMat = new THREE.MeshStandardMaterial({ map: rugTex, roughness: 0.88, metalness: 0.02 });
@@ -2251,11 +3163,15 @@
         <div class="clock-time-digital">
           ${String(state.clockHour).padStart(2, '0')}:${String(state.clockMinute).padStart(2, '0')}
         </div>
-        <div class="clock-btn-row">
-          <button id="btn-clock-hour" class="secondary-btn">+1 時間</button>
-          <button id="btn-clock-min" class="secondary-btn">+15 分</button>
+        <div class="clock-btn-row" style="margin-bottom:8px;">
+          <button id="btn-clock-hour-minus" class="secondary-btn" style="flex:1;">-1 時間</button>
+          <button id="btn-clock-hour-plus" class="secondary-btn" style="flex:1;">+1 時間</button>
         </div>
-        <p style="color:#b2aba0; font-size:0.85rem; text-align:center;">
+        <div class="clock-btn-row">
+          <button id="btn-clock-min-minus" class="secondary-btn" style="flex:1;">-15 分</button>
+          <button id="btn-clock-min-plus" class="secondary-btn" style="flex:1;">+15 分</button>
+        </div>
+        <p style="color:#b2aba0; font-size:0.85rem; text-align:center; margin-top:10px;">
           天体日誌の詩：「短針は沈む【西】へ、長針は昇る【東】へ」
         </p>
       `;
@@ -2279,19 +3195,44 @@
 
     openModal('NORTH / ANTIQUE CLOCK', '壁掛けの古時計', html, (container) => {
       if (!state.clockPuzzleSolved) {
-        const btnHour = container.querySelector('#btn-clock-hour');
-        const btnMin = container.querySelector('#btn-clock-min');
-        if (btnHour) {
-          btnHour.onclick = () => {
+        const btnHourPlus = container.querySelector('#btn-clock-hour-plus');
+        const btnHourMinus = container.querySelector('#btn-clock-hour-minus');
+        const btnMinPlus = container.querySelector('#btn-clock-min-plus');
+        const btnMinMinus = container.querySelector('#btn-clock-min-minus');
+
+        if (btnHourPlus) {
+          btnHourPlus.onclick = () => {
             soundManager.playTick();
-            state.clockHour = (state.clockHour % 12) + 1;
+            state.clockHour = (state.clockHour + 1) % 12;
             checkClockSolution();
           };
         }
-        if (btnMin) {
-          btnMin.onclick = () => {
+        if (btnHourMinus) {
+          btnHourMinus.onclick = () => {
             soundManager.playTick();
-            state.clockMinute = (state.clockMinute + 15) % 60;
+            state.clockHour = (state.clockHour + 11) % 12;
+            checkClockSolution();
+          };
+        }
+        if (btnMinPlus) {
+          btnMinPlus.onclick = () => {
+            soundManager.playTick();
+            state.clockMinute += 15;
+            if (state.clockMinute >= 60) {
+              state.clockMinute -= 60;
+              state.clockHour = (state.clockHour + 1) % 12; // 分の繰り上がりで時間を自動連動
+            }
+            checkClockSolution();
+          };
+        }
+        if (btnMinMinus) {
+          btnMinMinus.onclick = () => {
+            soundManager.playTick();
+            state.clockMinute -= 15;
+            if (state.clockMinute < 0) {
+              state.clockMinute += 60;
+              state.clockHour = (state.clockHour + 11) % 12; // 分の繰り下がりで時間を自動連動
+            }
             checkClockSolution();
           };
         }
@@ -2309,7 +3250,8 @@
   }
 
   function checkClockSolution() {
-    if (state.clockHour === 9 && state.clockMinute === 15) {
+    updateClockHands3D(); // 3D空間の壁掛け時計の針をリアルタイム連動
+    if (!state.clockPuzzleSolved && state.clockHour % 12 === 9 && state.clockMinute === 15) {
       soundManager.playSolved();
       state.clockPuzzleSolved = true;
       setMessage('ガチャン！ 時計の中から重厚な金属パーツが落ちてきた！');
