@@ -41,6 +41,18 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - オブジェクトクリック無反応バグの解消（ズームイン開始時のunlock誤検知ループ修正） (`feat-main-menu-settings`)
+
+1. **オブジェクトをクリックしても調査・ズームインが反応しなかった致命的バグの解消**
+   - **原因**: 
+     - オブジェクトクリック時に呼び出される `triggerZoomAndInspect` では、3D視点操作を一時解除して調査UIへ移行するため内部から `controls.unlock()` を発行していた。
+     - しかし直前のコミットで、ブラウザのEscキー押下を想定して `controls.addEventListener('unlock')` 内に `if (cameraZoom.mode === 'in') startCameraZoomOut();` を追加したため、**オブジェクトをクリックしてズームインを開始した瞬間に、自分自身の `controls.unlock()` を検知して即座に `startCameraZoomOut()` が呼び出されてズームがキャンセルされる無限自己否定ループ**が発生していた。
+     - その結果、オブジェクトをクリックしても0ミリ秒でズームが打ち消され、調査モーダルも開かず一切反応しない状態になっていた。
+   - **対策**:
+     - `controls.addEventListener('unlock')` 内から自己キャンセルを引き起こす `startCameraZoomOut()` を完全撤廃し、ズーム演出中やモーダル中は単純に設定オープンを抑止（`return;`）するのみに是正。
+     - ユーザーがEscキーを押した時のズーム解除・探索復帰は、`window.addEventListener('keydown')` のエスケープハンドラー側で明示的に制御する構造に純化。
+     - オブジェクトをクリックした瞬間に確実にズームインが走り、調査モーダルが問題なく開くよう正常化。
+
 ### 2026-11-01 (日) - ズーム中エスケープ押下時のフリーズ解消 & スムーズなズーム解除復帰の実装 (`feat-main-menu-settings`)
 
 1. **ズーム中にエスケープキーを押した際の操作不能（フリーズ）の解消**

@@ -2869,6 +2869,7 @@
     cameraZoom.toPos.copy(targetPos);
     cameraZoom.fromQuat.copy(camera.quaternion);
     cameraZoom.toQuat.copy(tempCam.quaternion);
+    isMouseDown = false;
     cameraZoom.mode = 'in';
     cameraZoom.duration = 600; // 0.6秒
     cameraZoom.startTime = performance.now();
@@ -4331,16 +4332,12 @@
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    // ズーム中やモーダル表示中、ズーム注視状態はブラウザ標準のEscによる自動設定オープンを抑止
+    // ズーム演出中、ズーム注視中、またはモーダル表示中は設定画面オープンを安全に抑止
     if (cameraZoom.active || cameraZoom.isZoomedIn || activeModal) {
-      // モーダルが無くズーム中（または注視中）だった場合は、安全にズームアウトして元の探索視点へ復帰
-      if (!activeModal && (cameraZoom.isZoomedIn || (cameraZoom.active && cameraZoom.mode === 'in'))) {
-        startCameraZoomOut();
-      }
       return;
     }
     if (!state.gameCleared && menuScreen.classList.contains('hidden') && isGameStarted) {
-      // 通常探索中にEscキーやブラウザ操作でロックが外れた場合、自動的に設定画面（CONFIG & MENU）を展開
+      // 通常探索中にEscキーやブラウザ操作でロックが外れた場合のみ設定画面（CONFIG & MENU）を展開
       openSettingsModal();
     }
   });
