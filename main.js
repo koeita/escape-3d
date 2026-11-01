@@ -4461,6 +4461,8 @@
     startTime: 0,
     lastX: 0,
     lastY: 0,
+    totalMoveDist: 0,
+    hasMoved: false,
     sensitivity: getSensitivityFromLevel(currentSensitivityLevel)
   };
 
@@ -4569,6 +4571,8 @@
       touchLook.lastX = e.clientX;
       touchLook.lastY = e.clientY;
       touchLook.startTime = performance.now();
+      touchLook.totalMoveDist = 0;
+      touchLook.hasMoved = false;
       try { touchLookZone.setPointerCapture(e.pointerId); } catch (_) {}
     });
 
@@ -4578,6 +4582,14 @@
       const deltaY = e.clientY - touchLook.lastY;
       touchLook.lastX = e.clientX;
       touchLook.lastY = e.clientY;
+
+      const stepDist = Math.hypot(deltaX, deltaY);
+      touchLook.totalMoveDist += stepDist;
+      const distFromStart = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
+      // わずか4px以上の移動、または始点から5px以上離れた場合は「視点移動中」と確定
+      if (touchLook.totalMoveDist > 4 || distFromStart > 5) {
+        touchLook.hasMoved = true;
+      }
 
       if (!activeModal && !cameraZoom.active && !cameraZoom.isZoomedIn) {
         const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -4593,15 +4605,22 @@
       if (!touchLook.active || e.pointerId !== touchLook.pointerId) return;
       try { touchLookZone.releasePointerCapture(e.pointerId); } catch (_) {}
 
-      // 短時間の軽微なタップ（280ms以内、移動距離10px未満）のみ「画面タップで調べる」として発火
-      // スワイプによる視点移動の離脱で誤爆することを完全に防止
       const dt = performance.now() - touchLook.startTime;
-      const dist = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
-      if (dt < 280 && dist < 10) {
+      const distFromStart = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
+
+      // 【重要】視点移動（スワイプ）した後の指離しは絶対にタップとみなさない
+      // 1. 移動フラグ hasMoved が false であること
+      // 2. 累積移動距離 totalMoveDist が 4px 未満であること
+      // 3. 始点と終点の直線距離 distFromStart が 5px 未満であること
+      // 4. 接触時間 dt が 240ms 未満の「意図した軽いチョン押しタップ」であること
+      if (!touchLook.hasMoved && touchLook.totalMoveDist < 4 && distFromStart < 5 && dt < 240) {
         triggerInteractAction();
       }
+
       touchLook.active = false;
       touchLook.pointerId = null;
+      touchLook.hasMoved = false;
+      touchLook.totalMoveDist = 0;
     };
 
     touchLookZone.addEventListener('pointerup', endLookPointer);
