@@ -41,6 +41,22 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - モバイルでのステージカード専用横スクロール（カルセール）UIの実装 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - モバイル画面でステージカードが横並びになった際、カードだけでなくモーダルヘッダー（タイトルや設定ボタン）ごと画面全体が横スクロールしてしまい左側が見切れてしまう不具合を解消。
+   - ステージカード自体が横並びでスワイプできる体験を活かし、「カード領域のみを滑らかに横スクロール・スナップできる」専用カルセールUIへの改善要望に対応。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.menu-screen-card` および `.stage-select-container` に `overflow-x: hidden;` を適用し、ヘッダー・枠組みが画面幅内に完全固定されるよう制御。
+     - モバイルメディアクエリ（`max-width: 960px`）において、`.stage-grid` を専用の横スクロールコンテナ（`display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;`）へ昇格。
+     - 各 `.stage-card` を `flex: 0 0 84%; max-width: 330px; scroll-snap-align: center;` とし、スワイプ時に各カードが画面中央に心地よくスナップ停止する設計に最適化。
+     - 右側に次ステージの左端が約16%覗くことで、ユーザーが直感的に「横スワイプ可能」と認識できるアフォーダンスを確立。
+     - 専用の薄型ゴールドスクロールバー（高さ4px）を配備し、上品な操作フィードバックを提供。
+
+---
+
 ### 2026-11-02 (月) - ステージカードの拡大と説明文の1行（文章単位）表示レイアウト調整 (`feat-pc-ui-adjustments`)
 
 1. **背景と要望**
