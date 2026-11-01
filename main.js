@@ -195,6 +195,8 @@
   const soundSettingStatus = document.getElementById('sound-setting-status');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
   const btnSettingRestart = document.getElementById('btn-setting-restart');
+  const blockMenuReturn = document.getElementById('block-menu-return');
+  const blockRestartStage = document.getElementById('block-restart-stage');
 
   const clearModal = document.getElementById('clear-modal');
   const clearTimeEl = document.getElementById('clear-time');
@@ -4314,7 +4316,7 @@
       btnPlayStage1.textContent = 'もう一度遊ぶ';
       btnRestartStage1.style.display = 'none';
     } else if (isGameStarted) {
-      btnPlayStage1.textContent = '続きからプレイ';
+      btnPlayStage1.textContent = 'つづきから';
       btnRestartStage1.style.display = 'inline-block';
     }
   }
@@ -4329,11 +4331,20 @@
     }
   }
 
-  function openSettingsModal() {
+  function openSettingsModal(fromMenu = false) {
     clearHover();
     isObjectInteracting = false;
     clearMessage();
     soundManager.playClick();
+
+    // メインメニュー経由で開いた場合は「メインメニューへ戻る」「最初からやり直す」を非表示にする
+    const isOpenedFromMenu = fromMenu || !menuScreen.classList.contains('hidden');
+    if (blockMenuReturn) {
+      blockMenuReturn.style.display = isOpenedFromMenu ? 'none' : '';
+    }
+    if (blockRestartStage) {
+      blockRestartStage.style.display = isOpenedFromMenu ? 'none' : '';
+    }
 
     // 他のモーダル（調査モーダル・アイテム詳細）が開いていれば背面に残さず確実に非表示化
     if (inspectModal) inspectModal.classList.add('hidden');
@@ -4670,7 +4681,7 @@
 
   menuBtnSettings.addEventListener('click', (e) => {
     e.stopPropagation();
-    openSettingsModal();
+    openSettingsModal(true);
   });
 
   // ゲーム中画面 右上設定ボタン（統合ボタン）
