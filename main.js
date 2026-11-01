@@ -292,6 +292,7 @@
   // オブジェクトクリック・インタラクション状態フラグ（クリック中・ズーム演出中のEsc誤動作防止用）
   let isMouseDown = false;
   let isObjectInteracting = false;
+  let lastModalClosedTime = 0; // モーダル閉鎖直後の誤タップ・クリック貫通防止クールダウンタイマー
   let clockPendulumGroup = null;    // 時計の振り子
   let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
   let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
@@ -2874,6 +2875,7 @@
 
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
+    clearHover();
     isObjectInteracting = false;
     document.body.classList.add('modal-open');
 
@@ -2895,7 +2897,9 @@
 
   function closeModal() {
     if (!activeModal) return;
+    clearHover();
     isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     activeModal.classList.add('hidden');
     activeModal = null;
@@ -3963,6 +3967,9 @@
 
   function closeItemDetailModal(lockControls = true) {
     if (!itemDetailModal) return;
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     itemDetailModal.classList.add('hidden');
     activeModal = null;
@@ -4251,6 +4258,9 @@
   }
 
   function startOrResumeGame() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     soundManager.init();
     soundManager.playClick();
 
@@ -4273,6 +4283,9 @@
   }
 
   function returnToMainMenu() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     if (activeModal) {
       activeModal.classList.add('hidden');
@@ -4289,6 +4302,15 @@
     inventoryBarContainer.classList.add('hidden');
     topMenuEl.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
+
+    // ズーム注視中の場合は元の位置・状態にリセット
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
 
     menuScreen.classList.remove('hidden');
     updateMobileControlsVisibility();
@@ -4313,6 +4335,8 @@
   }
 
   function openSettingsModal() {
+    clearHover();
+    isObjectInteracting = false;
     clearMessage();
     soundManager.playClick();
     updateSoundSettingUI();
@@ -4327,6 +4351,9 @@
   }
 
   function closeSettingsModal() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     settingsModal.classList.add('hidden');
     activeModal = null;
@@ -4554,7 +4581,9 @@
 
   // 3. 調べる（INTERACT）アクション実行
   function triggerInteractAction() {
+    // モーダル表示中、メニュー表示中、ズームアニメ中、またはモーダル閉鎖直後（400ms以内）は安全に抑止
     if (activeModal || !menuScreen.classList.contains('hidden') || cameraZoom.active) return;
+    if (performance.now() - lastModalClosedTime < 400) return;
     soundManager.init();
 
     // 照準に対象が入っている場合
@@ -4608,12 +4637,24 @@
   });
 
   // 設定モーダル内のアクション
-  settingsModalClose.addEventListener('click', closeSettingsModal);
+  settingsModalClose.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeSettingsModal();
+  });
   if (btnSettingsClose) {
-    btnSettingsClose.addEventListener('click', closeSettingsModal);
+    btnSettingsClose.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    });
   }
   settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === settingsModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    }
   });
 
   btnToggleSoundSetting.addEventListener('click', (e) => {
@@ -4666,6 +4707,7 @@
       isMouseDown = true;
     }
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
+    if (performance.now() - lastModalClosedTime < 400) return;
 
     // 左クリック (button === 0)
     if (e.button === 0) {
@@ -4699,16 +4741,30 @@
   });
 
   // モーダル閉じるボタン
-  modalCloseBtn.addEventListener('click', closeModal);
+  modalCloseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal();
+  });
   inspectModal.addEventListener('click', (e) => {
-    if (e.target === inspectModal) closeModal();
+    if (e.target === inspectModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    }
   });
 
-  itemDetailCloseBtn.addEventListener('click', () => {
+  itemDetailCloseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     closeItemDetailModal(true);
   });
   itemDetailModal.addEventListener('click', (e) => {
-    if (e.target === itemDetailModal) closeItemDetailModal(true);
+    if (e.target === itemDetailModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeItemDetailModal(true);
+    }
   });
 
   // クリアモーダルのボタン
@@ -4755,6 +4811,8 @@
         }
         activeModal = null;
         isObjectInteracting = false;
+        clearHover();
+        lastModalClosedTime = performance.now();
 
         // カメラがズーム注視中の場合は探索元の視点位置・向きへ即座にリセット
         if (cameraZoom.isZoomedIn) {

@@ -41,6 +41,22 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 設定画面開閉時の残存ホバー解消・調査誤爆クールダウン導入（フリーズ防止） (`feat-mobile-touch-test`)
+
+1. **設定変更から探索復帰時のフリーズ・調査モーダル誤爆トラブルの解消**
+   - **原因の特定**:
+     - 照準に対象（暖炉・机など）を合わせた状態で設定モーダルを開閉した際、`hoveredObject` がクリアされずに残存していた。
+     - モーダル閉鎖時の指の離脱（合成クリック）や、閉じた直後の画面タップが残存 `hoveredObject` の調査アクションを発火させ、意図しない調査モーダルが開いていた。
+     - 調査モーダルを閉じた際も同様に対象が残存しており、閉じた瞬間の画面タップで即座に再オープンする無限ループ状態となり、操作不能（フリーズ）に陥っていた。
+   - **対策と改修**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **完全ホバークリアの徹底**: `openSettingsModal`, `closeSettingsModal`, `openModal`, `closeModal`, `returnToMainMenu`, `startOrResumeGame`, `closeItemDetailModal` の全遷移ポイントで `clearHover()` と `isObjectInteracting = false` を確実に実行。
+       - **閉鎖直後の誤爆防止クールダウン導入**: `lastModalClosedTime`（400ms安全マージン）を新設。モーダル閉鎖直後のタップや遅延マウスクリック（Synthetic Click）による誤調査を物理的に完全ガード。
+       - **イベント伝播遮断**: 各モーダル・設定画面の閉じるボタンおよび背景クリックハンドラーに `e.stopPropagation()` / `e.preventDefault()` を適用し、背面レイヤーへのイベント透過を防止。
+       - **メニュー復帰時のズーム注視リセット**: メインメニュー復帰時にカメラズーム状態（`cameraZoom.isZoomedIn`, `active`）を安全に初期位置へリセット。
+
+---
+
 ### 2026-11-01 (日) - 右下の調べるボタン撤廃・全画面タップ調査への一本化 (`feat-mobile-touch-test`)
 
 1. **画面上の全域タップ調査への一本化とUIシンプル化**
