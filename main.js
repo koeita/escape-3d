@@ -661,13 +661,10 @@
     fixtureGroup.add(ceilingBulbMesh);
     scene.add(fixtureGroup);
 
-    // 3. 補助光源 A：暖炉（South）の赤橙色 PointLight（炎の揺らめき）
-    fireplaceLight = new THREE.PointLight(0xff4a11, 0.95, 6.5, 1.8);
+    // 3. 補助光源 A：暖炉（South）の赤橙色 PointLight（炎の揺らめき、柔らかな環境光としてcastShadowはオフにし壁への不自然な巨大影を防止）
+    fireplaceLight = new THREE.PointLight(0xff5518, 0.95, 6.0, 2.0);
     fireplaceLight.position.set(-2.5, 0.48, 4.15);
-    fireplaceLight.castShadow = true;
-    fireplaceLight.shadow.mapSize.width = 512;
-    fireplaceLight.shadow.mapSize.height = 512;
-    fireplaceLight.shadow.bias = -0.002;
+    fireplaceLight.castShadow = false;
     scene.add(fireplaceLight);
 
     // 4. 補助光源 B：書斎机（East）のランプ直下・周囲を丸く自然に照らす暖色(#ffebd2)ライト
