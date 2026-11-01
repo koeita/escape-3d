@@ -41,6 +41,19 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - PC・モバイル全画面における不自然な改行（中途半端な折り返し）の根絶 (`feat-mobile-touch-test`)
+
+1. **背景と不具合**
+   - 画面幅やアスペクト比の違いによって、HUD表示・インベントリ案内・メニュータイトル・ボタン内テキスト・モーダル見出し等で、単語の途中や1文字だけが次の行に落ちる不自然な改行（「ペルシャ風絨/毯」「[タッ/プ]」「〜を調/べる」など）が発生していた。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - **見出し・ラベル・バッジの1行保持**: `#hud`、`.hud-title`、`.hud-sub`、`.menu-title`、`.stage-name`、`.modal-category`、`.modal-title`、`.settings-label`、`.settings-hint`、`.clear-badge`、`.clear-title`、`.stat-label` 等に `white-space: nowrap;` を適用。
+     - **全ボタンの折り返し防止**: すべてのボタン（`.primary-btn`, `.secondary-btn`, `.danger-btn`, 各種モーダル内ボタン）に `white-space: nowrap;` を徹底適用し、ボタン内での文字崩れを根絶。
+     - **長文・ナレーションの自然な改行**: `#message-text`、モーダル本文、操作手引き等に `word-break: keep-all; overflow-wrap: break-word; line-break: strict;` を指定し、日本語の助詞や句読点が不自然に分断されるのを防止。
+
+---
+
 ### 2026-11-02 (月) - 書斎机ランプの照明過多（白飛び）解消および傘上部の不自然な発光防止 (`feat-mobile-touch-test`)
 
 1. **背景と不具合**
