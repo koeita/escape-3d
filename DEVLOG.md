@@ -41,6 +41,22 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - モバイルでのメインメニュー設定ボタンはみ出し解消・ステージ説明文の改行最適化 (`feat-mobile-touch-test`)
+
+1. **背景と不具合**
+   - モバイル画面（幅375px〜472px）でメインメニュー右上の設定ボタン（`.menu-icon-btn`）がヘッダー枠外へ押し出されてはみ出る不具合を解消。
+   - メインメニューのステージ説明文で、文末の句点「。」のみが単独で3行目に落ちてしまう不自然な改行問題を解消。
+
+2. **対策と実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 各ステージ（古びた書斎と賢者の鍵・暴走AIと閉鎖シェルター・刻まれる時計塔の謎）の説明文を、自然な文節の2行構成へ `<br>` で最適化。句点単独落ちを根絶。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.menu-header` に `box-sizing: border-box; width: 100%;` を指定し、`.menu-brand`（`flex: 1 1 auto; min-width: 0;`）と `.menu-controls`（`flex-shrink: 0;`）のフレックス配分を是正。
+     - モバイルメディアクエリでヘッダーパディングを `12px 14px`、タイトルフォントを `1.15rem`、ボタンサイズを `36px` に最適化し、どんな狭い画面でも設定ボタンがヘッダー内に完全に収まるように改善。
+     - `.stage-desc` から `word-break: keep-all;` を除外し、行間・マージンを調整。
+
+---
+
 ### 2026-11-02 (月) - PC・モバイル全画面における不自然な改行（中途半端な折り返し）の根絶 (`feat-mobile-touch-test`)
 
 1. **背景と不具合**
