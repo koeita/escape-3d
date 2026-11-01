@@ -1546,54 +1546,89 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: var(--brass-bright);
 }
 
-/* 効果音 ON/OFF セグメント切り替えスイッチ */
-.setting-toggle-segmented {
+/* 効果音 スライド式トグルスイッチ（1つのボタンでON/OFFをスライド切り替え） */
+.sound-slide-switch {
+  position: relative;
+  width: 72px;
+  height: 32px;
+  background: rgba(14, 16, 20, 0.95);
+  border: 1px solid rgba(202, 168, 106, 0.4);
+  border-radius: 16px;
+  padding: 2px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  background: rgba(14, 16, 20, 0.9);
-  border: 1px solid rgba(202, 168, 106, 0.35);
-  border-radius: 6px;
-  padding: 3px;
-  gap: 2px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.toggle-seg-btn {
-  border: 1px solid transparent;
-  outline: none;
-  background: transparent;
-  color: var(--text-sub);
-  padding: 5px 14px;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  font-weight: 700;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.18s ease;
+  justify-content: space-between;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   user-select: none;
   -webkit-user-select: none;
-  opacity: 0.65;
 }
 
-.toggle-seg-btn:hover:not(.active) {
-  opacity: 0.95;
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.toggle-seg-btn.active {
-  background: rgba(202, 168, 106, 0.28);
+.sound-slide-switch:hover {
   border-color: var(--brass-bright);
+}
+
+.sound-slide-switch .switch-text-on,
+.sound-slide-switch .switch-text-off {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  z-index: 1;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+
+.sound-slide-switch .switch-text-on {
+  margin-left: 8px;
   color: var(--brass-bright);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 8px rgba(202, 168, 106, 0.25);
   opacity: 1;
 }
 
-#btn-sound-off.active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #e0e0e0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+.sound-slide-switch .switch-text-off {
+  margin-right: 7px;
+  color: var(--text-sub);
+  opacity: 0.45;
+}
+
+.sound-slide-switch .switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd98a 0%, #caa86a 50%, #9e7f42 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 8px rgba(202, 168, 106, 0.4);
+  transform: translateX(40px); /* ON状態（右側） */
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  z-index: 2;
+}
+
+/* OFF状態（左側スライド） */
+.sound-slide-switch.off {
+  background: rgba(22, 24, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+.sound-slide-switch.off .switch-thumb {
+  transform: translateX(0); /* OFF状態（左側） */
+  background: linear-gradient(135deg, #6c7380 0%, #4b515d 50%, #2f343e 100%);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.sound-slide-switch.off .switch-text-on {
+  opacity: 0.35;
+  color: var(--text-sub);
+}
+
+.sound-slide-switch.off .switch-text-off {
+  opacity: 1;
+  color: #c5cbd5;
 }
 
 .sensitivity-row {
