@@ -1227,6 +1227,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   flex-direction: column;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1310,6 +1311,9 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .stage-select-heading {
@@ -1905,7 +1909,60 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
   .menu-screen-card {
     max-width: 94vw;
-    padding: 24px 18px;
+    overflow-x: hidden;
+  }
+
+  .stage-select-container {
+    padding: 16px 0 20px 0;
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .stage-select-heading {
+    padding: 0 16px;
+    margin-bottom: 6px;
+  }
+
+  /* モバイル専用：ステージカードのみを滑らかに横スクロール・スナップ */
+  .stage-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 20px 16px 20px;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(202, 168, 106, 0.4) transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .stage-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar-thumb {
+    background: rgba(202, 168, 106, 0.35);
+    border-radius: 4px;
+  }
+
+  .stage-card {
+    flex: 0 0 84%;
+    max-width: 330px;
+    min-width: 275px;
+    scroll-snap-align: center;
+    box-sizing: border-box;
+  }
+
+  .stage-desc-line {
+    white-space: nowrap;
   }
 
   .menu-title {
