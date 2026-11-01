@@ -35,7 +35,7 @@
       id: 'silver_key',
       name: '小さな銀の鍵',
       icon: `<svg viewBox="0 0 40 40"><circle cx="15" cy="15" r="7" fill="none" stroke="#bdc3c7" stroke-width="3"/><line x1="20" y1="20" x2="30" y2="30" stroke="#bdc3c7" stroke-width="4" stroke-linecap="round"/><line x1="26" y1="26" x2="29" y2="23" stroke="#bdc3c7" stroke-width="3"/></svg>`,
-      desc: '小箱の中から出てきた銀色の鍵。机の引き出しに合いそうだ。'
+      desc: '小箱の中から出てきた銀色の鍵。どこかの小さな鍵穴に適合しそうだ。'
     },
     star_disc: {
       id: 'star_disc',
@@ -47,13 +47,13 @@
       id: 'switch_key',
       name: '端子盤の鍵',
       icon: `<svg viewBox="0 0 40 40"><circle cx="14" cy="14" r="6" fill="none" stroke="#e67e22" stroke-width="3"/><line x1="18" y1="18" x2="28" y2="28" stroke="#e67e22" stroke-width="3" stroke-linecap="round"/><line x1="24" y1="24" x2="27" y2="21" stroke="#e67e22" stroke-width="2.5"/></svg>`,
-      desc: '机の引き出しに入っていた小さな真鍮鍵。扉の左横にある照明端子盤カバーを開けられそうだ。'
+      desc: '机の引き出しに入っていた小さな真鍮鍵。配電盤や端子ボックス向けの形状をしている。'
     },
     armillary_pin: {
       id: 'armillary_pin',
       name: '星型の真鍮ピン',
       icon: `<svg viewBox="0 0 40 40"><polygon points="20,6 23,15 32,15 25,20 27,29 20,24 13,29 15,20 8,15 17,15" fill="#f1c40f" stroke="#caa86a" stroke-width="1.5"/><line x1="20" y1="24" x2="20" y2="34" stroke="#e8c988" stroke-width="3" stroke-linecap="round"/></svg>`,
-      desc: '壁金庫の中に納められていた小さな真鍮ピン。天球儀のロック穴にぴったり合いそうだ。'
+      desc: '壁金庫の中に納められていた小さな真鍮ピン。頭部に星の意匠が施されている。'
     },
     poker: {
       id: 'poker',
@@ -3211,7 +3211,7 @@
     html += `</svg></div>`;
 
     if (isLightOn) {
-      html += `<p style="color:#b2aba0;">月夜の古塔が描かれた重厚な油絵だ。<br>（部屋の明かりを消すと、夜空に何かが浮かび上がるかもしれない…）</p>`;
+      html += `<p style="color:#b2aba0;">月夜の古塔が描かれた静謐な油絵《星辰の夜》だ。</p>`;
     } else {
       html += `
         <p style="color:#5dade2; font-weight:bold;">★ 暗闇の中で4つの星辰が青白く発光した！ ★</p>
@@ -3240,9 +3240,7 @@
     if (!state.booksPuzzleSolved) {
       html += `
         <p style="margin-bottom:8px;">背表紙に星座名が刻まれた7冊の書物が並んでいる。</p>
-        <p style="font-size:0.82rem; color:${!state.isLightOn ? '#5dade2' : '#a8947d'};">
-          ${!state.isLightOn ? '★ 暗闇の中で背表紙が青白く微かに発光している！' : '（絵画『星辰の夜』の軌跡に従って本を押してみよう）'}
-        </p>
+        ${!state.isLightOn ? '<p style="font-size:0.82rem; color:#5dade2;">★ 暗闇の中で背表紙が青白く微かに発光している！</p>' : ''}
 
         <div class="bookshelf-row">
           ${books.map(b => `
@@ -3333,14 +3331,14 @@
       `;
     } else if (!state.safeUnlocked) {
       html += `
-        <p style="margin-bottom:12px;">円盤がはまった。タップして回転させ、星の向きを真上に合わせよう。</p>
+        <p style="margin-bottom:12px;">円盤がはまった。タップして回転させることができる。</p>
         <div class="safe-rotator-container">
           <svg class="safe-disc-interactive" id="btn-rotate-safe-disc" viewBox="0 0 40 40" style="transform: rotate(${state.safeAngle}deg);">
             <circle cx="20" cy="20" r="18" fill="#1b2631" stroke="#f1c40f" stroke-width="3"/>
             <polygon points="20,7 23,15 31,15 25,20 27,28 20,23 13,28 15,20 9,15 17,15" fill="#f1c40f"/>
             <circle cx="20" cy="20" r="3" fill="#1b2631"/>
           </svg>
-          <span style="font-size:0.85rem; color:var(--brass-bright);">現在角度: ${state.safeAngle}度（0度で真上）</span>
+          <span style="font-size:0.85rem; color:var(--brass-bright);">現在角度: ${state.safeAngle}度</span>
           <button id="btn-unlock-safe" class="primary-btn" style="max-width:240px;">解錠レバーを引く</button>
         </div>
       `;
@@ -3363,7 +3361,7 @@
         html += `
           <div style="background:rgba(202,168,106,0.18); border:1.5px solid var(--accent-gold); border-radius:8px; padding:10px 14px; margin:10px auto; max-width:380px; box-shadow:0 0 16px rgba(241,196,15,0.25);">
             <p style="color:#ffd700; font-weight:bold; font-size:1.0rem; margin-bottom:2px;">★【星辰の固定ピン】を入手しました！★</p>
-            <p style="color:#ffffff; font-size:0.84rem;">天球儀のロック穴に嵌めて回転機構を解放しよう。</p>
+            <p style="color:#ffffff; font-size:0.84rem;">頭部に星の意匠が施されたピンだ。</p>
           </div>
           <p style="color:#aaa; font-size:0.85rem; margin-top:6px;">ピンは回収済みだ。</p>
         `;
@@ -3409,7 +3407,7 @@
               openSafeModal();
             } else {
               soundManager.playClick();
-              setMessage('レバーが重くて動かない。星の角度が合っていないようだ。');
+              setMessage('レバーが重くて動かない。シリンダーが噛み合っていないようだ。');
             }
           };
         }
@@ -3445,7 +3443,7 @@
       `;
     } else if (!state.armillaryOpened) {
       html += `
-        <p style="margin-bottom:12px;">星型ピンでロックが解除された！ リングをタップして回転させ、天頂（0度）に合わせよう。</p>
+        <p style="margin-bottom:12px;">星型ピンでロックが解除された。リングをタップして回転させることができる。</p>
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin:8px 0;">
           <svg id="btn-rotate-armillary" viewBox="0 0 100 100" style="width:110px; height:110px; cursor:pointer; transform:rotate(${state.armillaryAngle}deg); transition:transform 0.25s ease;">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#b78727" stroke-width="3"/>
@@ -3453,7 +3451,7 @@
             <polygon points="50,6 45,14 55,14" fill="#3498db" stroke="#2980b9" stroke-width="1"/>
             <circle cx="50" cy="50" r="6" fill="#f39c12"/>
           </svg>
-          <span style="font-size:0.85rem; color:var(--brass-bright);">現在角度: ${state.armillaryAngle}度（0度で真上）</span>
+          <span style="font-size:0.85rem; color:var(--brass-bright);">現在角度: ${state.armillaryAngle}度</span>
           <button id="btn-open-armillary" class="primary-btn" style="max-width:240px;">天球儀を開く</button>
         </div>
       `;
@@ -3507,7 +3505,7 @@
               }, 400);
             } else {
               soundManager.playClick();
-              setMessage('まだ球体が固定されている。天頂の角度（0度）に合わせよう。');
+              setMessage('まだ球体が固定されている。角度が合っていないようだ。');
             }
           };
         }
@@ -3629,7 +3627,7 @@
           <button id="btn-clock-min-plus" class="secondary-btn" style="flex:1;">+15 分</button>
         </div>
         <p style="color:#b2aba0; font-size:0.85rem; text-align:center; margin-top:10px;">
-          天体日誌の詩：「短針は沈む【西】へ、長針は昇る【東】へ」
+          文字盤の針は手動で動かせそうだ。
         </p>
       `;
     } else {
@@ -3742,9 +3740,6 @@
             ${state.isLightOn ? UI_ICONS.bulb + '部屋の明かりを消す (OFF)' : UI_ICONS.bulb + '部屋の明かりをつける (ON)'}
           </button>
         </div>
-        <p style="font-size:0.85rem; color:#b2aba0;">
-          ※ 暗闇にすることで、蓄光塗料で描かれた隠し絵画や暗号が浮かび上がります。
-        </p>
       `;
     }
 
@@ -3775,7 +3770,7 @@
             state.isLightOn = !state.isLightOn;
             updateLightingState();
             if (!state.isLightOn) {
-              setMessage('カチッ…部屋の明かりが消え、暗闇に包まれた。どこかが青白く発光している…？');
+              setMessage('カチッ…部屋の明かりが消灯した。');
             } else {
               setMessage('カチッ…部屋の明かりが点灯した。');
             }
@@ -3791,7 +3786,7 @@
     let html = `
       <div>
         <p style="text-align:center; color:#b2aba0; font-size:0.9rem; margin-bottom:14px;">
-          室外へ続く唯一の重厚な大扉だ。【賢者の鍵】と【電子暗証番号】の二重ロックがかかっている。
+          室外へ続く重厚な大扉だ。重厚な鍵穴と4桁の電子ダイヤルが組み合わされているようだ。
         </p>
 
         <div class="door-locks-grid">
@@ -3882,7 +3877,7 @@
             setMessage('電子暗証は合っているが、賢者の真鍮鍵で鍵穴を解錠しなければ開かない！');
           } else if (codeStr !== '3928') {
             soundManager.playClick();
-            setMessage('鍵穴は開いたが、電子暗証番号（4桁）が正しくない！ 金庫の暗号を確かめよう。');
+            setMessage('鍵穴は開いたが、電子暗証番号（4桁）が正しくない！');
           } else {
             triggerStageClear();
           }
