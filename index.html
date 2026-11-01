@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>密室の謎解き脱出 3D - 古びた書斎と賢者の鍵</title>
   
   <!-- Google Fonts: Share Tech Mono & Shippori Mincho -->
@@ -97,6 +97,19 @@
       <div class="inv-slot" data-slot="5"><span class="slot-key">6</span><div class="slot-inner"></div></div>
     </div>
     <div class="inv-hint">※ 数字キー 1〜6 でアイテムを選択して対象を調査 ｜ ［Esc］キーで設定メニュー</div>
+  </div>
+
+  <!-- モバイル向けタッチ操作UI（タッチデバイス時のみ動的表示） -->
+  <div id="mobile-controls" class="hidden">
+    <!-- 全画面スワイプ視点回転ゾーン（画面タップで調べる／スワイプで視点回転） -->
+    <div id="touch-look-zone"></div>
+
+    <!-- 移動バーチャルスティック（画面左下） -->
+    <div id="virtual-stick-zone">
+      <div id="virtual-stick-base">
+        <div id="virtual-stick-knob"></div>
+      </div>
+    </div>
   </div>
 
   <!-- タイトル & ステージ選択 メインメニュー画面 -->
@@ -293,7 +306,7 @@
         <!-- 操作方法ガイド -->
         <div class="settings-help-box">
           <h4>操作の手引き</h4>
-          <ul class="settings-help-list">
+          <ul class="settings-help-list help-list-pc">
             <li><strong>W A S D / 矢印</strong>：部屋を歩行移動</li>
             <li><strong>マウス移動</strong>：視点を360度見渡す</li>
             <li><strong>左クリック</strong>：家具・暗号・仕掛けを調べる</li>
@@ -301,10 +314,18 @@
             <li><strong>数字キー 1〜6</strong>：所持品選択 / 再度押して詳細表示</li>
             <li><strong>画面クリック</strong>：探索視点に戻る</li>
           </ul>
+          <ul class="settings-help-list help-list-mobile">
+            <li><strong>画面左下ドラッグ</strong>：バーチャルスティックで移動</li>
+            <li><strong>画面スワイプ</strong>：視点を360度見渡す</li>
+            <li><strong>対象をタップ</strong>：家具・暗号・仕掛けを調べる</li>
+            <li><strong>右上［設定］</strong>：設定メニューを開く / 閉じる</li>
+            <li><strong>所持品枠タップ</strong>：アイテム選択 / 再度タップで詳細</li>
+            <li><strong>［閉じる］ボタン</strong>：探索視点に戻る</li>
+          </ul>
         </div>
       </div>
       <div class="modal-footer" style="margin-top: 14px;">
-        <button id="btn-settings-close" class="secondary-btn" type="button" style="width: 100%;">閉じる [Enter / Esc]</button>
+        <button id="btn-settings-close" class="secondary-btn" type="button" style="width: 100%;">閉じる<span class="pc-key-hint"> [Enter / Esc]</span></button>
       </div>
     </div>
   </div>
