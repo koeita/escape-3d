@@ -4103,7 +4103,7 @@
     if (hoveredObject === root) return;
     hoveredObject = root;
     crosshair.classList.add('active');
-    targetHintText.textContent = `${root.userData.name} を調べる`;
+    targetHintText.textContent = root.userData.name;
     targetHint.classList.remove('hidden');
   }
 

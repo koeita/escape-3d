@@ -41,6 +41,18 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 照準ターゲットヒントの簡素化（「〜を調べる」の「を調べる」を削除） (`main`)
+
+1. **背景と目的**
+   - 画面中央の照準がオブジェクトに重なった際、ツールチップに「○○ を調べる [左クリック]」と表示されていたが、アイコン（虫眼鏡）やキー表記（[左クリック]）と意味が重複していたため、UIをよりシンプルで視認性の高い「○○ [左クリック]」表示へ簡素化。
+
+2. **対策と実装**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - `setHover(root)` 内の `targetHintText.textContent` への代入を `${root.userData.name} を調べる` から `root.userData.name` へ変更。
+     - オブジェクト名単体が表示されるようになり、スッキリとしたHUD表示を実現。
+
+---
+
 ### 2026-11-01 (日) - 暖炉の火による壁への不自然な巨大影の解消 (`feat-main-menu-settings`)
 
 1. **暖炉の補助光（fireplaceLight）のシャドウキャスト無効化と柔らかな環境光化**
