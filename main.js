@@ -2896,12 +2896,12 @@
   }
 
   function closeModal() {
-    if (!activeModal) return;
+    if (!activeModal && inspectModal.classList.contains('hidden')) return;
     clearHover();
     isObjectInteracting = false;
     lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
-    activeModal.classList.add('hidden');
+    inspectModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
     updateMobileControlsVisibility();
@@ -4339,6 +4339,20 @@
     isObjectInteracting = false;
     clearMessage();
     soundManager.playClick();
+
+    // 他のモーダル（調査モーダル・アイテム詳細）が開いていれば背面に残さず確実に非表示化
+    if (inspectModal) inspectModal.classList.add('hidden');
+    if (itemDetailModal) itemDetailModal.classList.add('hidden');
+
+    // カメラがズーム注視中・ズーム移動中であれば、探索元の位置・向きへ安全にリセット
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
+
     updateSoundSettingUI();
     applySensitivityLevel(currentSensitivityLevel, false);
     document.body.classList.add('modal-open');
@@ -4356,6 +4370,20 @@
     lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     settingsModal.classList.add('hidden');
+
+    // 背面の他モーダルも確実に非表示化
+    if (inspectModal) inspectModal.classList.add('hidden');
+    if (itemDetailModal) itemDetailModal.classList.add('hidden');
+
+    // カメラズーム注視状態を完全に解除し通常探索視点を保証
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
+
     activeModal = null;
     soundManager.playClick();
     if (!isTouchMode && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
@@ -4565,10 +4593,11 @@
       if (!touchLook.active || e.pointerId !== touchLook.pointerId) return;
       try { touchLookZone.releasePointerCapture(e.pointerId); } catch (_) {}
 
-      // 短時間の軽微なタップ（350ms以内、移動距離18px未満）は「画面タップで調べる」として発火
+      // 短時間の軽微なタップ（280ms以内、移動距離10px未満）のみ「画面タップで調べる」として発火
+      // スワイプによる視点移動の離脱で誤爆することを完全に防止
       const dt = performance.now() - touchLook.startTime;
       const dist = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
-      if (dt < 350 && dist < 18) {
+      if (dt < 280 && dist < 10) {
         triggerInteractAction();
       }
       touchLook.active = false;
@@ -4581,9 +4610,9 @@
 
   // 3. 調べる（INTERACT）アクション実行
   function triggerInteractAction() {
-    // モーダル表示中、メニュー表示中、ズームアニメ中、またはモーダル閉鎖直後（400ms以内）は安全に抑止
+    // モーダル表示中、メニュー表示中、ズームアニメ中、またはモーダル閉鎖直後（650ms以内）は安全に抑止
     if (activeModal || !menuScreen.classList.contains('hidden') || cameraZoom.active) return;
-    if (performance.now() - lastModalClosedTime < 400) return;
+    if (performance.now() - lastModalClosedTime < 650) return;
     soundManager.init();
 
     // 照準に対象が入っている場合
@@ -4707,7 +4736,7 @@
       isMouseDown = true;
     }
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
-    if (performance.now() - lastModalClosedTime < 400) return;
+    if (performance.now() - lastModalClosedTime < 650) return;
 
     // 左クリック (button === 0)
     if (e.button === 0) {

@@ -41,6 +41,21 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - ズーム注視・モーダル重なり時の完全リセットとスワイプ誤爆防止 (`feat-mobile-touch-test`)
+
+1. **設定開閉時に調査モーダルが背面に残留しフリーズする重大不具合の根底改修**
+   - **真因の解明**:
+     - 調査モーダル表示中やズーム注視中に右上の「設定」ボタンまたはEscキーで設定画面を開いた際、`inspectModal` の非表示処理や `cameraZoom.isZoomedIn` のリセットが行われていなかった。
+     - 設定画面を閉じた際、`activeModal` は `null` になる一方で背面に `inspectModal` が表示されたまま残り、閉じるボタンを押しても `!activeModal` で弾かれて閉じられず、カメラもズーム注視フラグで完全ロック（フリーズ）していた。
+   - **対策と改修**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **設定開閉時の他モーダル完全強制非表示化**: `openSettingsModal` および `closeSettingsModal` において、`inspectModal` と `itemDetailModal` を確実に強制非表示化。
+       - **カメラズーム状態の完全探索視点復帰**: 設定画面オープン・クローズ時に `cameraZoom.isZoomedIn`, `active` を完全解除し、探索元の通常視点（`savedPos`, `savedQuat`）へ即座に復旧。
+       - **調査モーダル強制クローズのフォールバック保証**: `closeModal` で `activeModal` のフラグが外れていても、DOM上 `inspectModal` が表示されていれば確実に隠してカメラを復帰させる安全弁を設置。
+       - **誤タップ・スワイプ誤爆防止強化**: スワイプ視点移動時のタップ誤判定閾値を `dt < 280ms && dist < 10px` に厳格化し、モーダル閉鎖後の誤調査クールダウンを 650ms に拡大。
+
+---
+
 ### 2026-11-01 (日) - 設定画面開閉時の残存ホバー解消・調査誤爆クールダウン導入（フリーズ防止） (`feat-mobile-touch-test`)
 
 1. **設定変更から探索復帰時のフリーズ・調査モーダル誤爆トラブルの解消**
