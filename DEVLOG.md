@@ -41,6 +41,17 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 書斎机調査時の不要なメッセージ表示削除 (`feat-mobile-touch-test`)
+
+1. **背景と目的**
+   - 他のオブジェクト調査時にはモーダル展開のみが行われる仕様に対し、書斎机の調査時のみ「アンティーク書斎机を調べた…」というナレーションメッセージが表示されて統一感を欠いていたため削除。
+
+2. **対策と実装**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - `triggerDeskZoomAndInspect()` 内で `triggerZoomAndInspect()` に渡されていた第4引数メッセージを削除し、他オブジェクトと同様にスムーズなモーダル展開へ統一。
+
+---
+
 ### 2026-11-02 (月) - モバイル画面における設定モーダルはみ出し・操作手引き・ヘッダー折り返しのUI改善 (`feat-mobile-touch-test`)
 
 1. **背景と不具合**
