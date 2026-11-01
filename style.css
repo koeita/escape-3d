@@ -132,7 +132,7 @@ body.cursor-mode #crosshair {
   top: calc(50% + 22px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(18, 19, 22, 0.85);
+  background: rgba(18, 19, 22, 0.88);
   border: 1px solid rgba(202, 168, 106, 0.35);
   padding: 6px 14px;
   border-radius: 6px;
@@ -140,9 +140,11 @@ body.cursor-mode #crosshair {
   color: var(--text-main);
   pointer-events: none;
   z-index: 10;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  max-width: 90vw;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(4px);
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -157,12 +159,15 @@ body.cursor-mode #crosshair {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   color: var(--brass);
 }
 
 #target-hint-text {
   font-weight: 600;
   color: var(--brass-bright);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hint-key {
@@ -172,6 +177,8 @@ body.cursor-mode #crosshair {
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 2px 6px;
   border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* アイテム入手ポップアップトースト（最前面 z-index: 200 で絶対に読み取れる高コントラスト通知） */
