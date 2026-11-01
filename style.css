@@ -39,6 +39,11 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 汎用非表示クラス（メインメニュー時や初期化時にUIを完全に不可視化） */
+.hidden {
+  display: none !important;
+}
+
 /* 3D Canvas */
 #canvas-container {
   position: fixed;
@@ -169,67 +174,88 @@ body.cursor-mode #crosshair {
   border-radius: 3px;
 }
 
-/* UI操作モード案内バナー（マウス解放中に画面上部中央に表示：落ち着いたフラット半透明ブラック） */
-#cursor-mode-banner {
+/* アイテム入手ポップアップトースト（最前面 z-index: 200 で絶対に読み取れる高コントラスト通知） */
+#item-get-toast {
   position: fixed;
-  top: 18px;
+  top: 26px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 25;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-#cursor-mode-banner.hidden {
-  opacity: 0;
+  z-index: 200;
   pointer-events: none;
-  transform: translate(-50%, -8px);
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.banner-content {
+#item-get-toast.hidden {
+  opacity: 0;
+  transform: translate(-50%, -18px) scale(0.95);
+}
+
+.toast-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(18, 19, 22, 0.85);
-  border: 1px solid rgba(202, 168, 106, 0.35);
-  border-radius: 6px;
-  padding: 8px 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(6px);
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(22, 26, 36, 0.96) 0%, rgba(32, 38, 52, 0.98) 100%);
+  border: 2px solid var(--brass-bright);
+  border-radius: 8px;
+  padding: 12px 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 24px rgba(232, 201, 136, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-width: 290px;
+  max-width: 90vw;
 }
 
-.banner-icon {
-  display: inline-flex;
+.toast-icon-wrap {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: radial-gradient(circle, rgba(202, 168, 106, 0.28) 0%, rgba(18, 20, 26, 0.7) 100%);
+  border: 1px solid var(--brass-bright);
+  border-radius: 6px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--brass);
+  padding: 4px;
 }
 
-.banner-text {
-  font-size: 0.84rem;
-  color: var(--text-main);
-  font-weight: 400;
+.toast-icon-wrap svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  color: var(--accent-gold);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);
+}
+
+.toast-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.toast-tip {
+  font-size: 0.74rem;
+  color: #e0d8cc;
+  opacity: 0.9;
   letter-spacing: 0.02em;
 }
 
-.banner-resume-btn {
-  background: rgba(202, 168, 106, 0.16);
-  border: 1px solid var(--brass);
-  border-radius: 4px;
-  padding: 5px 12px;
-  color: var(--brass-bright);
-  font-weight: 600;
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.banner-resume-btn:hover {
-  background: rgba(202, 168, 106, 0.28);
-  border-color: var(--brass-bright);
-  color: #fff;
-}
-
-/* 右上メニューボタン */
+/* 右上：設定メニュー案内ピル（Escキー明示） */
 #top-menu {
   position: fixed;
   top: 18px;
@@ -240,40 +266,46 @@ body.cursor-mode #crosshair {
   pointer-events: auto;
 }
 
-.menu-icon-btn {
-  width: 40px;
-  height: 40px;
-  background: rgba(18, 19, 22, 0.85);
-  border: 1px solid rgba(202, 168, 106, 0.35);
-  color: var(--brass-bright);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
+.menu-setting-pill {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(4px);
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  gap: 8px;
+  background: rgba(18, 20, 28, 0.88);
+  border: 1px solid rgba(202, 168, 106, 0.45);
+  color: var(--brass-bright);
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  transition: all 0.15s ease;
 }
 
-.menu-icon-btn svg {
-  display: block;
-}
-
-.menu-icon-btn svg.hidden {
-  display: none;
-}
-
-.menu-icon-btn.muted {
-  color: var(--text-sub);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.menu-icon-btn:hover {
-  background: rgba(202, 168, 106, 0.2);
+.menu-setting-pill:hover {
+  background: rgba(202, 168, 106, 0.22);
   border-color: var(--brass-bright);
-  color: #fff;
+  color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 10px rgba(202, 168, 106, 0.3);
+}
+
+.esc-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(202, 168, 106, 0.2);
+  border: 1px solid var(--brass);
+  color: var(--accent-gold);
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.setting-pill-label {
+  font-family: var(--font-serif);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 /* 左上HUD */
@@ -312,38 +344,65 @@ body.cursor-mode #crosshair {
   color: var(--text-sub);
 }
 
-/* 下部メッセージバー */
+/* 下部メッセージバー（探索画面用ナレーションバー z-index: 30） */
 #message-bar-container {
   position: fixed;
-  bottom: 128px;
+  bottom: 156px; /* インベントリバー上端から余裕を持って離し、文字の被りを完全防止 */
   left: 0;
   width: 100vw;
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 11;
+  z-index: 30;
   padding: 0 20px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#message-bar-container.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#message-bar-container.hidden {
+  display: none !important;
 }
 
 #message-bar {
   max-width: 740px;
   width: 100%;
-  background: linear-gradient(90deg, rgba(14, 16, 22, 0.85) 0%, rgba(20, 24, 34, 0.95) 50%, rgba(14, 16, 22, 0.85) 100%);
-  border: 1px solid var(--panel-border);
+  background: linear-gradient(90deg, rgba(16, 18, 26, 0.94) 0%, rgba(24, 28, 40, 0.98) 50%, rgba(16, 18, 26, 0.94) 100%);
+  border: 1.5px solid rgba(232, 201, 136, 0.55);
   border-radius: 6px;
-  padding: 10px 22px;
+  padding: 10px 24px;
   text-align: center;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), 0 0 16px rgba(202, 168, 106, 0.22);
+  transition: all 0.3s ease;
+}
+
+#message-bar.item-highlight {
+  border-color: var(--accent-gold);
+  background: linear-gradient(90deg, rgba(28, 24, 18, 0.96) 0%, rgba(42, 34, 20, 0.98) 50%, rgba(28, 24, 18, 0.96) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9), 0 0 25px rgba(241, 196, 15, 0.5);
+  transform: translateY(-2px);
 }
 
 #message-text {
   font-family: var(--font-serif);
-  font-size: 0.95rem;
-  color: var(--text-main);
-  letter-spacing: 0.04em;
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 0.05em;
   line-height: 1.6;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+#message-bar.item-highlight #message-text {
+  color: #fff2c4;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(241, 196, 15, 0.6), 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
 /* 下部インベントリバー（6スロット） */
@@ -580,6 +639,11 @@ body.cursor-mode #crosshair {
   justify-content: center;
   padding: 16px;
   transition: opacity 0.2s ease;
+}
+
+#settings-modal,
+#clear-modal {
+  z-index: 600;
 }
 
 .modal.hidden {
@@ -1104,7 +1168,7 @@ body.cursor-mode #crosshair {
   background: radial-gradient(circle at center, rgba(14, 16, 22, 0.84) 0%, rgba(6, 7, 10, 0.96) 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 50;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
