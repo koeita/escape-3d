@@ -2698,8 +2698,10 @@
     });
   }
 
-  // --- メッセージ表示ヘルパー（一定時間で自動的に上品にフェードアウト） ---
+  // --- メッセージ表示ヘルパー（一定時間で自動的に上品にフェードアウト・消去） ---
   let messageClearTimer = null;
+  let messageHideTimer = null;
+  let messageRafId = null;
 
   function setMessage(text, autoResetDelay = 4000) {
     if (!messageText || !messageBarContainer) return;
@@ -2708,26 +2710,42 @@
       clearTimeout(messageClearTimer);
       messageClearTimer = null;
     }
+    if (messageHideTimer) {
+      clearTimeout(messageHideTimer);
+      messageHideTimer = null;
+    }
+    if (messageRafId) {
+      cancelAnimationFrame(messageRafId);
+      messageRafId = null;
+    }
 
     if (!text || text.trim() === '') {
-      messageBarContainer.classList.remove('visible');
-      if (messageBar) messageBar.classList.remove('item-highlight');
+      clearMessage();
       return;
     }
 
     messageText.innerHTML = text.replace(/\n/g, '<br>');
     messageBarContainer.classList.remove('hidden');
-    requestAnimationFrame(() => {
+    messageRafId = requestAnimationFrame(() => {
       messageBarContainer.classList.add('visible');
+      messageRafId = null;
     });
 
-    // 指定秒数後に自動フェードアウト（デフォルトメッセージへの居座りを防止）
+    // 指定秒数後に自動フェードアウトし、完全に非表示化（居座りを根絶）
     if (autoResetDelay > 0) {
       messageClearTimer = setTimeout(() => {
         messageBarContainer.classList.remove('visible');
         if (messageBar) {
           messageBar.classList.remove('item-highlight');
         }
+        // CSSフェードアウト（0.35秒）完了後に確実にhidden化
+        messageHideTimer = setTimeout(() => {
+          if (!messageBarContainer.classList.contains('visible')) {
+            messageBarContainer.classList.add('hidden');
+          }
+          messageHideTimer = null;
+        }, 360);
+        messageClearTimer = null;
       }, autoResetDelay);
     }
   }
@@ -2736,6 +2754,14 @@
     if (messageClearTimer) {
       clearTimeout(messageClearTimer);
       messageClearTimer = null;
+    }
+    if (messageHideTimer) {
+      clearTimeout(messageHideTimer);
+      messageHideTimer = null;
+    }
+    if (messageRafId) {
+      cancelAnimationFrame(messageRafId);
+      messageRafId = null;
     }
     if (messageBarContainer) {
       messageBarContainer.classList.remove('visible');
@@ -2858,10 +2884,6 @@
     if (cameraZoom.isZoomedIn) {
       startCameraZoomOut();
     } else {
-      // ズームアウトしない場合のみ即時メッセージバーを再表示
-      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-        messageBarContainer.classList.remove('hidden');
-      }
       controls.lock();
     }
   }
@@ -2943,9 +2965,6 @@
       isObjectInteracting = false;
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
-      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-        messageBarContainer.classList.remove('hidden');
-      }
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
@@ -3927,9 +3946,6 @@
     itemDetailModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
-    if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-      messageBarContainer.classList.remove('hidden');
-    }
     if (lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
       controls.lock();
     }
@@ -4198,7 +4214,6 @@
     menuScreen.classList.add('hidden');
     crosshair.classList.remove('hidden');
     hudEl.classList.remove('hidden');
-    messageBarContainer.classList.remove('hidden');
     inventoryBarContainer.classList.remove('hidden');
     topMenuEl.classList.remove('hidden');
     isGameStarted = true;
@@ -4217,7 +4232,6 @@
     menuScreen.classList.add('hidden');
     crosshair.classList.remove('hidden');
     hudEl.classList.remove('hidden');
-    messageBarContainer.classList.remove('hidden');
     inventoryBarContainer.classList.remove('hidden');
     topMenuEl.classList.remove('hidden');
 
@@ -4279,9 +4293,6 @@
     activeModal = null;
     soundManager.playClick();
     if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
-      if (messageBarContainer) {
-        messageBarContainer.classList.remove('hidden');
-      }
       controls.lock();
     }
   }

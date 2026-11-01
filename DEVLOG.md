@@ -41,6 +41,20 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - アイテム取得後のメッセージバー永久居座りバグの解消（不要なhidden解除撤廃とタイマー確実化） (`feat-main-menu-settings`)
+
+1. **アイテム取得時やモーダルクローズ後にメッセージバーが残り続ける不具合の根絶**
+   - **原因**:
+     - モーダル内やアイテム合成で `addItem` が実行された際、一度メッセージが設定された後、モーダルを閉じる処理（`closeModal`、`closeItemDetailModal`、`startCameraZoomOut.onComplete`、`closeSettingsModal` など）の随所で、メッセージ表示の有無にかかわらず `messageBarContainer.classList.remove('hidden')` を安易に呼び出していた。
+     - その結果、モーダル表示中にタイマーがクリアされていたにもかかわらず、モーダルを閉じた瞬間に前回のテキスト（「【〇〇】を手に入れた！」）がタイマーなしで画面にゾンビのように再表示され、他のオブジェクトをクリックして強制非表示化されるまで永遠に画面に残り続ける不具合が発生していた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `closeModal`、`startCameraZoomOut.onComplete`、`closeItemDetailModal`、`closeSettingsModal`、`startGame`、`startOrResumeGame` での無条件な `messageBarContainer.classList.remove('hidden')` を**全廃・撤去**。メッセージバーの表示・非表示の権限を `setMessage()` と `clearMessage()` のみに完全一本化。
+       - `setMessage()` 内で `requestAnimationFrame`（RAF ID）およびフェードアウト後の完全非表示化タイマー（`messageHideTimer`）を厳密に管理。指定秒数（4秒）経過後に `.visible` を外してフェードアウトし、0.36秒後に確実に `.hidden`（`display: none !important`）を付与して完全に画面から消去。
+       - これにより、アイテム取得時のメッセージは4秒後に100%自動フェードアウトして自然に消え、他のオブジェクトを調べるまで居座り続けるバグを根本解決。
+
+---
+
 ### 2026-11-01 (日) - 調査モーダル中Esc押下時の設定画面オープン連携 ＆ モーダル閉じる操作の一貫性確保 (`feat-main-menu-settings`)
 
 1. **調査モーダル表示中にEscキーを押した際、設定画面（CONFIG & MENU）を開く仕様へ完全移行**
