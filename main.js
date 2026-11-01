@@ -192,6 +192,8 @@
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
   const btnSoundToggleSwitch = document.getElementById('btn-sound-toggle-switch');
+  const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
+  const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
   const btnSettingRestart = document.getElementById('btn-setting-restart');
   const blockMenuReturn = document.getElementById('block-menu-return');
@@ -4327,6 +4329,67 @@
     }
   }
 
+  // --- 視点・カメラ感度設定管理（ローカルストレージ永続化） ---
+  // PC版PointerLockControlsの基本感度: Level 5 = 1.0 (デフォルト現在の感度)
+  // レベル範囲: 1(超低速 0.4) 〜 5(標準 1.0) 〜 10(最高速 2.0)
+  const SENSITIVITY_MIN = 0.4;        // Level 1: 低速
+  const SENSITIVITY_DEFAULT = 1.0;    // Level 5: 標準（現在のPointerLock感度そのもの）
+  const SENSITIVITY_MAX = 2.0;        // Level 10: 高速
+  const SENSITIVITY_STORAGE_KEY = 'escape3d_camera_sensitivity_level';
+
+  let currentSensitivityLevel = 5;
+  try {
+    const savedLvl = parseInt(localStorage.getItem(SENSITIVITY_STORAGE_KEY), 10);
+    if (!isNaN(savedLvl) && savedLvl >= 1 && savedLvl <= 10) {
+      currentSensitivityLevel = savedLvl;
+    }
+  } catch (_) {}
+
+  function getSensitivityFromLevel(lvl) {
+    if (lvl <= 5) {
+      return SENSITIVITY_MIN + ((lvl - 1) / 4) * (SENSITIVITY_DEFAULT - SENSITIVITY_MIN);
+    } else {
+      return SENSITIVITY_DEFAULT + ((lvl - 5) / 5) * (SENSITIVITY_MAX - SENSITIVITY_DEFAULT);
+    }
+  }
+
+  function getSensitivityLabel(lvl) {
+    if (lvl === 1) return '1 (極低)';
+    if (lvl === 2) return '2 (低)';
+    if (lvl === 3) return '3 (やや低)';
+    if (lvl === 5) return '5 (標準)';
+    if (lvl === 7) return '7 (やや高)';
+    if (lvl === 8) return '8 (高)';
+    if (lvl === 10) return '10 (最高)';
+    return `${lvl}`;
+  }
+
+  function applySensitivityLevel(lvl, save = true) {
+    currentSensitivityLevel = Math.max(1, Math.min(10, lvl));
+    const speed = getSensitivityFromLevel(currentSensitivityLevel);
+    if (controls) {
+      controls.pointerSpeed = speed;
+    }
+    if (sliderLookSensitivity) {
+      sliderLookSensitivity.value = String(currentSensitivityLevel);
+    }
+    if (sensitivityValueDisplay) {
+      sensitivityValueDisplay.textContent = getSensitivityLabel(currentSensitivityLevel);
+    }
+    if (save) {
+      try {
+        localStorage.setItem(SENSITIVITY_STORAGE_KEY, String(currentSensitivityLevel));
+      } catch (_) {}
+    }
+  }
+
+  if (sliderLookSensitivity) {
+    sliderLookSensitivity.addEventListener('input', (e) => {
+      const lvl = parseInt(e.target.value, 10);
+      applySensitivityLevel(lvl, true);
+    });
+  }
+
   function openSettingsModal(fromMenu = false) {
     clearHover();
     isObjectInteracting = false;
@@ -4354,7 +4417,6 @@
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
     }
-
     updateSoundSettingUI();
     applySensitivityLevel(currentSensitivityLevel, false);
     document.body.classList.add('modal-open');

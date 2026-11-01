@@ -1968,6 +1968,10 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     min-height: 46px; /* タップしやすいターゲットサイズ */
   }
 
+/* ==========================================================================
+   レスポンシブ対応・低解像度・小画面PC向けの表示崩れ防止
+   ========================================================================== */
+@media (max-width: 960px) {
   .menu-screen-card {
     max-width: 94vw;
     overflow-x: hidden;
@@ -2026,8 +2030,37 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     white-space: nowrap;
   }
 
-  .menu-title {
-    font-size: 1.6rem;
+  .settings-card {
+    max-width: 92vw;
+  }
+
+  #inventory-bar-container {
+    bottom: 12px;
+  }
+
+  .inv-slot {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-height: 720px) {
+  .settings-card {
+    max-height: calc(100vh - 24px);
+    padding: 18px 16px;
+  }
+
+  .settings-content {
+    gap: 10px;
+  }
+
+  .settings-help-box {
+    padding: 8px 10px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 24px);
+    padding: 16px 20px;
   }
 }
 
@@ -2096,4 +2129,23 @@ button,
   word-break: keep-all;
   overflow-wrap: break-word;
   line-break: strict;
+}
+@media (max-width: 768px), (pointer: coarse) {
+  .menu-header {
+    padding: 12px 14px !important;
+  }
+
+  .menu-title {
+    font-size: 1.15rem !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .menu-subtitle {
+    font-size: 0.60rem !important;
+  }
+
+  .menu-icon-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
 }
