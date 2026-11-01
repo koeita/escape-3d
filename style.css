@@ -1519,6 +1519,39 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: var(--text-sub);
 }
 
+.sensitivity-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.sensitivity-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.sensitivity-control input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-gold);
+  height: 6px;
+  background: rgba(202, 168, 106, 0.25);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+#sensitivity-value-display {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent-gold);
+  min-width: 68px;
+  text-align: right;
+  font-weight: 700;
+}
+
 .settings-action-block {
   display: flex;
   flex-direction: column;
