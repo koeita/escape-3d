@@ -41,6 +41,19 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 照準ターゲットヒントの不自然な折り返し（中途半端な改行）防止 (`feat-mobile-touch-test`)
+
+1. **背景と不具合**
+   - モバイル画面において、照準がオブジェクトに重なった際のツールチップ（`#target-hint`）内で、オブジェクト名（「ペルシャ風絨/毯」）や操作ヒント（「[タッ/プ]」）がコンテナ幅制限により中途半端に途中で改行されてしまっていた。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `#target-hint`、`#target-hint-text`、`.hint-key` に `white-space: nowrap;` を適用。
+     - `#target-hint` を `display: inline-flex;`、`max-width: 90vw;` に設定し、子要素に `flex-shrink: 0;` を付与して要素が縮んで改行される挙動を完全に防止。
+     - 1行で綺麗に収まる快適なツールチップ表示を実現。
+
+---
+
 ### 2026-11-01 (日) - 照準ターゲットヒントの簡素化（「〜を調べる」の「を調べる」削除・「[タップで調べる]」→「[タップ]」） (`feat-mobile-touch-test`)
 
 1. **背景と目的**
