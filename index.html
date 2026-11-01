@@ -250,9 +250,10 @@
             </span>
             <span class="settings-text">効果音 (SE)</span>
           </div>
-          <button id="btn-toggle-sound-setting" class="btn-setting-toggle" type="button">
-            <span id="sound-setting-status">ON</span>
-          </button>
+          <div class="setting-toggle-segmented" role="group" aria-label="効果音設定">
+            <button id="btn-sound-on" class="toggle-seg-btn active" type="button" aria-pressed="true">ON</button>
+            <button id="btn-sound-off" class="toggle-seg-btn" type="button" aria-pressed="false">OFF</button>
+          </div>
         </div>
 
         <!-- 視点・カメラ感度設定セクション -->

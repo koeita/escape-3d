@@ -41,6 +41,23 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 効果音(SE)のON/OFFセグメント切り替えスイッチUIへの改善 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - 設定モーダル内の効果音設定において、単一ボタンによるトグル表示（「ON」「OFF」のテキスト切り替えのみ）では現在の状態や押下後の挙動が分かりづらかったため、直感的に一目で把握・切り替えができる「[ ON ] [ OFF ]」のセグメント型ボタングループへの改善要望に対応。
+
+2. **対策と実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 効果音設定を単一ボタンから、`role="group"` を備えたセグメントUI（`.setting-toggle-segmented`、`#btn-sound-on`、`#btn-sound-off`）へ置換。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - カプセル型のシックなダークフレーム内に「ON」「OFF」の2つのボタンを配置。
+     - 現在有効な選択肢が上品なアンティークゴールド（発光グロー効果）でハイライトされ、非選択側は控えめな半透明グレーに減光するセグメントスタイルを構築。
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - `updateSoundSettingUI()` を拡張し、`soundManager.isMuted` の状態に応じて `ON` / `OFF` ボタンのアクティブクラス（`.active`）および `aria-pressed` を正確に更新。
+     - それぞれのボタン押下時に状態を判定し、無駄な再トグルを防止しつつ確実にON/OFFを切り替えるイベントハンドリングを配備。
+
+---
+
 ### 2026-11-02 (月) - モバイルでのステージカード専用横スクロール（カルセール）UIの実装 (`feat-pc-ui-adjustments`)
 
 1. **背景と要望**

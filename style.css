@@ -1540,28 +1540,54 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: var(--brass-bright);
 }
 
-.btn-setting-toggle {
-  background: rgba(202, 168, 106, 0.15);
-  border: 1px solid var(--brass);
-  color: var(--brass-bright);
-  border-radius: 4px;
-  padding: 6px 16px;
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+/* 効果音 ON/OFF セグメント切り替えスイッチ */
+.setting-toggle-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(14, 16, 20, 0.9);
+  border: 1px solid rgba(202, 168, 106, 0.35);
+  border-radius: 6px;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.btn-setting-toggle:hover {
-  background: rgba(202, 168, 106, 0.3);
-  border-color: var(--brass-bright);
-}
-
-.btn-setting-toggle.muted {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+.toggle-seg-btn {
+  border: 1px solid transparent;
+  outline: none;
+  background: transparent;
   color: var(--text-sub);
+  padding: 5px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.65;
+}
+
+.toggle-seg-btn:hover:not(.active) {
+  opacity: 0.95;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.toggle-seg-btn.active {
+  background: rgba(202, 168, 106, 0.28);
+  border-color: var(--brass-bright);
+  color: var(--brass-bright);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 8px rgba(202, 168, 106, 0.25);
+  opacity: 1;
+}
+
+#btn-sound-off.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #e0e0e0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .sensitivity-row {

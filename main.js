@@ -167,8 +167,8 @@
   const settingsModal = document.getElementById('settings-modal');
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
-  const btnToggleSoundSetting = document.getElementById('btn-toggle-sound-setting');
-  const soundSettingStatus = document.getElementById('sound-setting-status');
+  const btnSoundOn = document.getElementById('btn-sound-on');
+  const btnSoundOff = document.getElementById('btn-sound-off');
   const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
   const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
@@ -4253,11 +4253,11 @@
 
   function updateSoundSettingUI() {
     const muted = soundManager.isMuted;
-    if (soundSettingStatus) {
-      soundSettingStatus.textContent = muted ? 'OFF' : 'ON';
-    }
-    if (btnToggleSoundSetting) {
-      btnToggleSoundSetting.classList.toggle('muted', muted);
+    if (btnSoundOn && btnSoundOff) {
+      btnSoundOn.classList.toggle('active', !muted);
+      btnSoundOn.setAttribute('aria-pressed', !muted);
+      btnSoundOff.classList.toggle('active', muted);
+      btnSoundOff.setAttribute('aria-pressed', muted);
     }
   }
 
@@ -4391,14 +4391,27 @@
     if (e.target === settingsModal) closeSettingsModal();
   });
 
-  btnToggleSoundSetting.addEventListener('click', (e) => {
-    e.stopPropagation();
-    soundManager.toggleMute();
-    updateSoundSettingUI();
-    if (!soundManager.isMuted) {
-      soundManager.playClick();
-    }
-  });
+  if (btnSoundOn) {
+    btnSoundOn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (soundManager.isMuted) {
+        soundManager.toggleMute();
+        updateSoundSettingUI();
+        soundManager.playClick();
+      }
+    });
+  }
+
+  if (btnSoundOff) {
+    btnSoundOff.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!soundManager.isMuted) {
+        soundManager.playClick();
+        soundManager.toggleMute();
+        updateSoundSettingUI();
+      }
+    });
+  }
 
   btnSettingToMenu.addEventListener('click', (e) => {
     e.stopPropagation();
