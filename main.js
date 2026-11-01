@@ -2927,8 +2927,7 @@
     triggerZoomAndInspect(
       new THREE.Vector3(2.96, 1.38, -2.22),
       new THREE.Vector3(3.58, 0.88, -2.08),
-      openDeskModal,
-      'アンティーク書斎机を調べた…机上に革装丁の手帳と引き出しがある。'
+      openDeskModal
     );
   }
 
