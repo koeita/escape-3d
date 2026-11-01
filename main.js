@@ -153,7 +153,6 @@
   const virtualStickBase = document.getElementById('virtual-stick-base');
   const virtualStickKnob = document.getElementById('virtual-stick-knob');
   const touchLookZone = document.getElementById('touch-look-zone');
-  const btnTouchAction = document.getElementById('btn-touch-action');
 
   // 設定モーダル内の感度調整UI
   const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
@@ -4147,9 +4146,6 @@
     if (hintKey) {
       hintKey.textContent = isTouchMode ? '[タップで調べる]' : '[左クリック]';
     }
-    if (btnTouchAction) {
-      btnTouchAction.classList.add('has-target');
-    }
     targetHint.classList.remove('hidden');
   }
 
@@ -4157,9 +4153,6 @@
     if (!hoveredObject) return;
     hoveredObject = null;
     crosshair.classList.remove('active');
-    if (btnTouchAction) {
-      btnTouchAction.classList.remove('has-target');
-    }
     targetHint.classList.add('hidden');
   }
 
@@ -4545,10 +4538,10 @@
       if (!touchLook.active || e.pointerId !== touchLook.pointerId) return;
       try { touchLookZone.releasePointerCapture(e.pointerId); } catch (_) {}
 
-      // 短時間の軽微なタップ（300ms以内、移動距離12px未満）は「画面タップで調べる」として発火
+      // 短時間の軽微なタップ（350ms以内、移動距離18px未満）は「画面タップで調べる」として発火
       const dt = performance.now() - touchLook.startTime;
       const dist = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
-      if (dt < 300 && dist < 12) {
+      if (dt < 350 && dist < 18) {
         triggerInteractAction();
       }
       touchLook.active = false;
@@ -4585,14 +4578,6 @@
         isObjectInteracting = false;
       }
     }
-  }
-
-  if (btnTouchAction) {
-    btnTouchAction.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerInteractAction();
-    });
   }
 
   // --- イベントリスナー ---

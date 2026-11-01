@@ -101,7 +101,7 @@
 
   <!-- モバイル向けタッチ操作UI（タッチデバイス時のみ動的表示） -->
   <div id="mobile-controls" class="hidden">
-    <!-- 全画面スワイプ視点回転ゾーン（スティック・ボタン以外の全画面でスムーズ視点回転） -->
+    <!-- 全画面スワイプ視点回転ゾーン（画面タップで調べる／スワイプで視点回転） -->
     <div id="touch-look-zone"></div>
 
     <!-- 移動バーチャルスティック（画面左下） -->
@@ -110,17 +110,6 @@
         <div id="virtual-stick-knob"></div>
       </div>
     </div>
-
-    <!-- 調べる（INTERACT）アクションボタン（画面右下） -->
-    <button id="btn-touch-action" type="button" aria-label="調べる">
-      <span class="touch-action-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-      </span>
-      <span class="touch-action-label">調べる</span>
-    </button>
   </div>
 
   <!-- タイトル & ステージ選択 メインメニュー画面 -->
