@@ -49,7 +49,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 2. **対策と修正**
    - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
-     - 重複していた感度設定ブロックを完全削除し、1本化。
+     - 重複していた感度設定ブロックおよび変数宣言（`sliderLookSensitivity` / `sensitivityValueDisplay`）を完全削除し、1本化。
      - `applySensitivityLevel()` 内でモバイルのスワイプ感度（`touchLook.sensitivity`）とPCの視点感度（`controls.pointerSpeed`）の双方を安全に同時制御する統合版へ整備。JavaScriptのパースエラーを根絶。
    - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
      - メディアクエリの閉じ括弧 `}` を補完し、全ブロックの括弧整合性を完全検証。CSSパーサーエラーを解消。

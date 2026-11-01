@@ -192,8 +192,6 @@
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
   const btnSoundToggleSwitch = document.getElementById('btn-sound-toggle-switch');
-  const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
-  const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
   const btnSettingRestart = document.getElementById('btn-setting-restart');
   const blockMenuReturn = document.getElementById('block-menu-return');
