@@ -41,6 +41,39 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - PC版視点・カメラ感度調整機能の実装 (`feat-pc-ui-adjustments`)
+
+1. **背景と目的**
+   - モバイル版で実装されていた設定画面の「視点・カメラ感度調整スライダー」をPC版（PointerLockControls）にも同様に導入し、プレイヤーの好みのマウス感度で快適に探索できるようにする。
+   - デフォルト感度（Level 5）は従来の感度（`pointerSpeed = 1.0`）をそのまま維持。
+
+2. **対策と実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 設定モーダル内に視点・カメラ感度設定セクション（`#slider-look-sensitivity`, `#sensitivity-value-display`）を追加。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.sensitivity-row`, `.sensitivity-control` のレイアウトおよびスライダーと数値表示の専用デザインを追加。
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - Level 1（極低 0.4）〜 Level 5（標準 1.0・デフォルト）〜 Level 10（最高 2.0）のマッピング関数およびラベル表示を定義。
+     - スライダー変更時に `controls.pointerSpeed` を即時反映し、`localStorage` に設定を永続化保存。
+     - 起動時および設定画面オープン時に保存された感度を自動適用。
+
+---
+
+### 2026-11-01 (日) - メインメニューUI調整・「つづきから」表記統一・設定モーダルボタン整理 (`feat-pc-ui-adjustments`)
+
+1. **背景と目的**
+   - プレイ体験の向上とUI統一のため、メインメニュー内の表記・設定ボタンのビジュアル・設定モーダルのボタン出し分けを改善。
+
+2. **対策と実装**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - 「続きからプレイ」ボタンのテキストを「つづきから」へ変更。
+     - `openSettingsModal(fromMenu = false)` に引数を追加し、メインメニュー画面から開かれた場合は「メインメニューへ戻る」「最初からやり直す」の操作ブロック（`#block-menu-return`, `#block-restart-stage`）を非表示化。
+     - メインメニュー右上の設定ボタン（`#menu-btn-settings`）クリック時に `openSettingsModal(true)` を渡すよう紐付け。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - メインメニューのヘッダーに配置された設定ボタン（`.menu-icon-btn`）が白く浮いてしまう問題を解消するため、クラシックダーク＆アンティーク真鍮ゴールド調（ホバー時の微発光・トランスフォーム）の専用スタイルを定義。
+
+---
+
 ### 2026-11-01 (日) - Stage 1（古びた書斎と賢者の鍵）の直接ヒント削除・表現抽象化 (`main`)
 
 1. **背景と目的**
