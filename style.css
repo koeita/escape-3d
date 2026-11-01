@@ -1433,9 +1433,27 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   padding: 24px 20px;
   max-width: 440px;
   width: 100%;
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+  box-sizing: border-box;
   position: relative;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(232, 201, 136, 0.12);
   animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-card::-webkit-scrollbar {
+  width: 5px;
+}
+.settings-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.settings-card::-webkit-scrollbar-thumb {
+  background: rgba(202, 168, 106, 0.35);
+  border-radius: 4px;
+}
+.settings-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 201, 136, 0.6);
 }
 
 .modal-close-btn {
@@ -1617,6 +1635,10 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   gap: 6px;
   padding: 0;
   margin: 0;
+}
+
+.help-list-mobile {
+  display: none;
 }
 
 .settings-help-list li {
@@ -1801,12 +1823,45 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
   /* モーダルダイアログのスマホ画面対応（スクロール・押しやすさ） */
   .modal-content,
-  .modal-card {
+  .modal-card,
+  .settings-card {
     max-width: 94vw !important;
     max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px) !important;
     padding: 20px 16px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .help-list-pc {
+    display: none !important;
+  }
+
+  .help-list-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pc-key-hint {
+    display: none !important;
+  }
+
+  .menu-header {
+    padding: 14px 16px;
+  }
+
+  .menu-subtitle {
+    font-size: 0.65rem;
+  }
+
+  .sensitivity-control input[type="range"] {
+    min-height: 32px;
+  }
+
+  .modal-open #message-bar-container,
+  body:has(#inspect-modal:not(.hidden)) #message-bar-container,
+  body:has(#item-detail-modal:not(.hidden)) #message-bar-container {
+    top: calc(14px + env(safe-area-inset-top, 0px));
   }
 
   .modal-btn,
