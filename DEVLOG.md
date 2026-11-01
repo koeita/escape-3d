@@ -41,6 +41,25 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 仮想UIボタン削除・スティック被り解消・視点感度調整設定の新設 (`feat-mobile-touch-test`)
+
+1. **ユーザーフィードバックに基づくタッチ操作UIのレイアウト・操作性洗練**
+   - **仮想UIボタンの撤廃**:
+     - 画面上部に暫定配置していた「📱 仮想UI ON」ピルを削除。タッチデバイスまたは画面幅（<= 1024px）に応じた自動判定表示に一本化し、画面上部を本来のシンプルで上品なデザインへ復元。
+   - **スティックとインベントリバーの被り完全解消**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - バーチャルスティックの基準位置を `bottom: calc(20px + env(safe-area-inset-bottom))` から `bottom: calc(96px + env(safe-area-inset-bottom))` へ引き上げ。
+       - スティック外枠サイズを直径 104px、可動ノブを直径 46px（最大可動半径 36px）に最適化。
+       - 右下の「調べる」アクションボタン（`bottom: calc(96px + ...)`）と高さを完全に揃え、下部インベントリバー（6スロットすべて）を一切邪魔しない左右対称の美しいHUDレイアウトを実現。
+       - スマホ時のスロットサイズ（44px、gap 5px）を調整し、iPhone縦持ち画面でも左右の余白をすっきりと確保。
+   - **設定モーダルへのカメラ感度調整スライダー新設**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - デフォルトのスワイプ視点感度を従来の約2.1倍（0.0075）に引き上げ、指のスワイプ操作で軽快に周囲を見渡せるように改善。
+       - 設定モーダル（CONFIG & MENU）内に「視点・カメラ感度」調整スライダー（Level 1〜10、初期値: 5）を新設。
+       - 調整値は `localStorage` に自動保存・永続化され、プレイヤー好みの回転速度にいつでもリアルタイム調整可能。
+
+---
+
 ### 2026-11-01 (日) - 仮想パッド非表示・視点不動トラブルの完全解消（Pointer Events 統一・総合判定・手動切替ピル新設） (`feat-mobile-touch-test`)
 
 1. **画面操作不能（スティック非表示・視点不動）の原因特定と根底改修**

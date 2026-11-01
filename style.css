@@ -295,13 +295,6 @@ body.cursor-mode #crosshair {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 10px rgba(202, 168, 106, 0.3);
 }
 
-#btn-toggle-touch.active {
-  border-color: var(--accent-gold);
-  background: rgba(241, 196, 15, 0.22);
-  color: #fff4d0;
-  box-shadow: 0 0 12px rgba(241, 196, 15, 0.45);
-}
-
 .esc-badge {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -1490,6 +1483,39 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: var(--text-sub);
 }
 
+.sensitivity-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.sensitivity-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.sensitivity-control input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-gold);
+  height: 6px;
+  background: rgba(202, 168, 106, 0.25);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+#sensitivity-value-display {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent-gold);
+  min-width: 68px;
+  text-align: right;
+  font-weight: 700;
+}
+
 .settings-action-block {
   display: flex;
   flex-direction: column;
@@ -1597,13 +1623,13 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   z-index: 1;
 }
 
-/* 2. 移動バーチャルスティック（画面左下） */
+/* 2. 移動バーチャルスティック（画面左下・インベントリ上部に美しく配置） */
 #virtual-stick-zone {
   position: absolute;
-  left: calc(16px + env(safe-area-inset-left, 0px));
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  width: 140px;
-  height: 140px;
+  left: calc(20px + env(safe-area-inset-left, 0px));
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  width: 120px;
+  height: 120px;
   pointer-events: auto;
   touch-action: none;
   display: flex;
@@ -1613,8 +1639,8 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 #virtual-stick-base {
-  width: 118px;
-  height: 118px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(16, 20, 30, 0.76) 0%, rgba(8, 10, 16, 0.94) 100%);
   border: 2px solid rgba(202, 168, 106, 0.55);
@@ -1628,8 +1654,8 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 #virtual-stick-knob {
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #fff2c4 0%, #caa86a 55%, #6a4c1e 100%);
   border: 2px solid #fffae8;
@@ -1642,13 +1668,13 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   transition: transform 0.04s ease-out;
 }
 
-/* 3. 調べる（INTERACT）アクションボタン（画面右下） */
+/* 3. 調べる（INTERACT）アクションボタン（画面右下・インベントリ上部に美しく配置） */
 #btn-touch-action {
   position: absolute;
   right: calc(20px + env(safe-area-inset-right, 0px));
-  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-  width: 68px;
-  height: 68px;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, rgba(35, 42, 60, 0.95) 0%, rgba(18, 22, 32, 0.98) 100%);
   border: 2px solid var(--brass);
@@ -1744,14 +1770,14 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   }
 
   #inventory-bar {
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 5px;
+    padding: 5px 6px;
     border-radius: 8px;
   }
 
   .inv-slot {
-    width: 48px;
-    height: 48px; /* 最小タップターゲット 44px 以上を確実に確保 */
+    width: 44px;
+    height: 44px; /* 最小タップターゲット 44px 以上を確実に確保 */
   }
 
   .slot-key {
@@ -1777,9 +1803,9 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     display: none;
   }
 
-  /* メッセージバーのスマホ最適化 */
+  /* メッセージバーのスマホ最適化（スティック・ボタンの上部に自然配置） */
   #message-bar-container {
-    bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(186px + env(safe-area-inset-bottom, 0px));
     padding: 0 12px;
   }
 

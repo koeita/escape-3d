@@ -146,9 +146,6 @@
   const inventoryBarContainer = document.getElementById('inventory-bar-container');
   const topMenuEl = document.getElementById('top-menu');
   const btnGameSettings = document.getElementById('btn-game-settings');
-  const btnToggleTouch = document.getElementById('btn-toggle-touch');
-  const touchToggleLabel = document.getElementById('touch-toggle-label');
-  const touchToggleIcon = document.getElementById('touch-toggle-icon');
 
   // モバイル・タッチ操作用DOM
   const mobileControls = document.getElementById('mobile-controls');
@@ -157,6 +154,10 @@
   const virtualStickKnob = document.getElementById('virtual-stick-knob');
   const touchLookZone = document.getElementById('touch-look-zone');
   const btnTouchAction = document.getElementById('btn-touch-action');
+
+  // 設定モーダル内の感度調整UI
+  const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
+  const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
 
   // タッチデバイス・画面幅総合判定（タッチAPI、maxTouchPoints、ポインター特性、または画面幅1024px以下）
   function checkIsTouchEnvironment() {
@@ -170,7 +171,6 @@
   }
 
   let isTouchMode = checkIsTouchEnvironment();
-  let userExplicitTouchMode = false; // ユーザーが手動切替したかどうかのフラグ
 
   let isGameStarted = false;
 
@@ -4323,6 +4323,7 @@
     clearMessage();
     soundManager.playClick();
     updateSoundSettingUI();
+    applySensitivityLevel(currentSensitivityLevel, false);
     document.body.classList.add('modal-open');
     activeModal = settingsModal;
     settingsModal.classList.remove('hidden');
@@ -4343,13 +4344,65 @@
     updateMobileControlsVisibility();
   }
 
+  // --- 視点・カメラ感度設定管理（ローカルストレージ永続化） ---
+  const SENSITIVITY_MIN = 0.0030;     // Level 1: 低速
+  const SENSITIVITY_DEFAULT = 0.0075; // Level 5: 標準（初期値）
+  const SENSITIVITY_MAX = 0.0150;     // Level 10: 最高速
+  const SENSITIVITY_STORAGE_KEY = 'escape3d_camera_sensitivity_level';
+
+  let currentSensitivityLevel = 5;
+  try {
+    const savedLvl = parseInt(localStorage.getItem(SENSITIVITY_STORAGE_KEY), 10);
+    if (!isNaN(savedLvl) && savedLvl >= 1 && savedLvl <= 10) {
+      currentSensitivityLevel = savedLvl;
+    }
+  } catch (_) {}
+
+  function getSensitivityFromLevel(lvl) {
+    return SENSITIVITY_MIN + ((lvl - 1) / 9) * (SENSITIVITY_MAX - SENSITIVITY_MIN);
+  }
+
+  function getSensitivityLabel(lvl) {
+    if (lvl === 1) return '1 (極低)';
+    if (lvl === 2) return '2 (低)';
+    if (lvl === 3) return '3 (やや低)';
+    if (lvl === 5) return '5 (標準)';
+    if (lvl === 7) return '7 (やや高)';
+    if (lvl === 8) return '8 (高)';
+    if (lvl === 10) return '10 (最高)';
+    return `${lvl}`;
+  }
+
+  function applySensitivityLevel(lvl, save = true) {
+    currentSensitivityLevel = Math.max(1, Math.min(10, lvl));
+    touchLook.sensitivity = getSensitivityFromLevel(currentSensitivityLevel);
+    if (sliderLookSensitivity) {
+      sliderLookSensitivity.value = String(currentSensitivityLevel);
+    }
+    if (sensitivityValueDisplay) {
+      sensitivityValueDisplay.textContent = getSensitivityLabel(currentSensitivityLevel);
+    }
+    if (save) {
+      try {
+        localStorage.setItem(SENSITIVITY_STORAGE_KEY, String(currentSensitivityLevel));
+      } catch (_) {}
+    }
+  }
+
+  if (sliderLookSensitivity) {
+    sliderLookSensitivity.addEventListener('input', (e) => {
+      const lvl = parseInt(e.target.value, 10);
+      applySensitivityLevel(lvl, true);
+    });
+  }
+
   // --- モバイル向け仮想操作系（タッチUI：仮想スティック・スワイプ視点・調べるボタン） ---
   const touchStick = {
     active: false,
     pointerId: null,
     x: 0, // -1.0 〜 1.0 (右〜左)
     y: 0, // -1.0 〜 1.0 (前〜後)
-    maxRadius: 42 // スティックの可動最大半径 (px)
+    maxRadius: 36 // スティックの可動最大半径 (px) - コンパクト化し操作感向上
   };
 
   const touchLook = {
@@ -4360,30 +4413,8 @@
     startTime: 0,
     lastX: 0,
     lastY: 0,
-    sensitivity: 0.0036
+    sensitivity: getSensitivityFromLevel(currentSensitivityLevel)
   };
-
-  function updateTouchToggleUI() {
-    if (!btnToggleTouch) return;
-    btnToggleTouch.classList.toggle('active', isTouchMode);
-    if (touchToggleLabel) {
-      touchToggleLabel.textContent = isTouchMode ? '仮想UI ON' : '仮想UI OFF';
-    }
-    if (touchToggleIcon) {
-      touchToggleIcon.textContent = isTouchMode ? '📱' : '🖱️';
-    }
-  }
-
-  function toggleTouchMode() {
-    isTouchMode = !isTouchMode;
-    userExplicitTouchMode = true;
-    updateTouchToggleUI();
-    updateMobileControlsVisibility();
-    renderInventory();
-    soundManager.init();
-    soundManager.playClick();
-    setMessage(isTouchMode ? '【仮想操作UI】を有効にしました。' : '【仮想操作UI】を無効にし、PCマウス操作モードに切り替えました。', 2500);
-  }
 
   function updateMobileControlsVisibility() {
     if (!mobileControls) return;
@@ -4394,7 +4425,6 @@
       mobileControls.classList.add('hidden');
       resetVirtualStick();
     }
-    updateTouchToggleUI();
   }
 
   function resetVirtualStick() {
@@ -4409,32 +4439,22 @@
 
   // 初回タッチまたはポインター入力検知でスマホ環境を即時確定・UI同期
   window.addEventListener('touchstart', () => {
-    if (!isTouchMode && !userExplicitTouchMode) {
+    if (!isTouchMode) {
       isTouchMode = true;
       renderInventory();
       updateMobileControlsVisibility();
     }
   }, { passive: true });
 
-  // 画面リサイズ時に自動追従（ユーザーが手動で切り替えていない場合）
+  // 画面リサイズ時に自動追従
   window.addEventListener('resize', () => {
-    if (!userExplicitTouchMode) {
-      const autoMode = checkIsTouchEnvironment();
-      if (autoMode !== isTouchMode) {
-        isTouchMode = autoMode;
-        renderInventory();
-        updateMobileControlsVisibility();
-      }
+    const autoMode = checkIsTouchEnvironment();
+    if (autoMode !== isTouchMode) {
+      isTouchMode = autoMode;
+      renderInventory();
+      updateMobileControlsVisibility();
     }
   });
-
-  // 操作モード手動切替ボタン
-  if (btnToggleTouch) {
-    btnToggleTouch.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleTouchMode();
-    });
-  }
 
   // 1. 移動バーチャルスティック（Pointer Events によりタッチ・マウス両対応）
   if (virtualStickZone && virtualStickBase && virtualStickKnob) {
@@ -4961,7 +4981,7 @@
   buildRoom();
   buildAllObjects();
   renderInventory();
-  updateTouchToggleUI();
+  applySensitivityLevel(currentSensitivityLevel, false);
   updateMobileControlsVisibility();
   animate();
 })();
