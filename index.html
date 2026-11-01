@@ -56,8 +56,12 @@
     </div>
   </div>
 
-  <!-- 画面右上：設定・メニュー案内（Escキー連動） -->
+  <!-- 画面右上：設定・メニュー案内（Escキー連動） & 操作モード切替 -->
   <div id="top-menu" class="hidden">
+    <button id="btn-toggle-touch" class="menu-setting-pill" title="操作モード切替（仮想パッド／PCマウス）" aria-label="操作モード切替">
+      <span id="touch-toggle-icon">📱</span>
+      <span id="touch-toggle-label">仮想UI</span>
+    </button>
     <button id="btn-game-settings" class="menu-setting-pill" title="設定・メニューを開く [Esc]" aria-label="設定・メニュー">
       <span class="esc-badge">Esc</span>
       <span class="setting-pill-label">設定</span>
@@ -101,15 +105,15 @@
 
   <!-- モバイル向けタッチ操作UI（タッチデバイス時のみ動的表示） -->
   <div id="mobile-controls" class="hidden">
+    <!-- 全画面スワイプ視点回転ゾーン（スティック・ボタン以外の全画面でスムーズ視点回転） -->
+    <div id="touch-look-zone"></div>
+
     <!-- 移動バーチャルスティック（画面左下） -->
     <div id="virtual-stick-zone">
       <div id="virtual-stick-base">
         <div id="virtual-stick-knob"></div>
       </div>
     </div>
-
-    <!-- スワイプ視点回転ゾーン（画面右半分） -->
-    <div id="touch-look-zone"></div>
 
     <!-- 調べる（INTERACT）アクションボタン（画面右下） -->
     <button id="btn-touch-action" type="button" aria-label="調べる">

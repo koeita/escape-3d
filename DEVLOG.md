@@ -41,6 +41,26 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 仮想パッド非表示・視点不動トラブルの完全解消（Pointer Events 統一・総合判定・手動切替ピル新設） (`feat-mobile-touch-test`)
+
+1. **画面操作不能（スティック非表示・視点不動）の原因特定と根底改修**
+   - **原因**:
+     - タッチ環境判定に画面幅（`<= 1024px`）が含まれておらず、PCのブラウザ縮小や一部エミュレータ環境で `isTouchDevice` が false と判定され仮想操作UIが非表示（`.hidden`）のままになっていた。
+     - スティック・視点操作が `touch` イベント専用だったため、PCマウスドラッグや一部ブラウザで入力が取得できなかった。
+     - 視点回転ゾーンが画面右半分（`55vw`）に限定されており、画面左側や中央部でのスワイプに反応しなかった。
+     - ポインターロックが非アクティブな際、クリックイベントが `controls.isLocked` の前提条件でブロックされ操作停止を招いていた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **総合判定（`checkIsTouchEnvironment`）**: タッチAPI、maxTouchPoints、ポインター特性、画面幅（`<= 1024px`）を統合して初期判定し、画面リサイズ時も自動同期。
+       - **Pointer Events API への完全統一**: バーチャルスティックおよびスワイプ視点を `pointerdown`, `pointermove`, `pointerup`（`setPointerCapture` 追従）へ刷新。指タッチ・マウスドラッグを問わず100%確実に動作するように改善。
+       - **全画面スワイプ視点化**: `#touch-look-zone` を全画面レイヤーに拡張。スティックやボタン以外の画面全体どこでも直感的に見渡し可能に。
+       - **操作モード手動切替ピル（`#btn-toggle-touch`）**: 画面右上に「📱 仮想UI」切替ボタンを新設。PC環境でもワンクリックで仮想パッドを呼び出してテスト可能。
+       - **ハイブリッド探索移動の解放**: 探索中であればポインターロックの成否を問わず常時スティック・WASD・Raycast判定がスムーズに動作する仕様へ強化。
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 右上HUDに `#btn-toggle-touch` を配置し、スティック（`z-index: 5`）、ボタン（`z-index: 5`）、全画面視点ゾーン（`z-index: 1`）、メニュー（`z-index: 35`）の重なり順を完全最適化。
+
+---
+
 ### 2026-11-01 (日) - スマホ対応プロトタイプ（仮想スティック・スワイプ視点）の試験実装 (`feat-mobile-touch-test`)
 
 1. **PC操作との完全ハイブリッド両立とモバイル全画面・セーフエリア対応**
