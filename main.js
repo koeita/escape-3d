@@ -671,17 +671,18 @@
     fireplaceLight.castShadow = false;
     scene.add(fireplaceLight);
 
-    // 4. 補助光源 B：書斎机（East）のランプ直下・周囲を丸く自然に照らす暖色(#ffebd2)ライト
-    deskSpotLight = new THREE.SpotLight(0xffebd2, 3.2, 4.2, Math.PI / 2.7, 0.88, 1.2);
-    deskSpotLight.position.set(3.94, 1.40, -1.48);
+    // 4. 補助照明 B：書斎机（East）のランプ・下部へ柔らかく光を落とす暖色スポットライト
+    // 光源を傘の内部・電球下端（Y=1.16）に配置し、傘の上側を照らさず机上のみを下向きに照らす
+    deskSpotLight = new THREE.SpotLight(0xffebd2, 1.35, 3.2, Math.PI / 3.0, 0.75, 1.4);
+    deskSpotLight.position.set(3.94, 1.16, -1.48);
     deskSpotLight.target.position.set(3.94, 0.86, -1.48);
     deskSpotLight.castShadow = false;
     scene.add(deskSpotLight);
     scene.add(deskSpotLight.target);
 
-    // ランプの周囲360度（台座・支柱・天板全体・手帳・背後の壁）をふんわり温かく照らすPointLight
-    deskShadeLight = new THREE.PointLight(0xffdfa8, 2.4, 3.4, 1.2);
-    deskShadeLight.position.set(3.94, 1.18, -1.48);
+    // ランプ直下・手帳周りの微弱な手元アンビエント光（傘の外側へ光を漏らさないよう極小強度・短距離に設定）
+    deskShadeLight = new THREE.PointLight(0xffdfa8, 0.20, 1.2, 2.0);
+    deskShadeLight.position.set(3.94, 1.12, -1.48);
     scene.add(deskShadeLight);
   }
 
@@ -690,14 +691,14 @@
       ceilingPointLight.intensity = 1.45;
       ambientLight.color.setHex(0x2c1d11);
       ambientLight.intensity = 0.52;
-      deskSpotLight.intensity = 3.2;
-      if (deskShadeLight) deskShadeLight.intensity = 2.4;
+      deskSpotLight.intensity = 1.35;
+      if (deskShadeLight) deskShadeLight.intensity = 0.20;
       if (deskLightPoolMesh) deskLightPoolMesh.visible = true;
       fireplaceLight.intensity = 0.95;
 
       if (ceilingBulbMesh) ceilingBulbMesh.material.emissiveIntensity = 1.25;
-      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 1.5;
-      if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.35;
+      if (deskBulbMesh) deskBulbMesh.material.emissiveIntensity = 0.8;
+      if (deskShadeMesh) deskShadeMesh.material.emissiveIntensity = 0.0;
 
       darknessVignette.classList.add('hidden');
       scene.background.setHex(0x140e09);
@@ -1516,11 +1517,11 @@
       roughness: 0.3
     });
     const lampShadeMat = new THREE.MeshStandardMaterial({
-      color: 0x14452e,
-      emissive: 0x194228,
-      emissiveIntensity: 0.35,
-      roughness: 0.4,
-      metalness: 0.12,
+      color: 0x0f3822,
+      emissive: 0x000000,
+      emissiveIntensity: 0.0,
+      roughness: 0.25,
+      metalness: 0.08,
       side: THREE.DoubleSide
     });
 
@@ -1578,12 +1579,12 @@
 
     // シェード内側の発光電球（傘の内部中央に配置）
     deskBulbMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.038, 16, 16),
+      new THREE.SphereGeometry(0.032, 16, 16),
       new THREE.MeshStandardMaterial({
-        color: 0xfff3d6,
-        emissive: 0xffebc2,
-        emissiveIntensity: 1.5,
-        roughness: 0.2
+        color: 0xfff0d0,
+        emissive: 0xffdeb0,
+        emissiveIntensity: 0.8,
+        roughness: 0.3
       })
     );
     deskBulbMesh.position.set(0, 0.31, 0);
@@ -1612,10 +1613,9 @@
       lampCenterX, lampCenterY, 8,
       lampCenterX, lampCenterY, 440
     );
-    poolGrad.addColorStop(0.0, 'rgba(255, 235, 185, 0.50)');
-    poolGrad.addColorStop(0.20, 'rgba(255, 222, 160, 0.36)');
-    poolGrad.addColorStop(0.48, 'rgba(255, 205, 130, 0.18)');
-    poolGrad.addColorStop(0.76, 'rgba(255, 190, 105, 0.05)');
+    poolGrad.addColorStop(0.0, 'rgba(255, 235, 185, 0.14)');
+    poolGrad.addColorStop(0.25, 'rgba(255, 222, 160, 0.09)');
+    poolGrad.addColorStop(0.55, 'rgba(255, 205, 130, 0.04)');
     poolGrad.addColorStop(1.0, 'rgba(255, 180, 90, 0.0)');
     poolCtx.fillStyle = poolGrad;
     poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
@@ -2927,8 +2927,7 @@
     triggerZoomAndInspect(
       new THREE.Vector3(2.96, 1.38, -2.22),
       new THREE.Vector3(3.58, 0.88, -2.08),
-      openDeskModal,
-      'アンティーク書斎机を調べた…机上に革装丁の手帳と引き出しがある。'
+      openDeskModal
     );
   }
 
