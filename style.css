@@ -174,37 +174,6 @@ body.cursor-mode #crosshair {
   border-radius: 3px;
 }
 
-/* ポインターロック解除時の操作復帰プロンプト（中央配置・洗練された真鍮枠） */
-#resume-hint {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 120;
-  pointer-events: none;
-  background: rgba(16, 18, 26, 0.92);
-  border: 1.5px solid var(--brass);
-  color: var(--brass-bright);
-  font-family: var(--font-title);
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-  padding: 12px 28px;
-  border-radius: 30px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85), 0 0 16px rgba(212, 175, 55, 0.3);
-  backdrop-filter: blur(8px);
-  animation: pulse-resume-hint 2.2s infinite ease-in-out;
-  transition: opacity 0.25s ease;
-}
-
-@keyframes pulse-resume-hint {
-  0%, 100% { opacity: 0.88; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 1.0; transform: translate(-50%, -50%) scale(1.03); }
-}
-
-#resume-hint.hidden {
-  display: none !important;
-}
-
 /* アイテム入手ポップアップトースト（最前面 z-index: 200 で絶対に読み取れる高コントラスト通知） */
 #item-get-toast {
   position: fixed;

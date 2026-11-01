@@ -132,17 +132,7 @@
   const crosshair = document.getElementById('crosshair');
   const targetHint = document.getElementById('target-hint');
   const targetHintText = document.getElementById('target-hint-text');
-  const resumeHint = document.getElementById('resume-hint');
   const darknessVignette = document.getElementById('darkness-vignette');
-
-  function updateResumeHint() {
-    if (!resumeHint) return;
-    if (isGameStarted && menuScreen.classList.contains('hidden') && !activeModal && !controls.isLocked) {
-      resumeHint.classList.remove('hidden');
-    } else {
-      resumeHint.classList.add('hidden');
-    }
-  }
   const hudCompass = document.getElementById('hud-compass');
   const messageText = document.getElementById('message-text');
   const messageBar = document.getElementById('message-bar');
@@ -2959,7 +2949,6 @@
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
-      updateResumeHint();
     };
   }
   const startDeskZoomOut = startCameraZoomOut;
@@ -4358,12 +4347,10 @@
   controls.addEventListener('lock', () => {
     document.body.classList.remove('cursor-mode');
     soundManager.init();
-    updateResumeHint();
   });
 
   controls.addEventListener('unlock', () => {
     clearHover();
-    updateResumeHint();
     // ズーム演出中、ズーム注視中、またはモーダル表示中は設定画面オープンを安全に抑止
     if (cameraZoom.active || cameraZoom.isZoomedIn || activeModal) {
       return;
@@ -4389,9 +4376,8 @@
     // 左クリック (button === 0)
     if (e.button === 0) {
       if (!controls.isLocked && isGameStarted) {
-        // ポインターロックが外れている場合はクリックで最優先に探索視点へ完全復帰！
+        // ポインターロックが外れている場合はクリックで探索視点へ復帰
         controls.lock();
-        if (resumeHint) resumeHint.classList.add('hidden');
         return;
       }
 
@@ -4444,9 +4430,18 @@
     returnToMainMenu();
   });
 
-  // キーボード移動＆ショートカット（Escで設定画面／ズーム解除／モーダル閉じ、数字キー1〜6でアイテム選択・詳細）
+  // キーボード移動＆ショートカット（Escで設定画面／モーダル閉じ、数字キー1〜6でアイテム選択・詳細）
   window.addEventListener('keydown', (e) => {
-    // Escキーのハンドリング：モーダル閉じる / ズーム解除 / 設定画面の展開
+    // ズームイン・ズームアウト演出中、またはオブジェクト操作中はEscを含め一切のキー入力を完全無効化（誤作動防止）
+    if (cameraZoom.active || isObjectInteracting) {
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
+
+    // Escキーのハンドリング：モーダル閉じる / ズーム注視解除 / 設定画面の展開
     if (e.code === 'Escape') {
       e.preventDefault();
 
@@ -4458,27 +4453,16 @@
         return;
       }
 
-      // 2. カメラがズーム注視中、またはズームイン演出中の場合：
-      // ズームを直ちに解除して元の探索視点へスムーズに戻す（フリーズを完全防止）
-      if (cameraZoom.isZoomedIn || (cameraZoom.active && cameraZoom.mode === 'in')) {
+      // 2. モーダルがなくカメラがズーム注視中の場合：元の探索視点へズームアウト
+      if (cameraZoom.isZoomedIn) {
         startCameraZoomOut();
         return;
       }
 
-      // 3. ズームアウトアニメーション中は連打防止のため安全に待機
-      if (cameraZoom.active && cameraZoom.mode === 'out') {
-        return;
-      }
-
-      // 4. 通常探索中の場合：設定画面（CONFIG & MENU）を開く
+      // 3. 通常探索中の場合：設定画面（CONFIG & MENU）を開く
       if (isGameStarted && menuScreen.classList.contains('hidden')) {
         openSettingsModal();
       }
-      return;
-    }
-
-    // ズーム演出中やオブジェクト操作中は他のキー入力を安全にガード
-    if (cameraZoom.active || isObjectInteracting) {
       return;
     }
 

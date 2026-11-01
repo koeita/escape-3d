@@ -55,16 +55,16 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
        - `setMessage(text, autoResetDelay = 4000)` のロジックを刷新。メッセージ表示から指定時間（デフォルト4秒、開始時5秒）経過後に `.visible` を外して自然に画面からフェードアウト消去。デフォルト文言を永久に居座らせる仕様を撤廃。
        - `clearMessage()` ヘルパーを新設し、モーダル展開時やメニュー移行時にタイマー・ハイライト・表示を確実にクリーンアップ。
 
-2. **ズームイン中Escキー押下時の移動不能バグ解消 ＆ 早期PointerLock解除の撤廃とクリック復帰プロンプト**
+2. **ズームイン中のエスケープ無効化（誤作動・フリーズ防止） ＆ 「クリックして再開」プロンプトの完全撤去**
    - **事象**:
-     - ズームイン演出中（0.6秒補間中）にEscキーを押すと、元の視点へズームアウトするものの、ブラウザのPointerLockセキュリティ制約（Esc直後のプログラムによる自動requestPointerLock禁止）によりロックが拒否され、画面上は通常視点なのにWASD移動が動かない「移動不能状態」が発生していた。
+     - ズームイン中（カメラ補間アニメーション中）にEscキーを押すと、補間計算と視点復帰・PointerLock解除が競合してフリーズや移動不能が発生する原因となっていた。
+     - また、前バージョンで暫定追加した復帰プロンプト「クリックして探索を再開」（`#resume-hint`）が画面に残ってしまう問題があった。
    - **対策と実装**:
      - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
-       - `triggerZoomAndInspect` 開始時の不要な早期 `controls.unlock()` を撤廃。ズームイン演出中はポインターロックを維持し、モーダルが開いた瞬間のみアンロックする安全設計へ変更。
-       - ポインターロック解除時に画面中央へ真鍮枠の復帰プロンプト「クリックして探索を再開」（`#resume-hint`）を表示する `updateResumeHint()` を実装。
-       - 画面上の任意の左クリックで最優先に `controls.lock()` を呼び出し、1クリックで直ちに探索視点・WASD移動へ完全復帰可能にした。
+       - `keydown` イベントリスナーの最優先ガードとして、`cameraZoom.active`（ズームイン・ズームアウト演出中）または `isObjectInteracting` の最中は、Escキーを含めすべてのキー入力を安全に無効化（`e.preventDefault()`, `e.stopPropagation()`, `return;`）。ズームイン中にEscキーを押しても一切反応しないように設計を変更。
+       - 不要となった `#resume-hint` および `updateResumeHint()` を完全に撤去。
      - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html), [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
-       - `#resume-hint` 要素の追加およびパルスアニメーション付き真鍮ピル装飾を追加。
+       - `#resume-hint` 要素およびCSSスタイルを完全削除。画面上に余計なプロンプトが残らないクリーンなUIへ復帰。
 
 ---
 
