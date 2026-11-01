@@ -41,6 +41,21 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - ステージ選択画面の説明文における文節折り返し（auto-phrase / inline-block）の調整 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - PC・モバイル環境で、ステージ選択カードの説明テキストにおいて「書/斎。」や「シェルタ/ー。」のように単語の途中や長音符で中途半端に改行されてしまう不具合を解消。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.stage-desc` に `word-break: auto-phrase;` を適用し、対応ブラウザでの自然な文節改行を有効化。
+     - `.phrase { display: inline-block; }` を定義し、文節ごとのまとまりがブラウザ幅に依らず維持されるよう指定。
+     - メインメニューカード最大幅（`880px`）および `.stage-card` 左右余白（`padding: 16px 14px;`）、フォントサイズ（`0.80rem`）のバランスを微調整し、1行ごとの収まりを最適化。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - Stage 1、Stage 2、Stage 3 の各説明文を、意味のまとまりごとに `<span class="phrase">...</span>` で囲み、読みやすい文節グループ化を適用。
+
+---
+
 ### 2026-11-02 (月) - モバイルでのメインメニュー設定ボタンはみ出し解消・ステージ説明文の改行最適化 (`feat-pc-ui-adjustments`)
 
 1. **背景と不具合**
