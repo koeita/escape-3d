@@ -41,6 +41,21 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - スマホでボタンが反応しなくなる不具合の解消 (`feat-mobile-touch-test`)
+
+1. **原因の特定**
+   - 直前のブランチマージ時に、感度設定関連の変数宣言（`const SENSITIVITY_MIN` 等）が重複してマージされ、ブラウザで `SyntaxError: Identifier 'SENSITIVITY_MIN' has already been declared` が発生して JavaScript 全体の実行（全イベントリスナーの登録）が停止していた。
+   - `style.css` の `@media (max-width: 768px), (pointer: coarse)` ブロック末尾で閉じ波括弧 `}` が欠落しており、以降のメディアクエリとスタイルシートのパースが破綻していた。
+
+2. **対策と修正**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - 重複していた感度設定ブロックを完全削除し、1本化。
+     - `applySensitivityLevel()` 内でモバイルのスワイプ感度（`touchLook.sensitivity`）とPCの視点感度（`controls.pointerSpeed`）の双方を安全に同時制御する統合版へ整備。JavaScriptのパースエラーを根絶。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - メディアクエリの閉じ括弧 `}` を補完し、全ブロックの括弧整合性を完全検証。CSSパーサーエラーを解消。
+
+---
+
 ### 2026-11-02 (月) - 効果音(SE)のスライド式トグルスイッチUIへの刷新とON切替不具合の修正 (`main`, `feat-mobile-touch-test`)
 1. **背景と不具合**
    - 設定モーダル内の効果音設定において、プロパティ参照（`isMuted` と `muted` の差異）に起因してONが押せずOFFしか押せなくなる不具合が発生。

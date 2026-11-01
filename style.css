@@ -1967,6 +1967,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   .item-select-btn {
     min-height: 46px; /* タップしやすいターゲットサイズ */
   }
+}
 
 /* ==========================================================================
    レスポンシブ対応・低解像度・小画面PC向けの表示崩れ防止
