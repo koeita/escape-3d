@@ -41,6 +41,23 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - ステージカードの拡大と説明文の1行（文章単位）表示レイアウト調整 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - 画面の左右余白を活かし、ステージカード自体をひと回り大きくするとともに、カード内説明文を途中で折り返さず「文章単位で1行（計2行）」として美しく表示したいという要望に対応。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - メインメニューカード最大幅を `880px` から `1060px` へ拡大し、PC画面での存在感・視認性を向上。
+     - `.stage-grid` を `repeat(3, 1fr)`（gap: 20px）に設定し、3枚のカードを均等に大きく（カード幅約324px）配置。
+     - `.stage-card` のパディングを `18px 16px`、角丸を `8px`、サムネイル高さを `96px` に拡大し、より重厚感のあるUIへブラッシュアップ。
+     - `.stage-desc-line`（`display: block; white-space: nowrap;`）を導入し、各文章を途中で途切れさせず完全な1行として整列。
+     - レスポンシブメディアクエリ（`max-width: 960px`）にて1カラム表示への自動切替と、極小画面向け折り返しセーフガードを配備。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 各ステージ（Stage 1・2・3）の説明文を `<span class="stage-desc-line">...</span>` で囲み、各文が明確に1行ずつ表示されるようマークアップを更新。
+
+---
+
 ### 2026-11-02 (月) - ステージ選択画面の説明文における文節折り返し（auto-phrase / inline-block）の調整 (`feat-pc-ui-adjustments`)
 
 1. **背景と不具合**
