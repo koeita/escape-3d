@@ -41,6 +41,19 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - PC版小画面・低解像度時のUI崩れ・モーダルはみ出し防止 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - ノートPC（解像度 1366x768など）やウィンドウサイズ縮小時において、設定モーダル（`.settings-card`）に高さ制限とスクロールが指定されておらず、画面下端からはみ出して「閉じる」ボタンが押せなくなる潜在リスクが存在した。
+   - 幅狭画面時にメインメニューのステージカードやインベントリバーの配置バランスが崩れる問題があった。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.settings-card` に `max-height: min(90vh, 680px); overflow-y: auto;` および専用スクロールバーを適用。
+     - 小画面・低解像度PC用メディアクエリ（`max-width: 860px`, `max-height: 720px`）を追加し、モーダルパディング・ステージカード幅・インベントリスロットサイズを最適化。
+
+---
+
 ### 2026-11-01 (日) - PC版視点・カメラ感度調整機能の実装 (`feat-pc-ui-adjustments`)
 
 1. **背景と目的**

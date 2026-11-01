@@ -1427,9 +1427,27 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   padding: 24px 20px;
   max-width: 440px;
   width: 100%;
+  max-height: min(90vh, 680px);
+  overflow-y: auto;
+  box-sizing: border-box;
   position: relative;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(232, 201, 136, 0.12);
   animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-card::-webkit-scrollbar {
+  width: 5px;
+}
+.settings-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.settings-card::-webkit-scrollbar-thumb {
+  background: rgba(202, 168, 106, 0.35);
+  border-radius: 4px;
+}
+.settings-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 201, 136, 0.6);
 }
 
 .modal-close-btn {
@@ -1635,3 +1653,53 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   min-width: 140px;
 }
 
+/* ==========================================================================
+   レスポンシブ対応・低解像度・小画面PC向けの表示崩れ防止
+   ========================================================================== */
+@media (max-width: 860px) {
+  .menu-screen-card {
+    max-width: 94vw;
+  }
+
+  .stage-select-container {
+    padding: 16px;
+  }
+
+  .stage-card {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .settings-card {
+    max-width: 92vw;
+  }
+
+  #inventory-bar-container {
+    bottom: 12px;
+  }
+
+  .inv-slot {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-height: 720px) {
+  .settings-card {
+    max-height: calc(100vh - 24px);
+    padding: 18px 16px;
+  }
+
+  .settings-content {
+    gap: 10px;
+  }
+
+  .settings-help-box {
+    padding: 8px 10px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 24px);
+    padding: 16px 20px;
+  }
+}
