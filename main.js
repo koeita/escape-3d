@@ -2772,7 +2772,7 @@
     }
   }
 
-  // --- アイテム入手トースト通知（黒背景でも確実に読み取れる最前面通知） ---
+  // --- アイテム入手トースト通知（黒背景・モーダル時でも単独で美しく読み取れる最前面通知） ---
   let toastTimer = null;
   function showItemGetToast(def) {
     if (!itemGetToast || !def) return;
@@ -2781,16 +2781,9 @@
 
     itemGetToast.classList.remove('hidden');
 
-    if (messageBar) {
-      messageBar.classList.add('item-highlight');
-    }
-
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       itemGetToast.classList.add('hidden');
-      if (messageBar) {
-        messageBar.classList.remove('item-highlight');
-      }
     }, 3200);
   }
 
@@ -2804,7 +2797,7 @@
     state.inventory.push(def);
     state.selectedItem = itemId;
     renderInventory();
-    setMessage(`【${def.name}】を手に入れた！［キー ${state.inventory.length} で選択］`);
+    // アイテム入手時は専用トースト通知（#item-get-toast）を単独表示し、上部でのメッセージバー重複・被りを完全防止
     showItemGetToast(def);
   }
 

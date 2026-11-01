@@ -41,6 +41,19 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - アイテム取得時の上部通知重複（トーストとメッセージバーの二重被り）解消 (`feat-main-menu-settings`)
+
+1. **アイテム入手通知の単独化による上部UI被りの完全解消**
+   - **原因**:
+     - `addItem` 内で専用ポップアップトースト（`showItemGetToast`）と下部メッセージバー（`setMessage`）の両方を同時に呼び出していたため、モーダル表示中に上部中央（`top: 36px`）へ配置されたメッセージバーと、同じく上部（`top: 26px`）に表示されるアイテム入手トーストが重なり、二重の枠線としてはみ出て被ってしまう現象が発生していた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `addItem` での `setMessage` 呼び出しおよび `showItemGetToast` 内の `messageBar.classList.add('item-highlight')` を撤廃。
+       - アイテム入手時の通知は、アイコン・アイテム名・操作ガイドが完全に揃った専用カードトースト（`#item-get-toast`）のみを単独表示する仕様へ一本化。
+       - これにより、モーダル内外を問わず、アイテム入手時に余計な横長バーが重なってはみ出る現象を100%根絶し、洗練された単独カード通知を実現。
+
+---
+
 ### 2026-11-01 (日) - 調査モーダル表示時のメッセージバー隠れ解消（最前面化 z-index: 150 ＆ 上部配置レイアウト） (`feat-main-menu-settings`)
 
 1. **調査モーダル内でアイテム使用時や選択時のメッセージがモーダルの背後に隠れて見えなかった不具合の完全解消**
