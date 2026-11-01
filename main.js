@@ -167,8 +167,7 @@
   const settingsModal = document.getElementById('settings-modal');
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
-  const btnSoundOn = document.getElementById('btn-sound-on');
-  const btnSoundOff = document.getElementById('btn-sound-off');
+  const btnSoundToggleSwitch = document.getElementById('btn-sound-toggle-switch');
   const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
   const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
@@ -4252,12 +4251,10 @@
   }
 
   function updateSoundSettingUI() {
-    const muted = soundManager.isMuted;
-    if (btnSoundOn && btnSoundOff) {
-      btnSoundOn.classList.toggle('active', !muted);
-      btnSoundOn.setAttribute('aria-pressed', !muted);
-      btnSoundOff.classList.toggle('active', muted);
-      btnSoundOff.setAttribute('aria-pressed', muted);
+    const isMuted = soundManager.muted;
+    if (btnSoundToggleSwitch) {
+      btnSoundToggleSwitch.classList.toggle('off', isMuted);
+      btnSoundToggleSwitch.setAttribute('aria-checked', !isMuted);
     }
   }
 
@@ -4391,24 +4388,13 @@
     if (e.target === settingsModal) closeSettingsModal();
   });
 
-  if (btnSoundOn) {
-    btnSoundOn.addEventListener('click', (e) => {
+  if (btnSoundToggleSwitch) {
+    btnSoundToggleSwitch.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (soundManager.isMuted) {
-        soundManager.toggleMute();
-        updateSoundSettingUI();
+      const nowMuted = soundManager.toggleMute();
+      updateSoundSettingUI();
+      if (!nowMuted) {
         soundManager.playClick();
-      }
-    });
-  }
-
-  if (btnSoundOff) {
-    btnSoundOff.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!soundManager.isMuted) {
-        soundManager.playClick();
-        soundManager.toggleMute();
-        updateSoundSettingUI();
       }
     });
   }

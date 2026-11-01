@@ -41,6 +41,26 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 効果音(SE)のスライド式トグルスイッチUIへの刷新とON切替不具合の修正 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - 設定モーダル内の効果音設定において、プロパティ参照（`isMuted` と `muted` の差異）に起因してONが押せずOFFしか押せなくなる不具合が発生。
+   - 2分割ボタンではなく、1つのスイッチボタンを押すことでつまみが左右に滑らかにスライドするモダンなスライド式トグルスイッチUIへの刷新要望に対応。
+
+2. **対策と実装**
+   - [se.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/se.js):
+     - `SoundManager` に `get isMuted()` ゲッターを追加し、`this.muted` との双方アクセスを完全保証。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 効果音設定を単一のスライドスイッチ（`.sound-slide-switch`、`#btn-sound-toggle-switch`）へ置換。「ON」「OFF」テキストとスライドするつまみ（`.switch-thumb`）を内包。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - スイッチを押すとつまみが左右（0px ⇔ 40px）に滑らかにスライドアニメーション（`cubic-bezier`）するスタイルを構築。
+     - **ON時**: アンティークゴールドの金属調つまみが右側にスライドし、左の「ON」が金色に発光。
+     - **OFF時**: スレートグレーのつまみが左側にスライドし、右の「OFF」が点灯。
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - ボタンクリック時に `soundManager.toggleMute()` を実行し、`soundManager.muted` に基づいて `.off` クラスと `aria-checked` を確実にトグル。ON時はクリックSEが発火。
+
+---
+
 ### 2026-11-02 (月) - 効果音(SE)のON/OFFセグメント切り替えスイッチUIへの改善 (`feat-pc-ui-adjustments`)
 
 1. **背景と要望**
