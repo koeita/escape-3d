@@ -1217,7 +1217,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .menu-screen-card {
   width: 100%;
-  max-width: 840px;
+  max-width: 880px;
   max-height: 90vh;
   background: var(--panel-card);
   border: 1px solid var(--panel-border-bright);
@@ -1332,7 +1332,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   background: rgba(18, 20, 26, 0.88);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
-  padding: 16px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1411,12 +1411,17 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 .stage-desc {
-  font-size: 0.82rem;
+  font-size: 0.80rem;
   color: var(--text-sub);
   line-height: 1.6;
   margin: 4px 0 8px 0;
-  word-break: normal;
-  overflow-wrap: normal;
+  word-break: auto-phrase;
+  line-break: strict;
+  overflow-wrap: break-word;
+}
+
+.phrase {
+  display: inline-block;
 }
 
 .stage-meta {
