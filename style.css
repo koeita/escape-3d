@@ -286,6 +286,7 @@ body.cursor-mode #crosshair {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .menu-setting-pill:hover {
@@ -344,11 +345,13 @@ body.cursor-mode #crosshair {
   color: var(--brass-bright);
   letter-spacing: 0.05em;
   margin: 1px 0 2px 0;
+  white-space: nowrap;
 }
 
 .hud-sub {
   font-size: 0.78rem;
   color: var(--text-sub);
+  white-space: nowrap;
 }
 
 /* 下部メッセージバー（探索画面用ナレーションバー z-index: 150） */
@@ -1702,4 +1705,72 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     max-height: calc(100vh - 24px);
     padding: 16px 20px;
   }
+}
+
+/* ==========================================================================
+   不自然な改行（1文字落ち・単語の途中分断）の包括的防止
+   ========================================================================== */
+/* 見出し・バッジ・ラベル・案内の1行保持（絶対に途中で改行させない） */
+#hud,
+.hud-title,
+.hud-sub,
+.hud-stage-badge,
+#top-menu,
+.menu-setting-pill,
+.inventory-header,
+.inventory-label,
+.inventory-quick-tip,
+.inv-hint,
+.menu-title,
+.menu-subtitle,
+.stage-name,
+.stage-card-badge,
+.stage-meta,
+.stage-meta-pill,
+.modal-category,
+.modal-title,
+.item-detail-name,
+.item-detail-category,
+.settings-header h3,
+.settings-label,
+.settings-text,
+#sensitivity-value-display,
+.settings-hint,
+.clear-badge,
+.clear-title,
+.clear-subtitle,
+.stat-label,
+.stat-value,
+#item-get-toast,
+.toast-title,
+.toast-desc {
+  white-space: nowrap;
+}
+
+/* 全ボタン要素の折り返し防止（ボタン内で文字が2行に崩れる現象を根絶） */
+button,
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+.settings-btn,
+.btn-setting-toggle,
+.btn-stage-action,
+.modal-btn,
+.action-btn,
+.item-select-btn,
+.clear-actions button {
+  white-space: nowrap;
+}
+
+/* ナレーション・長文説明の文節保持と日本語禁則処理（1文字だけ次の行に落ちるのを防ぐ） */
+#message-text,
+.modal-body,
+.modal-desc,
+.stage-desc,
+.clear-desc,
+.item-detail-desc,
+.settings-help-list li {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-break: strict;
 }
