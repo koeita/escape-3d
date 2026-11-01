@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>密室の謎解き脱出 3D - 古びた書斎と賢者の鍵</title>
   
   <!-- Google Fonts: Share Tech Mono & Shippori Mincho -->
@@ -97,6 +97,30 @@
       <div class="inv-slot" data-slot="5"><span class="slot-key">6</span><div class="slot-inner"></div></div>
     </div>
     <div class="inv-hint">※ 数字キー 1〜6 でアイテムを選択して対象を調査 ｜ ［Esc］キーで設定メニュー</div>
+  </div>
+
+  <!-- モバイル向けタッチ操作UI（タッチデバイス時のみ動的表示） -->
+  <div id="mobile-controls" class="hidden">
+    <!-- 移動バーチャルスティック（画面左下） -->
+    <div id="virtual-stick-zone">
+      <div id="virtual-stick-base">
+        <div id="virtual-stick-knob"></div>
+      </div>
+    </div>
+
+    <!-- スワイプ視点回転ゾーン（画面右半分） -->
+    <div id="touch-look-zone"></div>
+
+    <!-- 調べる（INTERACT）アクションボタン（画面右下） -->
+    <button id="btn-touch-action" type="button" aria-label="調べる">
+      <span class="touch-action-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+      <span class="touch-action-label">調べる</span>
+    </button>
   </div>
 
   <!-- タイトル & ステージ選択 メインメニュー画面 -->

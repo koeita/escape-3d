@@ -147,6 +147,17 @@
   const topMenuEl = document.getElementById('top-menu');
   const btnGameSettings = document.getElementById('btn-game-settings');
 
+  // モバイル・タッチ操作用DOM
+  const mobileControls = document.getElementById('mobile-controls');
+  const virtualStickZone = document.getElementById('virtual-stick-zone');
+  const virtualStickBase = document.getElementById('virtual-stick-base');
+  const virtualStickKnob = document.getElementById('virtual-stick-knob');
+  const touchLookZone = document.getElementById('touch-look-zone');
+  const btnTouchAction = document.getElementById('btn-touch-action');
+
+  // タッチデバイス判定（タッチイベントサポート、maxTouchPoints、ポインター特性で自動判定）
+  let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+
   let isGameStarted = false;
 
   // モーダル群
@@ -2810,6 +2821,13 @@
   }
 
   function renderInventory() {
+    const quickTipEl = document.querySelector('.inventory-quick-tip');
+    if (quickTipEl) {
+      quickTipEl.textContent = isTouchDevice
+        ? '[タップで選択 ｜ もう一度タップで詳細]'
+        : '[キー 1〜6 で選択 ｜ 同じキーを再度押して詳細・分解・合成]';
+    }
+
     invSlots.forEach((slot, idx) => {
       const inner = slot.querySelector('.slot-inner');
       inner.innerHTML = '';
@@ -2859,6 +2877,7 @@
     if (onReady) {
       onReady(modalBody);
     }
+    updateMobileControlsVisibility();
   }
 
   function closeModal() {
@@ -2868,6 +2887,7 @@
     activeModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
+    updateMobileControlsVisibility();
 
     // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
     if (cameraZoom.isZoomedIn) {
@@ -2953,6 +2973,7 @@
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
+      updateMobileControlsVisibility();
     };
   }
   const startDeskZoomOut = startCameraZoomOut;
@@ -3922,6 +3943,7 @@
     if (controls.isLocked) {
       controls.unlock();
     }
+    updateMobileControlsVisibility();
   }
 
   function closeItemDetailModal(lockControls = true) {
@@ -3933,6 +3955,7 @@
     if (lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
       controls.lock();
     }
+    updateMobileControlsVisibility();
   }
 
   function handleDisassembleBox() {
@@ -4080,7 +4103,7 @@
   const screenCenter = new THREE.Vector2(0, 0);
 
   function updateRaycast() {
-    if (!controls.isLocked || activeModal) {
+    if ((!controls.isLocked && !isTouchDevice) || activeModal) {
       clearHover();
       return;
     }
@@ -4104,6 +4127,13 @@
     hoveredObject = root;
     crosshair.classList.add('active');
     targetHintText.textContent = `${root.userData.name} を調べる`;
+    const hintKey = targetHint ? targetHint.querySelector('.hint-key') : null;
+    if (hintKey) {
+      hintKey.textContent = isTouchDevice ? '[タップで調べる]' : '[左クリック]';
+    }
+    if (btnTouchAction) {
+      btnTouchAction.classList.add('has-target');
+    }
     targetHint.classList.remove('hidden');
   }
 
@@ -4111,6 +4141,9 @@
     if (!hoveredObject) return;
     hoveredObject = null;
     crosshair.classList.remove('active');
+    if (btnTouchAction) {
+      btnTouchAction.classList.remove('has-target');
+    }
     targetHint.classList.add('hidden');
   }
 
@@ -4203,6 +4236,7 @@
     topMenuEl.classList.remove('hidden');
     isGameStarted = true;
     controls.lock();
+    updateMobileControlsVisibility();
   }
 
   function startOrResumeGame() {
@@ -4222,6 +4256,7 @@
 
     isGameStarted = true;
     controls.lock();
+    updateMobileControlsVisibility();
   }
 
   function returnToMainMenu() {
@@ -4243,6 +4278,7 @@
     document.body.classList.remove('cursor-mode');
 
     menuScreen.classList.remove('hidden');
+    updateMobileControlsVisibility();
 
     if (state.gameCleared) {
       btnPlayStage1.textContent = 'もう一度遊ぶ';
@@ -4273,6 +4309,7 @@
     if (controls.isLocked) {
       controls.unlock();
     }
+    updateMobileControlsVisibility();
   }
 
   function closeSettingsModal() {
@@ -4283,6 +4320,211 @@
     if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
       controls.lock();
     }
+    updateMobileControlsVisibility();
+  }
+
+  // --- モバイル向け仮想操作系（タッチUI：仮想スティック・スワイプ視点・調べるボタン） ---
+  const touchStick = {
+    active: false,
+    touchId: null,
+    x: 0, // -1.0 〜 1.0 (右〜左)
+    y: 0, // -1.0 〜 1.0 (前〜後)
+    maxRadius: 42 // スティックの可動最大半径 (px)
+  };
+
+  const touchLook = {
+    active: false,
+    touchId: null,
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    lastX: 0,
+    lastY: 0,
+    sensitivity: 0.0036
+  };
+
+  function updateMobileControlsVisibility() {
+    if (!mobileControls) return;
+    const shouldShow = isTouchDevice && isGameStarted && menuScreen.classList.contains('hidden') && !activeModal && !state.gameCleared;
+    if (shouldShow) {
+      mobileControls.classList.remove('hidden');
+    } else {
+      mobileControls.classList.add('hidden');
+      resetVirtualStick();
+    }
+  }
+
+  function resetVirtualStick() {
+    touchStick.active = false;
+    touchStick.touchId = null;
+    touchStick.x = 0;
+    touchStick.y = 0;
+    if (virtualStickKnob) {
+      virtualStickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  // 初回タッチ検知でスマホ環境（またはモバイルエミュレーション）を即時確定・UI同期
+  window.addEventListener('touchstart', () => {
+    if (!isTouchDevice) {
+      isTouchDevice = true;
+      renderInventory();
+      updateMobileControlsVisibility();
+    }
+  }, { passive: true });
+
+  // 1. 移動バーチャルスティック（画面左下）
+  if (virtualStickZone && virtualStickBase && virtualStickKnob) {
+    function handleStickTouch(touch) {
+      const rect = virtualStickBase.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let dx = touch.clientX - centerX;
+      let dy = touch.clientY - centerY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > touchStick.maxRadius) {
+        dx = (dx / dist) * touchStick.maxRadius;
+        dy = (dy / dist) * touchStick.maxRadius;
+      }
+
+      virtualStickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      // dx: 右(+) / 左(-) => x = dx / maxRadius
+      // dy: 下(+) / 上(-) => 前進(+) / 後退(-) => y = -dy / maxRadius
+      touchStick.x = dx / touchStick.maxRadius;
+      touchStick.y = -dy / touchStick.maxRadius;
+    }
+
+    virtualStickZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (touchStick.active) return;
+      const touch = e.changedTouches[0];
+      touchStick.active = true;
+      touchStick.touchId = touch.identifier;
+      handleStickTouch(touch);
+    }, { passive: false });
+
+    virtualStickZone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!touchStick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchStick.touchId) {
+          handleStickTouch(e.changedTouches[i]);
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endStick = (e) => {
+      if (!touchStick.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchStick.touchId) {
+          resetVirtualStick();
+          break;
+        }
+      }
+    };
+
+    virtualStickZone.addEventListener('touchend', endStick, { passive: true });
+    virtualStickZone.addEventListener('touchcancel', endStick, { passive: true });
+  }
+
+  // 2. スワイプ視点回転（画面右半分）
+  if (touchLookZone) {
+    touchLookZone.addEventListener('touchstart', (e) => {
+      if (touchLook.active) return;
+      const touch = e.changedTouches[0];
+      touchLook.active = true;
+      touchLook.touchId = touch.identifier;
+      touchLook.startX = touch.clientX;
+      touchLook.startY = touch.clientY;
+      touchLook.lastX = touch.clientX;
+      touchLook.lastY = touch.clientY;
+      touchLook.startTime = performance.now();
+    }, { passive: true });
+
+    touchLookZone.addEventListener('touchmove', (e) => {
+      if (!touchLook.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === touchLook.touchId) {
+          const deltaX = touch.clientX - touchLook.lastX;
+          const deltaY = touch.clientY - touchLook.lastY;
+          touchLook.lastX = touch.clientX;
+          touchLook.lastY = touch.clientY;
+
+          if (!activeModal && !cameraZoom.active && !cameraZoom.isZoomedIn) {
+            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            euler.setFromQuaternion(camera.quaternion);
+            euler.y -= deltaX * touchLook.sensitivity;
+            euler.x -= deltaY * touchLook.sensitivity;
+            euler.x = Math.max(-1.42, Math.min(1.42, euler.x));
+            camera.quaternion.setFromEuler(euler);
+          }
+          break;
+        }
+      }
+    }, { passive: true });
+
+    const endLook = (e) => {
+      if (!touchLook.active) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === touchLook.touchId) {
+          // 短時間の軽微なタップ（300ms以内、移動距離10px未満）は「画面タップで調べる」として発火
+          const dt = performance.now() - touchLook.startTime;
+          const dist = Math.hypot(touch.clientX - touchLook.startX, touch.clientY - touchLook.startY);
+          if (dt < 300 && dist < 10) {
+            triggerInteractAction();
+          }
+          touchLook.active = false;
+          touchLook.touchId = null;
+          break;
+        }
+      }
+    };
+
+    touchLookZone.addEventListener('touchend', endLook, { passive: true });
+    touchLookZone.addEventListener('touchcancel', endLook, { passive: true });
+  }
+
+  // 3. 調べる（INTERACT）アクション実行
+  function triggerInteractAction() {
+    if (activeModal || !menuScreen.classList.contains('hidden') || cameraZoom.active) return;
+    soundManager.init();
+
+    // 照準に対象が入っている場合
+    if (hoveredObject && typeof hoveredObject.userData.action === 'function') {
+      isObjectInteracting = true;
+      soundManager.playClick();
+      hoveredObject.userData.action();
+      if (!cameraZoom.active && !activeModal) {
+        isObjectInteracting = false;
+      }
+      return;
+    }
+
+    // 照準に対象がない場合でも、念のため直前の状態からRaycastを再評価
+    updateRaycast();
+    if (hoveredObject && typeof hoveredObject.userData.action === 'function') {
+      isObjectInteracting = true;
+      soundManager.playClick();
+      hoveredObject.userData.action();
+      if (!cameraZoom.active && !activeModal) {
+        isObjectInteracting = false;
+      }
+    }
+  }
+
+  if (btnTouchAction) {
+    btnTouchAction.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerInteractAction();
+    });
   }
 
   // --- イベントリスナー ---
@@ -4613,19 +4855,27 @@
           doneCb();
         }
       }
-    } else if (controls.isLocked && !activeModal && !cameraZoom.isZoomedIn) {
+    } else if ((controls.isLocked || isTouchDevice) && isGameStarted && !activeModal && !cameraZoom.isZoomedIn) {
       velocity.x -= velocity.x * PLAYER.damping * delta;
       velocity.z -= velocity.z * PLAYER.damping * delta;
 
-      direction.z = Number(moveState.forward) - Number(moveState.backward);
-      direction.x = Number(moveState.right) - Number(moveState.left);
-      direction.normalize();
+      // キーボード入力 (WASD / 矢印キー)
+      let inputZ = Number(moveState.forward) - Number(moveState.backward);
+      let inputX = Number(moveState.right) - Number(moveState.left);
 
-      if (moveState.forward || moveState.backward) {
-        velocity.z -= direction.z * PLAYER.moveSpeed * PLAYER.damping * delta;
+      // モバイル：バーチャルスティック入力の合成
+      if (touchStick.active) {
+        inputX = touchStick.x;
+        inputZ = touchStick.y;
       }
-      if (moveState.left || moveState.right) {
-        velocity.x -= direction.x * PLAYER.moveSpeed * PLAYER.damping * delta;
+
+      const inputMag = Math.hypot(inputX, inputZ);
+      if (inputMag > 0.05) {
+        direction.x = inputX / (inputMag > 1 ? inputMag : 1);
+        direction.z = inputZ / (inputMag > 1 ? inputMag : 1);
+        const speedFactor = Math.min(inputMag, 1.0);
+        velocity.z -= direction.z * PLAYER.moveSpeed * PLAYER.damping * delta * speedFactor;
+        velocity.x -= direction.x * PLAYER.moveSpeed * PLAYER.damping * delta * speedFactor;
       }
 
       const currentPos = controls.getObject().position.clone();
@@ -4636,8 +4886,8 @@
       resolveCollisions(nextPos, currentPos);
       nextPos.y = PLAYER.eyeHeight;
 
-      // WASD移動中、一定間隔（約0.4秒ごと）で木の床を踏む歩行音を再生
-      const isMovingInput = moveState.forward || moveState.backward || moveState.left || moveState.right;
+      // WASD / タッチ移動中、一定間隔（約0.4秒ごと）で木の床を踏む歩行音を再生
+      const isMovingInput = moveState.forward || moveState.backward || moveState.left || moveState.right || (touchStick.active && inputMag > 0.1);
       const movedDistSq =
         (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
         (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z);

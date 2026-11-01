@@ -41,6 +41,34 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - スマホ対応プロトタイプ（仮想スティック・スワイプ視点）の試験実装 (`feat-mobile-touch-test`)
+
+1. **PC操作との完全ハイブリッド両立とモバイル全画面・セーフエリア対応**
+   - **目的と方針**:
+     - 既存のPC向けマウス・キーボード操作（PointerLockControls・WASD・Escメニュー・数字キー）を一切損なわず、スマートフォン（タッチ操作）でも快適にプレイできるハイブリッド設計を試験実装。
+   - **HTML/CSSモバイル全画面・セーフエリア設定**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+       - viewport に `maximum-scale=1.0, user-scalable=no, viewport-fit=cover` を設定。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `html, body` および `#canvas-container` に `touch-action: none;` と `overscroll-behavior: none;` を設定し、スワイプ時のスクロールやリロード（pull-to-refresh）を完全に抑止。
+       - iPhoneのノッチ・ホームインジケーター（SafeArea）にUIが被らないよう、HUD・設定ピル・インベントリ・メッセージバー・トーストに `env(safe-area-inset-*)` を適用。
+
+2. **モバイル向け仮想操作系（タッチUI）の実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css) & [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - **移動バーチャルスティック（画面左下）**:
+       - スチームパンク調の真鍮ベース円と可動ノブを画面左下に配置。
+       - ドラッグベクトル（前後左右）に応じてWASD移動と同じ移動速度・衝突判定（`resolveCollisions`）・足音再生を統合。指を離すと中央に戻り移動停止。
+     - **スワイプ視点回転（画面右半分）**:
+       - 画面右半分をドラッグした移動量（deltaX, deltaY）に応じて、カメラの水平（yaw）・垂直（pitch）角度を滑らかに回転（上下仰角制限付き）。
+     - **タップで調べる（INTERACT）**:
+       - 画面中央の照準に対象が入った際、右下アクションボタンが金色にパルス発光し、タップで直ちにRaycaster調査アクションを発火。画面右側の短時間タップでも同様に調査可能。
+     - **インベントリ・モーダルのモバイル最適化**:
+       - アイテムスロットの最小タップターゲット（48px、min 44px以上）を確保し、タップで即座に選択・詳細が開くように調整。タッチ時のクイック案内テキストも最適化。
+     - **ハイブリッド制御**:
+       - PCでは従来通り `controls.isLocked` による操作、タッチデバイス時はPointerLock不要で探索・移動・調査がフル動作する条件分岐を実装。
+
+---
+
 ### 2026-11-01 (日) - 暖炉の火による壁への不自然な巨大影の解消 (`feat-main-menu-settings`)
 
 1. **暖炉の補助光（fireplaceLight）のシャドウキャスト無効化と柔らかな環境光化**
