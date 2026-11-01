@@ -41,6 +41,22 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - 調査モーダル表示時のメッセージバー隠れ解消（最前面化 z-index: 150 ＆ 上部配置レイアウト） (`feat-main-menu-settings`)
+
+1. **調査モーダル内でアイテム使用時や選択時のメッセージがモーダルの背後に隠れて見えなかった不具合の完全解消**
+   - **原因**:
+     - 調査モーダル（`.modal`）の `z-index` が `40` であったのに対し、メッセージバーコンテナ（`#message-bar-container`）の `z-index` が `30` だったため、モーダルの暗幕（オーバーレイ）およびモーダルカードの真後ろにメッセージバーが潜り込み、文字が覆い隠されて読めなくなっていた。
+     - また、モーダルカードが画面中央に大きく表示されるため、探索用の下部配置（`bottom: 156px`）のままではカード下部のボタン群と物理的に重なる問題があった。
+   - **対策と実装**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#message-bar-container` の `z-index` を `150` に引き上げ、調査モーダル（`z-index: 40`）の前面に確実に浮き上がらせて隠れを完全根絶。
+       - モーダル表示中（`body.modal-open` または `:has(.modal:not(.hidden))`）は、メッセージバーの位置を自動的に画面上部中央（`top: 36px`）へスマートにスライド配置。モーダルカード内の暗号・鍵・アイテム選択ボタン・閉じるボタンと一切干渉しない広大なフリースペースを活用し、100%クリアに読めるレイアウトを実現。
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - モーダル開閉（`openModal`, `closeModal`, `openItemDetailModal`, `closeItemDetailModal`, `openSettingsModal`, `closeSettingsModal`）時に `document.body.classList.toggle('modal-open')` を厳密に連動。
+       - モーダル内でのアイテム判定・解除成功時の `setMessage` が、直後の `openModal` による再描画で打ち消されないよう `clearMessage()` の呼び出しタイミングを適正化。
+
+---
+
 ### 2026-11-01 (日) - アイテム取得後のメッセージバー永久居座りバグの解消（不要なhidden解除撤廃とタイマー確実化） (`feat-main-menu-settings`)
 
 1. **アイテム取得時やモーダルクローズ後にメッセージバーが残り続ける不具合の根絶**

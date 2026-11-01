@@ -344,20 +344,21 @@ body.cursor-mode #crosshair {
   color: var(--text-sub);
 }
 
-/* 下部メッセージバー（探索画面用ナレーションバー z-index: 30） */
+/* 下部メッセージバー（探索画面用ナレーションバー z-index: 150） */
 #message-bar-container {
   position: fixed;
-  bottom: 156px; /* インベントリバー上端から余裕を持って離し、文字の被りを完全防止 */
+  bottom: 156px; /* 通常探索時：インベントリバー上端から余裕を持って離し、文字の被りを完全防止 */
+  top: auto;
   left: 0;
   width: 100vw;
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 30;
+  z-index: 150; /* 調査モーダル(z-index: 40)の前面に確実に表示し、隠れを完全防止 */
   padding: 0 20px;
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), top 0.25s ease, bottom 0.25s ease;
 }
 
 #message-bar-container.visible {
@@ -367,6 +368,21 @@ body.cursor-mode #crosshair {
 
 #message-bar-container.hidden {
   display: none !important;
+}
+
+/* 調査モーダルまたはアイテム詳細モーダル表示中：画面上部中央（top: 36px）に配置してモーダルカードとの重なり・隠れを完全防止 */
+body.modal-open #message-bar-container,
+body:has(#inspect-modal:not(.hidden)) #message-bar-container,
+body:has(#item-detail-modal:not(.hidden)) #message-bar-container {
+  bottom: auto;
+  top: 36px;
+  transform: translateY(-8px);
+}
+
+body.modal-open #message-bar-container.visible,
+body:has(#inspect-modal:not(.hidden)) #message-bar-container.visible,
+body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
+  transform: translateY(0);
 }
 
 #message-bar {

@@ -2854,9 +2854,7 @@
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
     isObjectInteracting = false;
-
-    // オブジェクト調査モーダル表示中はメッセージバーを非表示にしてUI重なりを防止
-    clearMessage();
+    document.body.classList.add('modal-open');
 
     activeModal = inspectModal;
     modalCategory.textContent = category;
@@ -2876,11 +2874,12 @@
   function closeModal() {
     if (!activeModal) return;
     isObjectInteracting = false;
+    document.body.classList.remove('modal-open');
     activeModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
 
-    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト（完了時にメッセージバー復帰）
+    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
     if (cameraZoom.isZoomedIn) {
       startCameraZoomOut();
     } else {
@@ -2892,11 +2891,7 @@
   function triggerZoomAndInspect(targetPos, lookAtPos, inspectAction, message = null) {
     if (cameraZoom.active) return;
     isObjectInteracting = true;
-
-    // ズーム注視時はメッセージバーを非表示
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    clearMessage();
     if (cameraZoom.isZoomedIn) {
       isObjectInteracting = false;
       if (typeof inspectAction === 'function') inspectAction();
@@ -3911,9 +3906,7 @@
     const item = ITEMS[itemId];
     if (!item) return;
 
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    document.body.classList.add('modal-open');
 
     detailedItemId = itemId;
     activeModal = itemDetailModal;
@@ -3943,6 +3936,7 @@
 
   function closeItemDetailModal(lockControls = true) {
     if (!itemDetailModal) return;
+    document.body.classList.remove('modal-open');
     itemDetailModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
@@ -4031,6 +4025,7 @@
   }
 
   function showClearModal() {
+    document.body.classList.remove('modal-open');
     state.gameCleared = true;
     clearMessage();
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
@@ -4240,6 +4235,7 @@
   }
 
   function returnToMainMenu() {
+    document.body.classList.remove('modal-open');
     if (activeModal) {
       activeModal.classList.add('hidden');
       activeModal = null;
@@ -4281,6 +4277,7 @@
     clearMessage();
     soundManager.playClick();
     updateSoundSettingUI();
+    document.body.classList.add('modal-open');
     activeModal = settingsModal;
     settingsModal.classList.remove('hidden');
     if (controls.isLocked) {
@@ -4289,6 +4286,7 @@
   }
 
   function closeSettingsModal() {
+    document.body.classList.remove('modal-open');
     settingsModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
