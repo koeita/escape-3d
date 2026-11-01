@@ -286,6 +286,7 @@ body.cursor-mode #crosshair {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .menu-setting-pill:hover {
@@ -344,11 +345,13 @@ body.cursor-mode #crosshair {
   color: var(--brass-bright);
   letter-spacing: 0.05em;
   margin: 1px 0 2px 0;
+  white-space: nowrap;
 }
 
 .hud-sub {
   font-size: 0.78rem;
   color: var(--text-sub);
+  white-space: nowrap;
 }
 
 /* 下部メッセージバー（探索画面用ナレーションバー z-index: 150） */
@@ -1208,7 +1211,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .menu-screen-card {
   width: 100%;
-  max-width: 840px;
+  max-width: 1060px;
   max-height: 90vh;
   background: var(--panel-card);
   border: 1px solid var(--panel-border-bright);
@@ -1218,6 +1221,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   flex-direction: column;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1226,10 +1230,17 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(202, 168, 106, 0.3);
   background: rgba(18, 20, 26, 0.95);
   flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.menu-brand {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .menu-subtitle {
@@ -1244,9 +1255,9 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .menu-title {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   color: var(--text-main);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   font-weight: 700;
 }
 
@@ -1254,6 +1265,8 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 .menu-icon-btn {
@@ -1265,11 +1278,12 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
 }
 
 .menu-icon-btn:hover {
@@ -1291,6 +1305,9 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .stage-select-heading {
@@ -1304,16 +1321,16 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .stage-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   width: 100%;
 }
 
 .stage-card {
   background: rgba(18, 20, 26, 0.88);
   border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1360,7 +1377,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .stage-thumbnail {
   width: 100%;
-  height: 84px;
+  height: 96px;
   border-radius: 4px;
   margin-bottom: 12px;
   display: flex;
@@ -1392,9 +1409,19 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 .stage-desc {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-sub);
-  line-height: 1.5;
+  line-height: 1.65;
+  margin: 6px 0 10px 0;
+}
+
+.stage-desc-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.phrase {
+  display: inline-block;
 }
 
 .stage-meta {
@@ -1513,28 +1540,89 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: var(--brass-bright);
 }
 
-.btn-setting-toggle {
-  background: rgba(202, 168, 106, 0.15);
-  border: 1px solid var(--brass);
-  color: var(--brass-bright);
-  border-radius: 4px;
-  padding: 6px 16px;
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
-  font-weight: 700;
+/* 効果音 スライド式トグルスイッチ（1つのボタンでON/OFFをスライド切り替え） */
+.sound-slide-switch {
+  position: relative;
+  width: 72px;
+  height: 32px;
+  background: rgba(14, 16, 20, 0.95);
+  border: 1px solid rgba(202, 168, 106, 0.4);
+  border-radius: 16px;
+  padding: 2px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.btn-setting-toggle:hover {
-  background: rgba(202, 168, 106, 0.3);
+.sound-slide-switch:hover {
   border-color: var(--brass-bright);
 }
 
-.btn-setting-toggle.muted {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+.sound-slide-switch .switch-text-on,
+.sound-slide-switch .switch-text-off {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  z-index: 1;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+
+.sound-slide-switch .switch-text-on {
+  margin-left: 8px;
+  color: var(--brass-bright);
+  opacity: 1;
+}
+
+.sound-slide-switch .switch-text-off {
+  margin-right: 7px;
   color: var(--text-sub);
+  opacity: 0.45;
+}
+
+.sound-slide-switch .switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd98a 0%, #caa86a 50%, #9e7f42 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 8px rgba(202, 168, 106, 0.4);
+  transform: translateX(40px); /* ON状態（右側） */
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  z-index: 2;
+}
+
+/* OFF状態（左側スライド） */
+.sound-slide-switch.off {
+  background: rgba(22, 24, 30, 0.95);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+.sound-slide-switch.off .switch-thumb {
+  transform: translateX(0); /* OFF状態（左側） */
+  background: linear-gradient(135deg, #6c7380 0%, #4b515d 50%, #2f343e 100%);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.sound-slide-switch.off .switch-text-on {
+  opacity: 0.35;
+  color: var(--text-sub);
+}
+
+.sound-slide-switch.off .switch-text-off {
+  opacity: 1;
+  color: #c5cbd5;
 }
 
 .sensitivity-row {
@@ -1656,18 +1744,63 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 /* ==========================================================================
    レスポンシブ対応・低解像度・小画面PC向けの表示崩れ防止
    ========================================================================== */
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .menu-screen-card {
     max-width: 94vw;
+    overflow-x: hidden;
   }
 
   .stage-select-container {
-    padding: 16px;
+    padding: 16px 0 20px 0;
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .stage-select-heading {
+    padding: 0 16px;
+    margin-bottom: 6px;
+  }
+
+  /* モバイル専用：ステージカードのみを滑らかに横スクロール・スナップ */
+  .stage-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 20px 16px 20px;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(202, 168, 106, 0.4) transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .stage-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar-thumb {
+    background: rgba(202, 168, 106, 0.35);
+    border-radius: 4px;
   }
 
   .stage-card {
-    width: 100%;
-    max-width: 480px;
+    flex: 0 0 84%;
+    max-width: 330px;
+    min-width: 275px;
+    scroll-snap-align: center;
+    box-sizing: border-box;
+  }
+
+  .stage-desc-line {
+    white-space: nowrap;
   }
 
   .settings-card {
@@ -1701,5 +1834,92 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   .modal-content {
     max-height: calc(100vh - 24px);
     padding: 16px 20px;
+  }
+}
+
+/* ==========================================================================
+   不自然な改行（1文字落ち・単語の途中分断）の包括的防止
+   ========================================================================== */
+/* 見出し・バッジ・ラベル・案内の1行保持（絶対に途中で改行させない） */
+#hud,
+.hud-title,
+.hud-sub,
+.hud-stage-badge,
+#top-menu,
+.menu-setting-pill,
+.inventory-header,
+.inventory-label,
+.inventory-quick-tip,
+.inv-hint,
+.menu-title,
+.menu-subtitle,
+.stage-name,
+.stage-card-badge,
+.stage-meta,
+.stage-meta-pill,
+.modal-category,
+.modal-title,
+.item-detail-name,
+.item-detail-category,
+.settings-header h3,
+.settings-label,
+.settings-text,
+#sensitivity-value-display,
+.settings-hint,
+.clear-badge,
+.clear-title,
+.clear-subtitle,
+.stat-label,
+.stat-value,
+#item-get-toast,
+.toast-title,
+.toast-desc {
+  white-space: nowrap;
+}
+
+/* 全ボタン要素の折り返し防止（ボタン内で文字が2行に崩れる現象を根絶） */
+button,
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+.settings-btn,
+.btn-setting-toggle,
+.btn-stage-action,
+.modal-btn,
+.action-btn,
+.item-select-btn,
+.clear-actions button {
+  white-space: nowrap;
+}
+
+/* ナレーション・長文説明の文節保持と日本語禁則処理（1文字だけ次の行に落ちるのを防ぐ） */
+#message-text,
+.modal-body,
+.modal-desc,
+.clear-desc,
+.item-detail-desc,
+.settings-help-list li {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-break: strict;
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .menu-header {
+    padding: 12px 14px !important;
+  }
+
+  .menu-title {
+    font-size: 1.15rem !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .menu-subtitle {
+    font-size: 0.60rem !important;
+  }
+
+  .menu-icon-btn {
+    width: 36px !important;
+    height: 36px !important;
   }
 }

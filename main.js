@@ -167,8 +167,7 @@
   const settingsModal = document.getElementById('settings-modal');
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
-  const btnToggleSoundSetting = document.getElementById('btn-toggle-sound-setting');
-  const soundSettingStatus = document.getElementById('sound-setting-status');
+  const btnSoundToggleSwitch = document.getElementById('btn-sound-toggle-switch');
   const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
   const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
@@ -4252,12 +4251,10 @@
   }
 
   function updateSoundSettingUI() {
-    const muted = soundManager.isMuted;
-    if (soundSettingStatus) {
-      soundSettingStatus.textContent = muted ? 'OFF' : 'ON';
-    }
-    if (btnToggleSoundSetting) {
-      btnToggleSoundSetting.classList.toggle('muted', muted);
+    const isMuted = soundManager.muted;
+    if (btnSoundToggleSwitch) {
+      btnSoundToggleSwitch.classList.toggle('off', isMuted);
+      btnSoundToggleSwitch.setAttribute('aria-checked', !isMuted);
     }
   }
 
@@ -4391,14 +4388,16 @@
     if (e.target === settingsModal) closeSettingsModal();
   });
 
-  btnToggleSoundSetting.addEventListener('click', (e) => {
-    e.stopPropagation();
-    soundManager.toggleMute();
-    updateSoundSettingUI();
-    if (!soundManager.isMuted) {
-      soundManager.playClick();
-    }
-  });
+  if (btnSoundToggleSwitch) {
+    btnSoundToggleSwitch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nowMuted = soundManager.toggleMute();
+      updateSoundSettingUI();
+      if (!nowMuted) {
+        soundManager.playClick();
+      }
+    });
+  }
 
   btnSettingToMenu.addEventListener('click', (e) => {
     e.stopPropagation();

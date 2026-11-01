@@ -41,6 +41,120 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 効果音(SE)のスライド式トグルスイッチUIへの刷新とON切替不具合の修正 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - 設定モーダル内の効果音設定において、プロパティ参照（`isMuted` と `muted` の差異）に起因してONが押せずOFFしか押せなくなる不具合が発生。
+   - 2分割ボタンではなく、1つのスイッチボタンを押すことでつまみが左右に滑らかにスライドするモダンなスライド式トグルスイッチUIへの刷新要望に対応。
+
+2. **対策と実装**
+   - [se.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/se.js):
+     - `SoundManager` に `get isMuted()` ゲッターを追加し、`this.muted` との双方アクセスを完全保証。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 効果音設定を単一のスライドスイッチ（`.sound-slide-switch`、`#btn-sound-toggle-switch`）へ置換。「ON」「OFF」テキストとスライドするつまみ（`.switch-thumb`）を内包。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - スイッチを押すとつまみが左右（0px ⇔ 40px）に滑らかにスライドアニメーション（`cubic-bezier`）するスタイルを構築。
+     - **ON時**: アンティークゴールドの金属調つまみが右側にスライドし、左の「ON」が金色に発光。
+     - **OFF時**: スレートグレーのつまみが左側にスライドし、右の「OFF」が点灯。
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - ボタンクリック時に `soundManager.toggleMute()` を実行し、`soundManager.muted` に基づいて `.off` クラスと `aria-checked` を確実にトグル。ON時はクリックSEが発火。
+
+---
+
+### 2026-11-02 (月) - 効果音(SE)のON/OFFセグメント切り替えスイッチUIへの改善 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - 設定モーダル内の効果音設定において、単一ボタンによるトグル表示（「ON」「OFF」のテキスト切り替えのみ）では現在の状態や押下後の挙動が分かりづらかったため、直感的に一目で把握・切り替えができる「[ ON ] [ OFF ]」のセグメント型ボタングループへの改善要望に対応。
+
+2. **対策と実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 効果音設定を単一ボタンから、`role="group"` を備えたセグメントUI（`.setting-toggle-segmented`、`#btn-sound-on`、`#btn-sound-off`）へ置換。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - カプセル型のシックなダークフレーム内に「ON」「OFF」の2つのボタンを配置。
+     - 現在有効な選択肢が上品なアンティークゴールド（発光グロー効果）でハイライトされ、非選択側は控えめな半透明グレーに減光するセグメントスタイルを構築。
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - `updateSoundSettingUI()` を拡張し、`soundManager.isMuted` の状態に応じて `ON` / `OFF` ボタンのアクティブクラス（`.active`）および `aria-pressed` を正確に更新。
+     - それぞれのボタン押下時に状態を判定し、無駄な再トグルを防止しつつ確実にON/OFFを切り替えるイベントハンドリングを配備。
+
+---
+
+### 2026-11-02 (月) - モバイルでのステージカード専用横スクロール（カルセール）UIの実装 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - モバイル画面でステージカードが横並びになった際、カードだけでなくモーダルヘッダー（タイトルや設定ボタン）ごと画面全体が横スクロールしてしまい左側が見切れてしまう不具合を解消。
+   - ステージカード自体が横並びでスワイプできる体験を活かし、「カード領域のみを滑らかに横スクロール・スナップできる」専用カルセールUIへの改善要望に対応。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.menu-screen-card` および `.stage-select-container` に `overflow-x: hidden;` を適用し、ヘッダー・枠組みが画面幅内に完全固定されるよう制御。
+     - モバイルメディアクエリ（`max-width: 960px`）において、`.stage-grid` を専用の横スクロールコンテナ（`display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;`）へ昇格。
+     - 各 `.stage-card` を `flex: 0 0 84%; max-width: 330px; scroll-snap-align: center;` とし、スワイプ時に各カードが画面中央に心地よくスナップ停止する設計に最適化。
+     - 右側に次ステージの左端が約16%覗くことで、ユーザーが直感的に「横スワイプ可能」と認識できるアフォーダンスを確立。
+     - 専用の薄型ゴールドスクロールバー（高さ4px）を配備し、上品な操作フィードバックを提供。
+
+---
+
+### 2026-11-02 (月) - ステージカードの拡大と説明文の1行（文章単位）表示レイアウト調整 (`feat-pc-ui-adjustments`)
+
+1. **背景と要望**
+   - 画面の左右余白を活かし、ステージカード自体をひと回り大きくするとともに、カード内説明文を途中で折り返さず「文章単位で1行（計2行）」として美しく表示したいという要望に対応。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - メインメニューカード最大幅を `880px` から `1060px` へ拡大し、PC画面での存在感・視認性を向上。
+     - `.stage-grid` を `repeat(3, 1fr)`（gap: 20px）に設定し、3枚のカードを均等に大きく（カード幅約324px）配置。
+     - `.stage-card` のパディングを `18px 16px`、角丸を `8px`、サムネイル高さを `96px` に拡大し、より重厚感のあるUIへブラッシュアップ。
+     - `.stage-desc-line`（`display: block; white-space: nowrap;`）を導入し、各文章を途中で途切れさせず完全な1行として整列。
+     - レスポンシブメディアクエリ（`max-width: 960px`）にて1カラム表示への自動切替と、極小画面向け折り返しセーフガードを配備。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 各ステージ（Stage 1・2・3）の説明文を `<span class="stage-desc-line">...</span>` で囲み、各文が明確に1行ずつ表示されるようマークアップを更新。
+
+---
+
+### 2026-11-02 (月) - ステージ選択画面の説明文における文節折り返し（auto-phrase / inline-block）の調整 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - PC・モバイル環境で、ステージ選択カードの説明テキストにおいて「書/斎。」や「シェルタ/ー。」のように単語の途中や長音符で中途半端に改行されてしまう不具合を解消。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.stage-desc` に `word-break: auto-phrase;` を適用し、対応ブラウザでの自然な文節改行を有効化。
+     - `.phrase { display: inline-block; }` を定義し、文節ごとのまとまりがブラウザ幅に依らず維持されるよう指定。
+     - メインメニューカード最大幅（`880px`）および `.stage-card` 左右余白（`padding: 16px 14px;`）、フォントサイズ（`0.80rem`）のバランスを微調整し、1行ごとの収まりを最適化。
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - Stage 1、Stage 2、Stage 3 の各説明文を、意味のまとまりごとに `<span class="phrase">...</span>` で囲み、読みやすい文節グループ化を適用。
+
+---
+
+### 2026-11-02 (月) - モバイルでのメインメニュー設定ボタンはみ出し解消・ステージ説明文の改行最適化 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - モバイル画面（幅375px〜472px）でメインメニュー右上の設定ボタン（`.menu-icon-btn`）がヘッダー枠外へ押し出されてはみ出る不具合を解消。
+   - メインメニューのステージ説明文で、文末の句点「。」のみが単独で3行目に落ちてしまう不自然な改行問題を解消。
+
+2. **対策と実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+     - 各ステージ（古びた書斎と賢者の鍵・暴走AIと閉鎖シェルター・刻まれる時計塔の謎）の説明文を、自然な文節の2行構成へ `<br>` で最適化。句点単独落ちを根絶。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `.menu-header` に `box-sizing: border-box; width: 100%;` を指定し、`.menu-brand`（`flex: 1 1 auto; min-width: 0;`）と `.menu-controls`（`flex-shrink: 0;`）のフレックス配分を是正。
+     - モバイルメディアクエリでヘッダーパディングを `12px 14px`、タイトルフォントを `1.15rem`、ボタンサイズを `36px` に最適化し、どんな狭い画面でも設定ボタンがヘッダー内に完全に収まるように改善。
+     - `.stage-desc` から `word-break: keep-all;` を除外し、行間・マージンを調整。
+
+---
+
+### 2026-11-02 (月) - PC・モバイル全画面における中途半端な改行・単語分断の包括的防止 (`feat-pc-ui-adjustments`)
+
+1. **背景と不具合**
+   - 画面幅やウィンドウサイズの違いによって、HUD表示・インベントリ案内・メニュータイトル・ボタン内テキスト・モーダル見出し等で、単語の途中や1文字だけが次の行に落ちる不自然な改行（「ペルシャ風絨/毯」「[タッ/プ]」「〜を調/べる」など）が発生していた。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - **見出し・ラベル・バッジの1行保持**: `#hud`、`.hud-title`、`.hud-sub`、`.menu-title`、`.stage-name`、`.modal-category`、`.modal-title`、`.settings-label`、`.settings-hint`、`.clear-badge`、`.clear-title`、`.stat-label` 等に `white-space: nowrap;` を適用。
+     - **全ボタンの折り返し防止**: すべてのボタン（`.primary-btn`, `.secondary-btn`, `.danger-btn`, 各種モーダル内ボタン）に `white-space: nowrap;` を徹底適用し、ボタン内での文字崩れを根絶。
+     - **長文・ナレーションの自然な改行**: `#message-text`、モーダル本文、操作手引き等に `word-break: keep-all; overflow-wrap: break-word; line-break: strict;` を指定し、日本語の助詞や句読点が不自然に分断されるのを防止。
+
+---
+
 ### 2026-11-02 (月) - 書斎机ランプの照明過多（白飛び）および傘上部の不自然な発光解消 (`feat-pc-ui-adjustments`)
 
 1. **背景と不具合**
