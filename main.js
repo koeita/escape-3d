@@ -4148,10 +4148,10 @@
     if (hoveredObject === root) return;
     hoveredObject = root;
     crosshair.classList.add('active');
-    targetHintText.textContent = `${root.userData.name} を調べる`;
+    targetHintText.textContent = root.userData.name;
     const hintKey = targetHint ? targetHint.querySelector('.hint-key') : null;
     if (hintKey) {
-      hintKey.textContent = isTouchMode ? '[タップで調べる]' : '[左クリック]';
+      hintKey.textContent = isTouchMode ? '[タップ]' : '[左クリック]';
     }
     targetHint.classList.remove('hidden');
   }
