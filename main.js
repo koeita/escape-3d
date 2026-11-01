@@ -4441,25 +4441,46 @@
       return;
     }
 
-    // Escキーのハンドリング：モーダル閉じる / ズーム注視解除 / 設定画面の展開
+    // Escキーのハンドリング：設定画面の展開 / 設定画面閉じる
     if (e.code === 'Escape') {
       e.preventDefault();
 
-      // 1. モーダルが開いている場合：該当モーダルを閉じる（ズームインしていた場合は元の視点へズームアウト）
-      if (activeModal) {
-        if (activeModal === inspectModal) closeModal();
-        else if (activeModal === itemDetailModal) closeItemDetailModal(true);
-        else if (activeModal === settingsModal) closeSettingsModal();
+      // 1. 設定モーダルが開いている場合：設定モーダルを閉じる
+      if (activeModal === settingsModal) {
+        closeSettingsModal();
         return;
       }
 
-      // 2. モーダルがなくカメラがズーム注視中の場合：元の探索視点へズームアウト
+      // 2. 調査モーダルまたはアイテム詳細モーダルが開いている場合：
+      // ユーザーの指示に従い、中途半端なマウス浮き・停止を防止し、モーダルを閉じて【設定メニュー（CONFIG & MENU）】を開く！
+      if (activeModal === inspectModal || activeModal === itemDetailModal) {
+        if (activeModal === inspectModal) {
+          inspectModal.classList.add('hidden');
+        } else {
+          itemDetailModal.classList.add('hidden');
+        }
+        activeModal = null;
+        isObjectInteracting = false;
+
+        // カメラがズーム注視中の場合は探索元の視点位置・向きへ即座にリセット
+        if (cameraZoom.isZoomedIn) {
+          cameraZoom.isZoomedIn = false;
+          camera.position.copy(cameraZoom.savedPos);
+          camera.quaternion.copy(cameraZoom.savedQuat);
+        }
+
+        // 直ちに設定画面を展開（マウスカーソルが出ている理由が明快になり正常に操作可能）
+        openSettingsModal();
+        return;
+      }
+
+      // 3. モーダルがなくカメラがズーム注視中の場合：元の探索視点へズームアウト
       if (cameraZoom.isZoomedIn) {
         startCameraZoomOut();
         return;
       }
 
-      // 3. 通常探索中の場合：設定画面（CONFIG & MENU）を開く
+      // 4. 通常探索中の場合：設定画面（CONFIG & MENU）を開く
       if (isGameStarted && menuScreen.classList.contains('hidden')) {
         openSettingsModal();
       }
