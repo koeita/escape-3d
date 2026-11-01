@@ -41,6 +41,49 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-01 (日) - アイテム取得時の上部通知重複（トーストとメッセージバーの二重被り）解消 (`feat-main-menu-settings`)
+
+1. **アイテム入手通知の単独化による上部UI被りの完全解消**
+   - **原因**:
+     - `addItem` 内で専用ポップアップトースト（`showItemGetToast`）と下部メッセージバー（`setMessage`）の両方を同時に呼び出していたため、モーダル表示中に上部中央（`top: 36px`）へ配置されたメッセージバーと、同じく上部（`top: 26px`）に表示されるアイテム入手トーストが重なり、二重の枠線としてはみ出て被ってしまう現象が発生していた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `addItem` での `setMessage` 呼び出しおよび `showItemGetToast` 内の `messageBar.classList.add('item-highlight')` を撤廃。
+       - アイテム入手時の通知は、アイコン・アイテム名・操作ガイドが完全に揃った専用カードトースト（`#item-get-toast`）のみを単独表示する仕様へ一本化。
+       - これにより、モーダル内外を問わず、アイテム入手時に余計な横長バーが重なってはみ出る現象を100%根絶し、洗練された単独カード通知を実現。
+
+---
+
+### 2026-11-01 (日) - 調査モーダル表示時のメッセージバー隠れ解消（最前面化 z-index: 150 ＆ 上部配置レイアウト） (`feat-main-menu-settings`)
+
+1. **調査モーダル内でアイテム使用時や選択時のメッセージがモーダルの背後に隠れて見えなかった不具合の完全解消**
+   - **原因**:
+     - 調査モーダル（`.modal`）の `z-index` が `40` であったのに対し、メッセージバーコンテナ（`#message-bar-container`）の `z-index` が `30` だったため、モーダルの暗幕（オーバーレイ）およびモーダルカードの真後ろにメッセージバーが潜り込み、文字が覆い隠されて読めなくなっていた。
+     - また、モーダルカードが画面中央に大きく表示されるため、探索用の下部配置（`bottom: 156px`）のままではカード下部のボタン群と物理的に重なる問題があった。
+   - **対策と実装**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#message-bar-container` の `z-index` を `150` に引き上げ、調査モーダル（`z-index: 40`）の前面に確実に浮き上がらせて隠れを完全根絶。
+       - モーダル表示中（`body.modal-open` または `:has(.modal:not(.hidden))`）は、メッセージバーの位置を自動的に画面上部中央（`top: 36px`）へスマートにスライド配置。モーダルカード内の暗号・鍵・アイテム選択ボタン・閉じるボタンと一切干渉しない広大なフリースペースを活用し、100%クリアに読めるレイアウトを実現。
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - モーダル開閉（`openModal`, `closeModal`, `openItemDetailModal`, `closeItemDetailModal`, `openSettingsModal`, `closeSettingsModal`）時に `document.body.classList.toggle('modal-open')` を厳密に連動。
+       - モーダル内でのアイテム判定・解除成功時の `setMessage` が、直後の `openModal` による再描画で打ち消されないよう `clearMessage()` の呼び出しタイミングを適正化。
+
+---
+
+### 2026-11-01 (日) - アイテム取得後のメッセージバー永久居座りバグの解消（不要なhidden解除撤廃とタイマー確実化） (`feat-main-menu-settings`)
+
+1. **アイテム取得時やモーダルクローズ後にメッセージバーが残り続ける不具合の根絶**
+   - **原因**:
+     - モーダル内やアイテム合成で `addItem` が実行された際、一度メッセージが設定された後、モーダルを閉じる処理（`closeModal`、`closeItemDetailModal`、`startCameraZoomOut.onComplete`、`closeSettingsModal` など）の随所で、メッセージ表示の有無にかかわらず `messageBarContainer.classList.remove('hidden')` を安易に呼び出していた。
+     - その結果、モーダル表示中にタイマーがクリアされていたにもかかわらず、モーダルを閉じた瞬間に前回のテキスト（「【〇〇】を手に入れた！」）がタイマーなしで画面にゾンビのように再表示され、他のオブジェクトをクリックして強制非表示化されるまで永遠に画面に残り続ける不具合が発生していた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `closeModal`、`startCameraZoomOut.onComplete`、`closeItemDetailModal`、`closeSettingsModal`、`startGame`、`startOrResumeGame` での無条件な `messageBarContainer.classList.remove('hidden')` を**全廃・撤去**。メッセージバーの表示・非表示の権限を `setMessage()` と `clearMessage()` のみに完全一本化。
+       - `setMessage()` 内で `requestAnimationFrame`（RAF ID）およびフェードアウト後の完全非表示化タイマー（`messageHideTimer`）を厳密に管理。指定秒数（4秒）経過後に `.visible` を外してフェードアウトし、0.36秒後に確実に `.hidden`（`display: none !important`）を付与して完全に画面から消去。
+       - これにより、アイテム取得時のメッセージは4秒後に100%自動フェードアウトして自然に消え、他のオブジェクトを調べるまで居座り続けるバグを根本解決。
+
+---
+
 ### 2026-11-01 (日) - 調査モーダル中Esc押下時の設定画面オープン連携 ＆ モーダル閉じる操作の一貫性確保 (`feat-main-menu-settings`)
 
 1. **調査モーダル表示中にEscキーを押した際、設定画面（CONFIG & MENU）を開く仕様へ完全移行**

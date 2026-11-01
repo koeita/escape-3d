@@ -2698,8 +2698,10 @@
     });
   }
 
-  // --- メッセージ表示ヘルパー（一定時間で自動的に上品にフェードアウト） ---
+  // --- メッセージ表示ヘルパー（一定時間で自動的に上品にフェードアウト・消去） ---
   let messageClearTimer = null;
+  let messageHideTimer = null;
+  let messageRafId = null;
 
   function setMessage(text, autoResetDelay = 4000) {
     if (!messageText || !messageBarContainer) return;
@@ -2708,26 +2710,42 @@
       clearTimeout(messageClearTimer);
       messageClearTimer = null;
     }
+    if (messageHideTimer) {
+      clearTimeout(messageHideTimer);
+      messageHideTimer = null;
+    }
+    if (messageRafId) {
+      cancelAnimationFrame(messageRafId);
+      messageRafId = null;
+    }
 
     if (!text || text.trim() === '') {
-      messageBarContainer.classList.remove('visible');
-      if (messageBar) messageBar.classList.remove('item-highlight');
+      clearMessage();
       return;
     }
 
     messageText.innerHTML = text.replace(/\n/g, '<br>');
     messageBarContainer.classList.remove('hidden');
-    requestAnimationFrame(() => {
+    messageRafId = requestAnimationFrame(() => {
       messageBarContainer.classList.add('visible');
+      messageRafId = null;
     });
 
-    // 指定秒数後に自動フェードアウト（デフォルトメッセージへの居座りを防止）
+    // 指定秒数後に自動フェードアウトし、完全に非表示化（居座りを根絶）
     if (autoResetDelay > 0) {
       messageClearTimer = setTimeout(() => {
         messageBarContainer.classList.remove('visible');
         if (messageBar) {
           messageBar.classList.remove('item-highlight');
         }
+        // CSSフェードアウト（0.35秒）完了後に確実にhidden化
+        messageHideTimer = setTimeout(() => {
+          if (!messageBarContainer.classList.contains('visible')) {
+            messageBarContainer.classList.add('hidden');
+          }
+          messageHideTimer = null;
+        }, 360);
+        messageClearTimer = null;
       }, autoResetDelay);
     }
   }
@@ -2736,6 +2754,14 @@
     if (messageClearTimer) {
       clearTimeout(messageClearTimer);
       messageClearTimer = null;
+    }
+    if (messageHideTimer) {
+      clearTimeout(messageHideTimer);
+      messageHideTimer = null;
+    }
+    if (messageRafId) {
+      cancelAnimationFrame(messageRafId);
+      messageRafId = null;
     }
     if (messageBarContainer) {
       messageBarContainer.classList.remove('visible');
@@ -2746,7 +2772,7 @@
     }
   }
 
-  // --- アイテム入手トースト通知（黒背景でも確実に読み取れる最前面通知） ---
+  // --- アイテム入手トースト通知（黒背景・モーダル時でも単独で美しく読み取れる最前面通知） ---
   let toastTimer = null;
   function showItemGetToast(def) {
     if (!itemGetToast || !def) return;
@@ -2755,16 +2781,9 @@
 
     itemGetToast.classList.remove('hidden');
 
-    if (messageBar) {
-      messageBar.classList.add('item-highlight');
-    }
-
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       itemGetToast.classList.add('hidden');
-      if (messageBar) {
-        messageBar.classList.remove('item-highlight');
-      }
     }, 3200);
   }
 
@@ -2778,7 +2797,7 @@
     state.inventory.push(def);
     state.selectedItem = itemId;
     renderInventory();
-    setMessage(`【${def.name}】を手に入れた！［キー ${state.inventory.length} で選択］`);
+    // アイテム入手時は専用トースト通知（#item-get-toast）を単独表示し、上部でのメッセージバー重複・被りを完全防止
     showItemGetToast(def);
   }
 
@@ -2828,9 +2847,7 @@
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
     isObjectInteracting = false;
-
-    // オブジェクト調査モーダル表示中はメッセージバーを非表示にしてUI重なりを防止
-    clearMessage();
+    document.body.classList.add('modal-open');
 
     activeModal = inspectModal;
     modalCategory.textContent = category;
@@ -2850,18 +2867,15 @@
   function closeModal() {
     if (!activeModal) return;
     isObjectInteracting = false;
+    document.body.classList.remove('modal-open');
     activeModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
 
-    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト（完了時にメッセージバー復帰）
+    // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
     if (cameraZoom.isZoomedIn) {
       startCameraZoomOut();
     } else {
-      // ズームアウトしない場合のみ即時メッセージバーを再表示
-      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-        messageBarContainer.classList.remove('hidden');
-      }
       controls.lock();
     }
   }
@@ -2870,11 +2884,7 @@
   function triggerZoomAndInspect(targetPos, lookAtPos, inspectAction, message = null) {
     if (cameraZoom.active) return;
     isObjectInteracting = true;
-
-    // ズーム注視時はメッセージバーを非表示
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    clearMessage();
     if (cameraZoom.isZoomedIn) {
       isObjectInteracting = false;
       if (typeof inspectAction === 'function') inspectAction();
@@ -2943,9 +2953,6 @@
       isObjectInteracting = false;
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
-      if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-        messageBarContainer.classList.remove('hidden');
-      }
       if (!controls.isLocked && !activeModal) {
         controls.lock();
       }
@@ -3892,9 +3899,7 @@
     const item = ITEMS[itemId];
     if (!item) return;
 
-    if (messageBarContainer) {
-      messageBarContainer.classList.add('hidden');
-    }
+    document.body.classList.add('modal-open');
 
     detailedItemId = itemId;
     activeModal = itemDetailModal;
@@ -3924,12 +3929,10 @@
 
   function closeItemDetailModal(lockControls = true) {
     if (!itemDetailModal) return;
+    document.body.classList.remove('modal-open');
     itemDetailModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
-    if (messageBarContainer && isGameStarted && menuScreen.classList.contains('hidden')) {
-      messageBarContainer.classList.remove('hidden');
-    }
     if (lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
       controls.lock();
     }
@@ -4015,6 +4018,7 @@
   }
 
   function showClearModal() {
+    document.body.classList.remove('modal-open');
     state.gameCleared = true;
     clearMessage();
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
@@ -4198,7 +4202,6 @@
     menuScreen.classList.add('hidden');
     crosshair.classList.remove('hidden');
     hudEl.classList.remove('hidden');
-    messageBarContainer.classList.remove('hidden');
     inventoryBarContainer.classList.remove('hidden');
     topMenuEl.classList.remove('hidden');
     isGameStarted = true;
@@ -4217,7 +4220,6 @@
     menuScreen.classList.add('hidden');
     crosshair.classList.remove('hidden');
     hudEl.classList.remove('hidden');
-    messageBarContainer.classList.remove('hidden');
     inventoryBarContainer.classList.remove('hidden');
     topMenuEl.classList.remove('hidden');
 
@@ -4226,6 +4228,7 @@
   }
 
   function returnToMainMenu() {
+    document.body.classList.remove('modal-open');
     if (activeModal) {
       activeModal.classList.add('hidden');
       activeModal = null;
@@ -4267,6 +4270,7 @@
     clearMessage();
     soundManager.playClick();
     updateSoundSettingUI();
+    document.body.classList.add('modal-open');
     activeModal = settingsModal;
     settingsModal.classList.remove('hidden');
     if (controls.isLocked) {
@@ -4275,13 +4279,11 @@
   }
 
   function closeSettingsModal() {
+    document.body.classList.remove('modal-open');
     settingsModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
     if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
-      if (messageBarContainer) {
-        messageBarContainer.classList.remove('hidden');
-      }
       controls.lock();
     }
   }
