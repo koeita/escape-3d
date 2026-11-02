@@ -1206,6 +1206,10 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   justify-content: center;
   padding: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100vw;
+  max-width: 100vw;
+  box-sizing: border-box;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
@@ -1217,7 +1221,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 
 .menu-screen-card {
   width: 100%;
-  max-width: 1060px;
+  max-width: 1100px;
   max-height: 90vh;
   background: var(--panel-card);
   border: 1px solid var(--panel-border-bright);
@@ -1227,8 +1231,10 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   flex-direction: column;
   position: relative;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  contain: paint;
   animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1236,12 +1242,15 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 16px 22px;
   border-bottom: 1px solid rgba(202, 168, 106, 0.3);
   background: rgba(18, 20, 26, 0.95);
   flex-shrink: 0;
   box-sizing: border-box;
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .menu-brand {
@@ -1336,12 +1345,13 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   background: rgba(18, 20, 26, 0.88);
   border: 1px solid var(--panel-border);
   border-radius: 8px;
-  padding: 18px 16px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
   position: relative;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
 }
 
 .stage-card.active-stage {
@@ -1415,18 +1425,14 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 .stage-desc {
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   color: var(--text-sub);
-  line-height: 1.65;
+  line-height: 1.6;
   margin: 6px 0 10px 0;
+  word-break: auto-phrase;
 }
 
-.stage-desc-line {
-  display: block;
-  white-space: nowrap;
-}
-
-.phrase {
+.stage-desc .phrase {
   display: inline-block;
 }
 
@@ -1602,12 +1608,12 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   background: linear-gradient(135deg, #ffd98a 0%, #caa86a 50%, #9e7f42 100%);
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 8px rgba(202, 168, 106, 0.4);
-  transform: translateX(40px); /* ON状態（右側） */
+  transform: translateX(40px); /* ON状態（右） */
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   z-index: 2;
 }
 
-/* OFF状態（左側スライド） */
+/* OFF状態（スライド） */
 .sound-slide-switch.off {
   background: rgba(22, 24, 30, 0.95);
   border-color: rgba(255, 255, 255, 0.18);
@@ -1615,7 +1621,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 .sound-slide-switch.off .switch-thumb {
-  transform: translateX(0); /* OFF状態（左側） */
+  transform: translateX(0); /* OFF状態（左） */
   background: linear-gradient(135deg, #6c7380 0%, #4b515d 50%, #2f343e 100%);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -1821,9 +1827,128 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 /* ==========================================================================
-   スマートフォン・タッチデバイス向け レスポンシブ最適化
+   レスポンシブ対応 1: タブレット・小画面PC (max-width: 960px)
+   ========================================================================== */
+@media (max-width: 960px) {
+  .menu-screen-card {
+    max-width: 94vw;
+  }
+
+  .stage-select-container {
+    padding: 18px 0 22px 0;
+    width: 100%;
+    overflow-x: clip;
+    box-sizing: border-box;
+  }
+
+  .stage-select-heading {
+    padding: 0 18px;
+    margin-bottom: 6px;
+  }
+
+  /* ステージカードのみを滑らかに横スクロール・カルセール表示 */
+  .stage-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 18px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    padding: 6px 18px 16px 18px;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(202, 168, 106, 0.4) transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .stage-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .stage-grid::-webkit-scrollbar-thumb {
+    background: rgba(202, 168, 106, 0.35);
+    border-radius: 4px;
+  }
+
+  .stage-card {
+    flex: 0 0 82%;
+    max-width: 330px;
+    min-width: 260px;
+    scroll-snap-align: start;
+    box-sizing: border-box;
+  }
+
+  .settings-card {
+    max-width: 92vw;
+  }
+
+  #inventory-bar-container {
+    bottom: 12px;
+  }
+
+  .inv-slot {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ==========================================================================
+   レスポンシブ対応 2: スマートフォン・タッチデバイス (max-width: 768px, pointer: coarse)
    ========================================================================== */
 @media (max-width: 768px), (pointer: coarse) {
+  #menu-screen {
+    padding: 10px;
+  }
+
+  .menu-screen-card {
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100vh - 20px) !important;
+  }
+
+  /* メインメニューヘッダーの安全配置とボタンはみ出し防止 */
+  .menu-header {
+    padding: 12px 14px !important;
+    gap: 8px;
+  }
+
+  .menu-brand {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .menu-title {
+    font-size: clamp(0.95rem, 4.4vw, 1.15rem) !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .menu-subtitle {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.16em !important;
+  }
+
+  .menu-controls {
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+
+  .menu-icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0;
+  }
+
   /* HUDのコンパクト化 */
   #hud {
     padding: 6px 12px;
@@ -1851,12 +1976,12 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   }
 
   .esc-badge {
-    display: none; /* スマホではキーボードEscバッジを非表示にし、スマートなボタン表示へ */
+    display: none;
   }
 
-  /* 下部インベントリバー（スマホ画面での適切な余白とスロットサイズ確保） */
+  /* 下部インベントリバー（スマホ画面でのSafe Area余白とスロットサイズ優先確保） */
   #inventory-bar-container {
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   #inventory-bar {
@@ -1866,8 +1991,8 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   }
 
   .inv-slot {
-    width: 44px;
-    height: 44px; /* 最小タップターゲット 44px 以上を確実に確保 */
+    width: 44px !important;
+    height: 44px !important;
   }
 
   .slot-key {
@@ -1888,12 +2013,11 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     font-size: 0.62rem;
   }
 
-  /* スマホでは画面の専有を抑えるため、最下部のキーボード案内テキストを隠す */
   .inv-hint {
     display: none;
   }
 
-  /* メッセージバーのスマホ最適化（スティック・ボタンの上部に自然配置） */
+  /* メッセージバーのスマホ最適化 */
   #message-bar-container {
     bottom: calc(186px + env(safe-area-inset-bottom, 0px));
     padding: 0 12px;
@@ -1913,7 +2037,7 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   .modal-content,
   .modal-card,
   .settings-card {
-    max-width: 94vw !important;
+    max-width: calc(100vw - 24px) !important;
     max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px) !important;
     padding: 20px 16px !important;
     overflow-y: auto !important;
@@ -1934,24 +2058,6 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     display: none !important;
   }
 
-  .menu-header {
-    padding: 12px 14px !important;
-  }
-
-  .menu-title {
-    font-size: 1.15rem !important;
-    letter-spacing: 0.04em !important;
-  }
-
-  .menu-subtitle {
-    font-size: 0.60rem !important;
-  }
-
-  .menu-icon-btn {
-    width: 36px !important;
-    height: 36px !important;
-  }
-
   .sensitivity-control input[type="range"] {
     min-height: 32px;
   }
@@ -1965,86 +2071,50 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   .modal-btn,
   .action-btn,
   .item-select-btn {
-    min-height: 46px; /* タップしやすいターゲットサイズ */
+    min-height: 46px;
   }
 }
 
 /* ==========================================================================
-   レスポンシブ対応・低解像度・小画面PC向けの表示崩れ防止
+   レスポンシブ対応 3: 超小型スマートフォン (max-width: 380px)
    ========================================================================== */
-@media (max-width: 960px) {
+@media (max-width: 380px) {
+  #menu-screen {
+    padding: 6px;
+  }
+
   .menu-screen-card {
-    max-width: 94vw;
-    overflow-x: hidden;
+    max-width: calc(100vw - 12px) !important;
   }
 
-  .stage-select-container {
-    padding: 16px 0 20px 0;
-    width: 100%;
-    overflow-x: hidden;
-    box-sizing: border-box;
+  .menu-header {
+    padding: 10px 10px !important;
   }
 
-  .stage-select-heading {
-    padding: 0 16px;
-    margin-bottom: 6px;
+  .menu-title {
+    font-size: 0.95rem !important;
   }
 
-  /* モバイル専用：ステージカードのみを滑らかに横スクロール・スナップ */
-  .stage-grid {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding: 6px 20px 16px 20px;
-    gap: 14px;
-    width: 100%;
-    box-sizing: border-box;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(202, 168, 106, 0.4) transparent;
-  }
-
-  .stage-grid::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .stage-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .stage-grid::-webkit-scrollbar-thumb {
-    background: rgba(202, 168, 106, 0.35);
-    border-radius: 4px;
+  .menu-icon-btn {
+    width: 34px !important;
+    height: 34px !important;
   }
 
   .stage-card {
-    flex: 0 0 84%;
-    max-width: 330px;
-    min-width: 275px;
-    scroll-snap-align: center;
-    box-sizing: border-box;
-  }
-
-  .stage-desc-line {
-    white-space: nowrap;
-  }
-
-  .settings-card {
-    max-width: 92vw;
-  }
-
-  #inventory-bar-container {
-    bottom: 12px;
+    flex: 0 0 88%;
+    min-width: 240px;
+    padding: 16px 12px;
   }
 
   .inv-slot {
-    width: 48px;
-    height: 48px;
+    width: 40px !important;
+    height: 40px !important;
   }
 }
 
+/* ==========================================================================
+   レスポンシブ対応 4: 低画面高端末・ランドスケープ (max-height: 720px)
+   ========================================================================== */
 @media (max-height: 720px) {
   .settings-card {
     max-height: calc(100vh - 24px);
@@ -2079,7 +2149,6 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 .inventory-label,
 .inventory-quick-tip,
 .inv-hint,
-.menu-title,
 .menu-subtitle,
 .stage-name,
 .stage-card-badge,
@@ -2130,23 +2199,4 @@ button,
   word-break: keep-all;
   overflow-wrap: break-word;
   line-break: strict;
-}
-@media (max-width: 768px), (pointer: coarse) {
-  .menu-header {
-    padding: 12px 14px !important;
-  }
-
-  .menu-title {
-    font-size: 1.15rem !important;
-    letter-spacing: 0.04em !important;
-  }
-
-  .menu-subtitle {
-    font-size: 0.60rem !important;
-  }
-
-  .menu-icon-btn {
-    width: 36px !important;
-    height: 36px !important;
-  }
 }

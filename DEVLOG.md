@@ -41,6 +41,44 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - コンフリクト解消後のUI崩れ包括的修復・メニューヘッダー横スクロール遮断・文節折り返し最適化 (`feat-mobile-touch-test`)
+
+1. **モバイルでカード横スクロール時にメニューヘッダーごと横スクロールする不具合の完全防止**
+   - **原因**: `#menu-screen` および `.menu-screen-card` に適切な `overflow-x` / `contain` 制約がなく、また `.stage-grid` のスワイプ操作が親コンテナに伝播してヘッダー（タイトルや設定ボタン）ごと左にスクロール（見切れ）していた。
+   - **対策**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#menu-screen` に `overflow-x: hidden; width: 100vw; max-width: 100vw; box-sizing: border-box;` を指定。
+       - `.menu-screen-card` に `overflow-x: clip; box-sizing: border-box; contain: paint;` を設定し、一切の親横スクロールを物理的に遮断。
+       - `.menu-header` に `position: sticky; top: 0; z-index: 10; width: 100%; box-sizing: border-box;` を指定。
+       - `.stage-select-container` に `overflow-x: clip; min-width: 0; width: 100%;` を指定。
+       - `.stage-grid` に `overscroll-behavior-x: contain; touch-action: pan-x pan-y;` を設定し、カード群のみが軽快に横スクロール・スナップするよう完全に分離。
+
+2. **モバイルでメインメニュー設定ボタン（太陽アイコン）が右枠からはみ出る問題の解消**
+   - **原因**: モバイルメディアクエリ下でタイトル（「密室の謎解き脱出 3D」）が長いため設定ボタンを押し出し、画面幅 375px / 360px や実機フォントレンダリング差でカード右枠を突き抜けていた。
+   - **対策**:
+     - `.menu-title` に `font-size: clamp(0.95rem, 4.4vw, 1.15rem); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;` を適用。
+     - `.menu-brand` に `min-width: 0; flex: 1 1 auto; overflow: hidden;` を設定し、設定ボタン（38px）との間に 14px 以上の安全マージンを常時確保。
+     - 極小端末（`<= 380px`）向けクエリも新設し、iPhone SE / 各種Android実機でも絶対に枠外にはみ出さない堅牢なレイアウトを実現。
+
+3. **ステージカード説明文の文節折り返し（auto-phrase / phrase）とPC・モバイル表示最適化**
+   - **原因**: PCの広い画面でもカード幅やパディングのバランスにより「書/斎。」「シェルタ/ー。」「合わせ/よ。」のように単語の途中や長音符で中途半端に改行されていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+       - 全ステージ（Stage 1〜3）の説明文を文節単位の `<span class="phrase">...</span>` と `<br>` で構造化。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.stage-desc` に `word-break: auto-phrase; line-height: 1.6; font-size: 0.81rem;` を適用。
+       - `.stage-desc .phrase { display: inline-block; }` を適用。
+       - PCデスクトップ環境で `.menu-screen-card` の最大幅を 1100px、カード内 padding を 14px に調整し、デスクトップでは美しいきっかり2行表示、ウィンドウ縮小時でも文節単位で自然に折り返されるよう完璧に制御。
+
+4. **メディアクエリの順序正常化とカスケード破壊の完全修復**
+   - **原因**: `@media (max-width: 960px)` が `@media (max-width: 768px)` の後ろに配置されていたため、スマホ（768px以下）でインベントリバーの Safe Area（`env(safe-area-inset-bottom)`）や 44px スロット指定が 960px のルール（`bottom: 12px`, `48px`）で不当に上書きされていた。また末尾に重複メディアクエリが存在していた。
+   - **対策**:
+     - メディアクエリの並び順を `max-width: 960px` ➔ `max-width: 768px, pointer: coarse` ➔ `max-width: 380px` ➔ `max-height: 720px` の順に正しく再構築。
+     - スマホ実機での Safe Area 余白、最小タップターゲット（44px以上）、モーダルの画面内収まり（`max-width: calc(100vw - 24px)`）を確実に優先適用。
+     - `style.css` 内のコメント文字化け（Shift_JIS残滓）をUTF-8で完全修正。
+
+---
+
 ### 2026-11-02 (月) - スマホでボタンが反応しなくなる不具合の解消 (`feat-mobile-touch-test`)
 
 1. **原因の特定**
