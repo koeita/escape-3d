@@ -1,6 +1,6 @@
 {
   "name": "密室の謎解き脱出 3D - 古びた書斎と賢者の鍵",
-  "short_name": "密室脱出",
+  "short_name": "密室脱出 3D",
   "description": "3Dの密室空間を探索し、賢者が残した暗号を解き明かして脱出する謎解き脱出ゲーム",
   "start_url": "./",
   "display": "standalone",
