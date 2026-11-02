@@ -41,6 +41,15 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 大扉モーダルの表記調整（電子ダイヤル錠の「(4桁)」削除） (`feat-mobile-touch-test`)
+
+1. **大扉モーダルのUI表記修正**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - 大扉調査モーダル（`openDoorModal`）の鍵カード見出しにおいて、`2. 電子ダイヤル錠 (4桁)` から ` (4桁)` を削除し、`2. 電子ダイヤル錠` に変更。
+     - 説明文の折り返しも `<span class="nowrap">...</span>` で最適化。
+
+---
+
 ### 2026-11-02 (月) - 句読点行頭落ちの物理的根絶およびアイテムタップ時のオブジェクトズーム誤爆防止 (`feat-mobile-touch-test`)
 
 1. **照準が合っている状態でアイテムスロットをタップした際にオブジェクトへズームインしてしまう不具合の完全解消**

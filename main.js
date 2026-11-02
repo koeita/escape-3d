@@ -3830,8 +3830,10 @@
   function openDoorModal() {
     let html = `
       <div>
-        <p style="text-align:center; color:#b2aba0; font-size:0.9rem; margin-bottom:14px;">
-          室外へ続く重厚な大扉だ。重厚な鍵穴と4桁の電子ダイヤルが組み合わされているようだ。
+        <p class="modal-desc" style="text-align:center; color:#b2aba0; font-size:0.9rem; margin-bottom:14px;">
+          <span class="nowrap">外へ通じる重厚な大扉だ。</span><br>
+          <span class="nowrap">頑丈な鍵穴と電子ダイヤル錠が</span><br>
+          <span class="nowrap">組み合わされているようだ。</span>
         </p>
 
         <div class="door-locks-grid">
@@ -3846,7 +3848,7 @@
           </div>
 
           <div class="lock-card">
-            <span class="lock-card-title">2. 電子ダイヤル錠 (4桁)</span>
+            <span class="lock-card-title">2. 電子ダイヤル錠</span>
             <div class="dials-row">
               ${state.doorCode.map((val, idx) => `
                 <div class="dial-column">
