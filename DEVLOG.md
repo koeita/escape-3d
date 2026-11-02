@@ -41,6 +41,33 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 句読点行頭落ちの物理的根絶およびアイテムタップ時のオブジェクトズーム誤爆防止 (`feat-mobile-touch-test`)
+
+1. **照準が合っている状態でアイテムスロットをタップした際にオブジェクトへズームインしてしまう不具合の完全解消**
+   - **原因**:
+     - `window.addEventListener('mousedown')` で、クリック対象がインベントリスロット等のUIであるかの判定がなく、スロットタップ時に `hoveredObject.userData.action()` が先行発火して背後の3Dオブジェクト（書斎机や金庫等）にズームインしていた。
+     - また、インベントリスロットへのタッチ操作時（`pointerdown`, `touchstart`）の伝播遮断が不足していた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `window.addEventListener('mousedown')` に `e.target.closest('#inventory-bar-container, ...')` によるUI除外ガードを追加。UI操作時に3D空間へのインタラクションを物理的に完全遮断。
+       - インベントリスロット（`.inv-slot`）に `onpointerdown` および `ontouchstart` での `e.stopPropagation()` を追加し、背面の全画面スワイプレイヤーへのイベント透過を防止。
+       - `openItemDetailModal()` 開始時に `clearHover()` および `isObjectInteracting = false;` を適用。
+
+2. **句読点（「、」「。」）および1文字（「う。」）のみ残る改行の物理的根絶**
+   - **原因**:
+     - iOS Safari等のWebKit環境で `-webkit-line-break: strict;` が未指定だったため、句読点が行頭に落ちていた。
+     - 本棚の説明文で「7冊の書物が並んでいる。」が幅不足で「。」のみ2行目中央に落ちていた。
+     - 天体日誌の詩文で「二つの針が正しく天の運行を指し示し時、」「古時計は賢者への捧げ物を落とすであろう。」が長すぎて途中で折り返され、「、」や「う。」のみが次の行に落ちていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - 本棚モーダルの説明文を `<span class="nowrap">背表紙に星座名が刻まれた</span><br><span class="nowrap">7冊の書物が並んでいる。</span>` とし、句点落ちを物理的に完全防止。
+       - 天体日誌モーダルの詩文を対句ごとに `<span class="nowrap">...</span>` で囲み、「二つの針が正しく天の運行を指し示す時、」と「古時計は賢者への捧げ物を落とすであろう。」が絶対に句読点で分断されない格調高い詩句レイアウトに再構築。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 全モーダル・本文要素に `-webkit-line-break: strict; line-break: strict;` を徹底適用。
+       - `.nowrap { white-space: nowrap !important; }` を適用。
+
+---
+
 ### 2026-11-02 (月) - 全UIの改行・要素はみ出し・本棚折り返しの徹底修復 (`feat-mobile-touch-test`)
 
 1. **ステージ説明文の文章単位1行表示の完全保証（合計2行）**

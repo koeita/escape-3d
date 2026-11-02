@@ -2363,14 +2363,25 @@ button,
   white-space: nowrap;
 }
 
-/* ナレーション・長文説明の文節保持と日本語禁則処理（1文字だけ次の行に落ちるのを防ぐ） */
+/* ナレーション・長文説明の文節保持と日本語厳格禁則処理（句読点や1文字だけ次の行に落ちるのを防ぐ） */
+body,
 #message-text,
+.modal-content,
 .modal-body,
 .modal-desc,
 .clear-desc,
 .item-detail-desc,
-.settings-help-list li {
-  word-break: keep-all;
+.settings-help-list li,
+.diary-book,
+.diary-poem,
+.diary-intro,
+.diary-verse {
+  word-break: auto-phrase;
   overflow-wrap: break-word;
   line-break: strict;
+  -webkit-line-break: strict;
+}
+
+.nowrap {
+  white-space: nowrap !important;
 }

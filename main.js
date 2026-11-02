@@ -2856,6 +2856,8 @@
           slot.classList.add('selected');
         }
 
+        slot.onpointerdown = (e) => e.stopPropagation();
+        slot.ontouchstart = (e) => e.stopPropagation();
         slot.onclick = (e) => {
           e.stopPropagation();
           soundManager.playClick();
@@ -3120,13 +3122,13 @@
         <div class="diary-book" style="margin-bottom:12px;">
           <div class="diary-title">書斎主の天体日誌</div>
           <p class="diary-intro">
-            <span class="phrase">『かつて賢者は、</span><span class="phrase">古時計の二つの針を</span><br>
-            <span class="phrase">大いなる天体の運行に</span><span class="phrase">なぞらえた。』</span>
+            <span class="nowrap">『かつて賢者は、古時計の二つの針を</span><br>
+            <span class="nowrap">大いなる天体の運行になぞらえた。』</span>
           </p>
           <div class="diary-poem">
-            <p class="diary-verse">重厚なる短針は、黄昏の陽が沈みゆく<span class="nowrap">【西】</span>の地平へ。</p>
-            <p class="diary-verse">軽やかなる長針は、黎明の光が生まれ出ずる<span class="nowrap">【東】</span>の空へ。</p>
-            <p class="diary-verse">二つの針が正しく天の運行を指し示し時、<br>古時計は賢者への捧げ物を落とすであろう。</p>
+            <p class="diary-verse"><span class="nowrap">重厚なる短針は、</span><br><span class="nowrap">黄昏の陽が沈みゆく【西】の地平へ。</span></p>
+            <p class="diary-verse"><span class="nowrap">軽やかなる長針は、</span><br><span class="nowrap">黎明の光が生まれ出ずる【東】の空へ。</span></p>
+            <p class="diary-verse"><span class="nowrap">二つの針が正しく天の運行を指し示す時、</span><br><span class="nowrap">古時計は賢者への捧げ物を落とすであろう。</span></p>
           </div>
           <p class="diary-sign">— 賢者の書斎録より</p>
         </div>
@@ -3282,7 +3284,7 @@
 
     if (!state.booksPuzzleSolved) {
       html += `
-        <p class="modal-desc" style="margin-bottom:8px;"><span class="phrase">背表紙に星座名が刻まれた</span><span class="phrase">7冊の書物が並んでいる。</span></p>
+        <p class="modal-desc" style="margin-bottom:8px;"><span class="nowrap">背表紙に星座名が刻まれた</span><br><span class="nowrap">7冊の書物が並んでいる。</span></p>
         ${!state.isLightOn ? '<p style="font-size:0.82rem; color:#5dade2;">★ 暗闇の中で背表紙が青白く微かに発光している！</p>' : ''}
 
         <div class="bookshelf-row">
@@ -3931,6 +3933,8 @@
 
   // --- アイテム詳細モーダル（調べる・分解・合成） ---
   function openItemDetailModal(itemId) {
+    clearHover();
+    isObjectInteracting = false;
     const item = ITEMS[itemId];
     if (!item) return;
 
@@ -4773,6 +4777,11 @@
     }
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
     if (performance.now() - lastModalClosedTime < 650) return;
+
+    // 【重要】UI要素（インベントリバー、設定ボタン、HUD、メッセージバー、モーダル等）のタップ・クリック時は3D空間のズーム・調査を物理的に遮断
+    if (e.target && e.target.closest('#inventory-bar-container, #top-menu, #hud, #message-bar-container, .modal-card, .modal-content, .settings-card, button, .inv-slot, a, input')) {
+      return;
+    }
 
     // 左クリック (button === 0)
     if (e.button === 0) {
