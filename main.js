@@ -5095,6 +5095,89 @@
     renderer.render(scene, camera);
   }
 
+  // --- メインメニュー専用：神秘的な光の浮遊パーティクル演出 ---
+  function setupMenuBackgroundParticles() {
+    const canvas = document.getElementById('menu-particles-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = 0;
+    let height = 0;
+    let animationId = null;
+    const particles = [];
+    const PARTICLE_COUNT = 45;
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 粒子の初期生成
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: Math.random() * 2.2 + 0.8,
+        speedY: -(Math.random() * 0.45 + 0.15),
+        speedX: (Math.random() - 0.5) * 0.25,
+        alpha: Math.random() * 0.7 + 0.2,
+        maxAlpha: Math.random() * 0.6 + 0.3,
+        alphaSpeed: (Math.random() * 0.015 + 0.005) * (Math.random() < 0.5 ? 1 : -1),
+        color: Math.random() < 0.8 ? '228, 185, 90' : '138, 180, 248'
+      });
+    }
+
+    function renderParticles() {
+      if (menuScreen.classList.contains('hidden')) {
+        animationId = null;
+        return;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.alpha += p.alphaSpeed;
+
+        if (p.alpha >= p.maxAlpha || p.alpha <= 0.05) {
+          p.alphaSpeed = -p.alphaSpeed;
+        }
+
+        if (p.y < -10) {
+          p.y = height + 10;
+          p.x = Math.random() * width;
+        }
+        if (p.x < -10) p.x = width + 10;
+        if (p.x > width + 10) p.x = -10;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.color}, ${Math.max(0, p.alpha)})`;
+        ctx.shadowColor = `rgba(${p.color}, 0.8)`;
+        ctx.shadowBlur = p.radius * 4;
+        ctx.fill();
+      }
+
+      animationId = requestAnimationFrame(renderParticles);
+    }
+
+    const observer = new MutationObserver(() => {
+      if (!menuScreen.classList.contains('hidden') && !animationId) {
+        animationId = requestAnimationFrame(renderParticles);
+      }
+    });
+    observer.observe(menuScreen, { attributes: true, attributeFilter: ['class'] });
+
+    if (!menuScreen.classList.contains('hidden')) {
+      animationId = requestAnimationFrame(renderParticles);
+    }
+  }
+
   // --- 起動初期化 ---
   setupLighting();
   buildRoom();
@@ -5102,5 +5185,6 @@
   renderInventory();
   applySensitivityLevel(currentSensitivityLevel, false);
   updateMobileControlsVisibility();
+  setupMenuBackgroundParticles();
   animate();
 })();
