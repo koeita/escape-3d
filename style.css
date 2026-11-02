@@ -2280,7 +2280,8 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     gap: 6px;
   }
 
-  .pc-key-hint {
+  .pc-key-hint,
+  .touch-mode .pc-key-hint {
     display: none !important;
   }
 
