@@ -41,8 +41,137 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
-### 2026-11-02 (月) - 効果音(SE)のスライド式トグルスイッチUIへの刷新とON切替不具合の修正 (`feat-pc-ui-adjustments`)
+### 2026-11-02 (月) - 大扉モーダルの表記調整（電子ダイヤル錠の「(4桁)」削除） (`feat-mobile-touch-test`)
 
+1. **大扉モーダルのUI表記修正**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - 大扉調査モーダル（`openDoorModal`）の鍵カード見出しにおいて、`2. 電子ダイヤル錠 (4桁)` から ` (4桁)` を削除し、`2. 電子ダイヤル錠` に変更。
+     - 説明文の折り返しも `<span class="nowrap">...</span>` で最適化。
+
+---
+
+### 2026-11-02 (月) - 句読点行頭落ちの物理的根絶およびアイテムタップ時のオブジェクトズーム誤爆防止 (`feat-mobile-touch-test`)
+
+1. **照準が合っている状態でアイテムスロットをタップした際にオブジェクトへズームインしてしまう不具合の完全解消**
+   - **原因**:
+     - `window.addEventListener('mousedown')` で、クリック対象がインベントリスロット等のUIであるかの判定がなく、スロットタップ時に `hoveredObject.userData.action()` が先行発火して背後の3Dオブジェクト（書斎机や金庫等）にズームインしていた。
+     - また、インベントリスロットへのタッチ操作時（`pointerdown`, `touchstart`）の伝播遮断が不足していた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `window.addEventListener('mousedown')` に `e.target.closest('#inventory-bar-container, ...')` によるUI除外ガードを追加。UI操作時に3D空間へのインタラクションを物理的に完全遮断。
+       - インベントリスロット（`.inv-slot`）に `onpointerdown` および `ontouchstart` での `e.stopPropagation()` を追加し、背面の全画面スワイプレイヤーへのイベント透過を防止。
+       - `openItemDetailModal()` 開始時に `clearHover()` および `isObjectInteracting = false;` を適用。
+
+2. **句読点（「、」「。」）および1文字（「う。」）のみ残る改行の物理的根絶**
+   - **原因**:
+     - iOS Safari等のWebKit環境で `-webkit-line-break: strict;` が未指定だったため、句読点が行頭に落ちていた。
+     - 本棚の説明文で「7冊の書物が並んでいる。」が幅不足で「。」のみ2行目中央に落ちていた。
+     - 天体日誌の詩文で「二つの針が正しく天の運行を指し示し時、」「古時計は賢者への捧げ物を落とすであろう。」が長すぎて途中で折り返され、「、」や「う。」のみが次の行に落ちていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - 本棚モーダルの説明文を `<span class="nowrap">背表紙に星座名が刻まれた</span><br><span class="nowrap">7冊の書物が並んでいる。</span>` とし、句点落ちを物理的に完全防止。
+       - 天体日誌モーダルの詩文を対句ごとに `<span class="nowrap">...</span>` で囲み、「二つの針が正しく天の運行を指し示す時、」と「古時計は賢者への捧げ物を落とすであろう。」が絶対に句読点で分断されない格調高い詩句レイアウトに再構築。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 全モーダル・本文要素に `-webkit-line-break: strict; line-break: strict;` を徹底適用。
+       - `.nowrap { white-space: nowrap !important; }` を適用。
+
+---
+
+### 2026-11-02 (月) - 全UIの改行・要素はみ出し・本棚折り返しの徹底修復 (`feat-mobile-touch-test`)
+
+1. **ステージ説明文の文章単位1行表示の完全保証（合計2行）**
+   - **原因**: 文節ごとの折り返し指定（`phrase`）がカード幅の僅かな余白不足で途中改行され、2文目が「賢者が残した暗号を」「解き明かし脱出せよ。」と分断されて計3行に崩れていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 各文章を `<span class="stage-desc-sentence">...</span>` でグループ化し、`white-space: nowrap; display: block;` を適用。
+       - スマホでのカード幅（`max-width: 350px; min-width: 285px;`）およびフォントサイズ（`0.78rem`）を微調整し、PC・スマホ（390px, 375px）の全解像度で**各文が必ず1行（合計2行）**で収まるよう完全保証。
+
+2. **本棚モーダルで7冊目の「射手」が2行目に折り返される不具合の解消**
+   - **原因**: `.bookshelf-row` が `flex-wrap: wrap;` かつ本の固定幅（`width: 46px;`）により合計幅 358px となり、スマホのモーダル幅（約340px）を超えて最後の1冊（射手）だけがポツンと2行目に落ちていた。また説明文の「る。」が1文字だけ改行されていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.bookshelf-row` を `flex-wrap: nowrap;` に変更し、本ボタン（`.puzzle-book-btn`）を `flex: 1 1 0; min-width: 0; max-width: 48px;` のフレキシブル幅に刷新。
+       - スマホ画面でも**7冊すべてが確実に1列（1行）に美しく均等整列**するように改善。
+       - 説明文を文節グループ化し、行末の「る。」落ちを解消。
+
+3. **アンティーク書斎机モーダルで「日誌を開く」ボタンが右枠を突き抜ける不具合の解消**
+   - **原因**: `.desk-diary-card` 内のテキスト「星辰と古時計の運行に関する記録」とボタンの合計幅がモーダル幅を超え、インラインレイアウトの不備でボタンが枠外へ飛び出していた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.desk-diary-card` クラスを新設し、テキスト情報（`.desk-diary-info`）に `min-width: 0; flex: 1 1 auto;` を指定。
+       - ボタン（`.btn-read-diary-action`）をコンパクトに収め、スマホ画面でもカード枠内に15px以上の安全余白を保って完璧に収容。
+
+4. **天体日誌モーダルの詩の改行分断（【西】の分断・「、」行頭落ち・1文字落ち）の解消**
+   - **原因**: 詩のテキストが自然な文節で改行されておらず、ブラウザの折り返しにより「【 / 西】」「指し示し時 / 、」「落とすであろ / う。」と無残に分断されていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 方位タグを `<span class="nowrap">【西】</span>`、`<span class="nowrap">【東】</span>` で保護。
+       - 詩文を意味のまとまりごとに `<p class="diary-verse">` と適切な `<br>` で構造化し、`line-break: strict; word-break: auto-phrase;` を適用。
+       - 句読点がポツンと落ちず、古文書の詩として極めて格調高く読みやすいレイアウトに再構築。
+
+5. **アイテム取得ポップアップトースト（#item-get-toast）のテキスト飛び出し解消**
+   - **原因**: トースト内の案内テキスト「[数字キーで選択 ｜ 同じキーをもう一度押して詳細]」が26文字と長く、`white-space: nowrap;` によりスマホの画面幅（340px）を80px以上も大きく突き抜けていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - トースト案内文を PC版（`toast-tip-pc`: 「［キー 1〜6 で選択 ｜ 再度押して詳細］」）とモバイル版（`toast-tip-mobile`: 「［スロットタップで選択 ｜ 再度タップで詳細］」）に分離。
+       - トーストカードを `width: calc(100vw - 24px); max-width: 380px; overflow: hidden;` でガードし、スマホ実機で枠外への文字飛び出しを100%防止。
+
+---
+
+### 2026-11-02 (月) - コンフリクト解消後のUI崩れ包括的修復・メニューヘッダー横スクロール遮断・文節折り返し最適化 (`feat-mobile-touch-test`)
+
+1. **モバイルでカード横スクロール時にメニューヘッダーごと横スクロールする不具合の完全防止**
+   - **原因**: `#menu-screen` および `.menu-screen-card` に適切な `overflow-x` / `contain` 制約がなく、また `.stage-grid` のスワイプ操作が親コンテナに伝播してヘッダー（タイトルや設定ボタン）ごと左にスクロール（見切れ）していた。
+   - **対策**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `#menu-screen` に `overflow-x: hidden; width: 100vw; max-width: 100vw; box-sizing: border-box;` を指定。
+       - `.menu-screen-card` に `overflow-x: clip; box-sizing: border-box; contain: paint;` を設定し、一切の親横スクロールを物理的に遮断。
+       - `.menu-header` に `position: sticky; top: 0; z-index: 10; width: 100%; box-sizing: border-box;` を指定。
+       - `.stage-select-container` に `overflow-x: clip; min-width: 0; width: 100%;` を指定。
+       - `.stage-grid` に `overscroll-behavior-x: contain; touch-action: pan-x pan-y;` を設定し、カード群のみが軽快に横スクロール・スナップするよう完全に分離。
+
+2. **モバイルでメインメニュー設定ボタン（太陽アイコン）が右枠からはみ出る問題の解消**
+   - **原因**: モバイルメディアクエリ下でタイトル（「密室の謎解き脱出 3D」）が長いため設定ボタンを押し出し、画面幅 375px / 360px や実機フォントレンダリング差でカード右枠を突き抜けていた。
+   - **対策**:
+     - `.menu-title` に `font-size: clamp(0.95rem, 4.4vw, 1.15rem); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;` を適用。
+     - `.menu-brand` に `min-width: 0; flex: 1 1 auto; overflow: hidden;` を設定し、設定ボタン（38px）との間に 14px 以上の安全マージンを常時確保。
+     - 極小端末（`<= 380px`）向けクエリも新設し、iPhone SE / 各種Android実機でも絶対に枠外にはみ出さない堅牢なレイアウトを実現。
+
+3. **ステージカード説明文の文節折り返し（auto-phrase / phrase）とPC・モバイル表示最適化**
+   - **原因**: PCの広い画面でもカード幅やパディングのバランスにより「書/斎。」「シェルタ/ー。」「合わせ/よ。」のように単語の途中や長音符で中途半端に改行されていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+       - 全ステージ（Stage 1〜3）の説明文を文節単位の `<span class="phrase">...</span>` と `<br>` で構造化。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.stage-desc` に `word-break: auto-phrase; line-height: 1.6; font-size: 0.81rem;` を適用。
+       - `.stage-desc .phrase { display: inline-block; }` を適用。
+       - PCデスクトップ環境で `.menu-screen-card` の最大幅を 1100px、カード内 padding を 14px に調整し、デスクトップでは美しいきっかり2行表示、ウィンドウ縮小時でも文節単位で自然に折り返されるよう完璧に制御。
+
+4. **メディアクエリの順序正常化とカスケード破壊の完全修復**
+   - **原因**: `@media (max-width: 960px)` が `@media (max-width: 768px)` の後ろに配置されていたため、スマホ（768px以下）でインベントリバーの Safe Area（`env(safe-area-inset-bottom)`）や 44px スロット指定が 960px のルール（`bottom: 12px`, `48px`）で不当に上書きされていた。また末尾に重複メディアクエリが存在していた。
+   - **対策**:
+     - メディアクエリの並び順を `max-width: 960px` ➔ `max-width: 768px, pointer: coarse` ➔ `max-width: 380px` ➔ `max-height: 720px` の順に正しく再構築。
+     - スマホ実機での Safe Area 余白、最小タップターゲット（44px以上）、モーダルの画面内収まり（`max-width: calc(100vw - 24px)`）を確実に優先適用。
+     - `style.css` 内のコメント文字化け（Shift_JIS残滓）をUTF-8で完全修正。
+
+---
+
+### 2026-11-02 (月) - スマホでボタンが反応しなくなる不具合の解消 (`feat-mobile-touch-test`)
+
+1. **原因の特定**
+   - 直前のブランチマージ時に、感度設定関連の変数宣言（`const SENSITIVITY_MIN` 等）が重複してマージされ、ブラウザで `SyntaxError: Identifier 'SENSITIVITY_MIN' has already been declared` が発生して JavaScript 全体の実行（全イベントリスナーの登録）が停止していた。
+   - `style.css` の `@media (max-width: 768px), (pointer: coarse)` ブロック末尾で閉じ波括弧 `}` が欠落しており、以降のメディアクエリとスタイルシートのパースが破綻していた。
+
+2. **対策と修正**
+   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - 重複していた感度設定ブロックおよび変数宣言（`sliderLookSensitivity` / `sensitivityValueDisplay`）を完全削除し、1本化。
+     - `applySensitivityLevel()` 内でモバイルのスワイプ感度（`touchLook.sensitivity`）とPCの視点感度（`controls.pointerSpeed`）の双方を安全に同時制御する統合版へ整備。JavaScriptのパースエラーを根絶。
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - メディアクエリの閉じ括弧 `}` を補完し、全ブロックの括弧整合性を完全検証。CSSパーサーエラーを解消。
+
+---
+
+### 2026-11-02 (月) - 効果音(SE)のスライド式トグルスイッチUIへの刷新とON切替不具合の修正 (`main`, `feat-mobile-touch-test`)
 1. **背景と不具合**
    - 設定モーダル内の効果音設定において、プロパティ参照（`isMuted` と `muted` の差異）に起因してONが押せずOFFしか押せなくなる不具合が発生。
    - 2分割ボタンではなく、1つのスイッチボタンを押すことでつまみが左右に滑らかにスライドするモダンなスライド式トグルスイッチUIへの刷新要望に対応。
@@ -61,8 +190,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - 効果音(SE)のON/OFFセグメント切り替えスイッチUIへの改善 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - 効果音(SE)のON/OFFセグメント切り替えスイッチUIへの改善 (`main`, `feat-mobile-touch-test`)
 1. **背景と要望**
    - 設定モーダル内の効果音設定において、単一ボタンによるトグル表示（「ON」「OFF」のテキスト切り替えのみ）では現在の状態や押下後の挙動が分かりづらかったため、直感的に一目で把握・切り替えができる「[ ON ] [ OFF ]」のセグメント型ボタングループへの改善要望に対応。
 
@@ -78,8 +206,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - モバイルでのステージカード専用横スクロール（カルセール）UIの実装 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - モバイルでのステージカード専用横スクロール（カルセール）UIの実装 (`main`, `feat-mobile-touch-test`)
 1. **背景と要望**
    - モバイル画面でステージカードが横並びになった際、カードだけでなくモーダルヘッダー（タイトルや設定ボタン）ごと画面全体が横スクロールしてしまい左側が見切れてしまう不具合を解消。
    - ステージカード自体が横並びでスワイプできる体験を活かし、「カード領域のみを滑らかに横スクロール・スナップできる」専用カルセールUIへの改善要望に対応。
@@ -94,8 +221,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - ステージカードの拡大と説明文の1行（文章単位）表示レイアウト調整 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - ステージカードの拡大と説明文の1行（文章単位）表示レイアウト調整 (`main`, `feat-mobile-touch-test`)
 1. **背景と要望**
    - 画面の左右余白を活かし、ステージカード自体をひと回り大きくするとともに、カード内説明文を途中で折り返さず「文章単位で1行（計2行）」として美しく表示したいという要望に対応。
 
@@ -111,8 +237,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - ステージ選択画面の説明文における文節折り返し（auto-phrase / inline-block）の調整 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - ステージ選択画面の説明文における文節折り返し（auto-phrase / inline-block）の調整 (`main`, `feat-mobile-touch-test`)
 1. **背景と不具合**
    - PC・モバイル環境で、ステージ選択カードの説明テキストにおいて「書/斎。」や「シェルタ/ー。」のように単語の途中や長音符で中途半端に改行されてしまう不具合を解消。
 
@@ -126,8 +251,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - モバイルでのメインメニュー設定ボタンはみ出し解消・ステージ説明文の改行最適化 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - モバイルでのメインメニュー設定ボタンはみ出し解消・ステージ説明文の改行最適化 (`main`, `feat-mobile-touch-test`)
 1. **背景と不具合**
    - モバイル画面（幅375px〜472px）でメインメニュー右上の設定ボタン（`.menu-icon-btn`）がヘッダー枠外へ押し出されてはみ出る不具合を解消。
    - メインメニューのステージ説明文で、文末の句点「。」のみが単独で3行目に落ちてしまう不自然な改行問題を解消。
@@ -142,11 +266,10 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - PC・モバイル全画面における中途半端な改行・単語分断の包括的防止 (`feat-pc-ui-adjustments`)
+### 2026-11-02 (月) - PC・モバイル全画面における不自然な改行（中途半端な折り返し）の根絶 (`main`, `feat-mobile-touch-test`)
 
 1. **背景と不具合**
-   - 画面幅やウィンドウサイズの違いによって、HUD表示・インベントリ案内・メニュータイトル・ボタン内テキスト・モーダル見出し等で、単語の途中や1文字だけが次の行に落ちる不自然な改行（「ペルシャ風絨/毯」「[タッ/プ]」「〜を調/べる」など）が発生していた。
-
+   - 画面幅やアスペクト比の違いによって、HUD表示・インベントリ案内・メニュータイトル・ボタン内テキスト・モーダル見出し等で、単語の途中や1文字だけが次の行に落ちる不自然な改行（「ペルシャ風絨/毯」「[タッ/プ]」「〜を調/べる」など）が発生していた。
 2. **対策と実装**
    - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
      - **見出し・ラベル・バッジの1行保持**: `#hud`、`.hud-title`、`.hud-sub`、`.menu-title`、`.stage-name`、`.modal-category`、`.modal-title`、`.settings-label`、`.settings-hint`、`.clear-badge`、`.clear-title`、`.stat-label` 等に `white-space: nowrap;` を適用。
@@ -155,8 +278,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - 書斎机ランプの照明過多（白飛び）および傘上部の不自然な発光解消 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - 書斎机ランプの照明過多（白飛び）解消および傘上部の不自然な発光防止 (`main`, `feat-mobile-touch-test`)
 1. **背景と不具合**
    - デスクランプのスポットライト光源が傘の真上空中（Y=1.40）に配置されていたため傘の外側・上部が直射光で明るく照らされ、さらに傘自体の自己発光（emissive: 0.35）および全方位PointLight（強度2.4）が重なり、傘の上側まで光ってしまう不自然な外観となっていた。
    - スポットライト（3.2）＋PointLight（2.4）＋天板の光だまりテクスチャ（不透明度0.50）が重複照射され、机の天板が真っ白に白飛びしていた。
@@ -169,8 +291,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - 書斎机調査時の不要なメッセージ表示削除 (`feat-pc-ui-adjustments`)
-
+### 2026-11-02 (月) - 書斎机調査時の不要なメッセージ表示削除 (`main`, `feat-mobile-touch-test`)
 1. **背景と目的**
    - 他のオブジェクト調査時にはモーダル展開のみが行われる仕様に対し、書斎机の調査時のみ「アンティーク書斎机を調べた…」というナレーションメッセージが表示されて統一感を欠いていたため削除。
 
@@ -180,39 +301,24 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-02 (月) - PC版小画面・低解像度時のUI崩れ・モーダルはみ出し防止 (`feat-pc-ui-adjustments`)
+### 2026-11-02 (月) - モバイル画面における設定モーダルはみ出し・操作手引き・ヘッダー折り返しのUI改善 (`main`, `feat-mobile-touch-test`)
 
 1. **背景と不具合**
-   - ノートPC（解像度 1366x768など）やウィンドウサイズ縮小時において、設定モーダル（`.settings-card`）に高さ制限とスクロールが指定されておらず、画面下端からはみ出して「閉じる」ボタンが押せなくなる潜在リスクが存在した。
-   - 幅狭画面時にメインメニューのステージカードやインベントリバーの配置バランスが崩れる問題があった。
-
-2. **対策と実装**
-   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
-     - `.settings-card` に `max-height: min(90vh, 680px); overflow-y: auto;` および専用スクロールバーを適用。
-     - 小画面・低解像度PC用メディアクエリ（`max-width: 860px`, `max-height: 720px`）を追加し、モーダルパディング・ステージカード幅・インベントリスロットサイズを最適化。
-
----
-
-### 2026-11-01 (日) - PC版視点・カメラ感度調整機能の実装 (`feat-pc-ui-adjustments`)
-
-1. **背景と目的**
-   - モバイル版で実装されていた設定画面の「視点・カメラ感度調整スライダー」をPC版（PointerLockControls）にも同様に導入し、プレイヤーの好みのマウス感度で快適に探索できるようにする。
-   - デフォルト感度（Level 5）は従来の感度（`pointerSpeed = 1.0`）をそのまま維持。
+   - モバイル画面で設定モーダル（`.settings-card`）を開いた際、高さ制限とスクロールが適用されず画面下端からはみ出して閉じるボタンが押せなくなる不具合を解消。
+   - スマホプレイ時にも関わらず操作の手引きにPC用キー（WASD、マウス移動、［Esc］キー等）が表示されていた不整合を解消。
+   - 画面幅375px前後のスマートフォンでメインメニューヘッダーのタイトル「密室の謎解き脱出 3D」が窮屈になり改行されるレイアウト崩れを防止。
 
 2. **対策と実装**
    - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
-     - 設定モーダル内に視点・カメラ感度設定セクション（`#slider-look-sensitivity`, `#sensitivity-value-display`）を追加。
+     - 設定モーダル内の操作手引きにモバイル専用ガイド（バーチャルスティック移動・スワイプ視点・タップ調査等）を追加し、PC/スマホ表示を完全出し分け。
+     - 閉じるボタンのキー表記（`[Enter / Esc]`）を `.pc-key-hint` に包み、モバイルではスマートに非表示化。
    - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
-     - `.sensitivity-row`, `.sensitivity-control` のレイアウトおよびスライダーと数値表示の専用デザインを追加。
-   - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
-     - Level 1（極低 0.4）〜 Level 5（標準 1.0・デフォルト）〜 Level 10（最高 2.0）のマッピング関数およびラベル表示を定義。
-     - スライダー変更時に `controls.pointerSpeed` を即時反映し、`localStorage` に設定を永続化保存。
-     - 起動時および設定画面オープン時に保存された感度を自動適用。
+     - モバイルメディアクエリ（`@media (max-width: 768px), (pointer: coarse)`）のモーダル対象に `.settings-card` を追加し、セーフエリア対応の `max-height` とスクロールを適用。
+     - ヘッダー余白とタイトルフォントサイズのスマホ最適化、感度スライダーのタッチターゲット改善、モーダル表示時のメッセージバー上部ノッチ被り防止を適用。
 
 ---
 
-### 2026-11-01 (日) - メインメニューUI調整・「つづきから」表記統一・設定モーダルボタン整理 (`feat-pc-ui-adjustments`)
-
+### 2026-11-01 (日) - メインメニューUI調整・「つづきから」表記統一・設定モーダルボタン整理 (`main`, `feat-mobile-touch-test`)
 1. **背景と目的**
    - プレイ体験の向上とUI統一のため、メインメニュー内の表記・設定ボタンのビジュアル・設定モーダルのボタン出し分けを改善。
 
@@ -226,8 +332,7 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-01 (日) - Stage 1（古びた書斎と賢者の鍵）の直接ヒント削除・表現抽象化 (`main`)
-
+### 2026-11-01 (日) - Stage 1（古びた書斎と賢者の鍵）の直接ヒント削除・表現抽象化 (`main`, `feat-mobile-touch-test`)
 1. **背景と目的**
    - プレイヤーが自力で謎に気づく探索の面白さを高めるため、答えを直接指示するような括弧書きヒントや対象オブジェクトの名指し表記を削除し、自然な情景描写および純化されたメッセージへ改修。
 
@@ -243,16 +348,152 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ---
 
-### 2026-11-01 (日) - 照準ターゲットヒントの簡素化（「〜を調べる」の「を調べる」を削除） (`main`)
+### 2026-11-01 (日) - 照準ターゲットヒントの不自然な折り返し（中途半端な改行）防止 (`main`, `feat-mobile-touch-test`)
+
+1. **背景と不具合**
+   - モバイル画面において、照準がオブジェクトに重なった際のツールチップ（`#target-hint`）内で、オブジェクト名（「ペルシャ風絨/毯」）や操作ヒント（「[タッ/プ]」）がコンテナ幅制限により中途半端に途中で改行されてしまっていた。
+
+2. **対策と実装**
+   - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+     - `#target-hint`、`#target-hint-text`、`.hint-key` に `white-space: nowrap;` を適用。
+     - `#target-hint` を `display: inline-flex;`、`max-width: 90vw;` に設定し、子要素に `flex-shrink: 0;` を付与して要素が縮んで改行される挙動を完全に防止。
+     - 1行で綺麗に収まる快適なツールチップ表示を実現。
+
+---
+
+### 2026-11-01 (日) - 照準ターゲットヒントの簡素化（「〜を調べる」の「を調べる」削除・「[タップで調べる]」→「[タップ]」） (`main`, `feat-mobile-touch-test`)
 
 1. **背景と目的**
-   - 画面中央の照準がオブジェクトに重なった際、ツールチップに「○○ を調べる [左クリック]」と表示されていたが、アイコン（虫眼鏡）やキー表記（[左クリック]）と意味が重複していたため、UIをよりシンプルで視認性の高い「○○ [左クリック]」表示へ簡素化。
-
+   - 画面中央の照準がオブジェクトに重なった際、ツールチップに「○○ を調べる [タップで調べる]」または「○○ を調べる [左クリック]」と表示されていたが、アイコン（虫眼鏡）や操作文言と重複していたため、UIをよりシンプルで視認性の高い「○○ [タップ]」/「○○ [左クリック]」表示へ簡素化。
 2. **対策と実装**
    - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
      - `setHover(root)` 内の `targetHintText.textContent` への代入を `${root.userData.name} を調べる` から `root.userData.name` へ変更。
-     - オブジェクト名単体が表示されるようになり、スッキリとしたHUD表示を実現。
+     - タッチ操作時の操作キー表記を `[タップで調べる]` から `[タップ]` へ変更。
+     - オブジェクト名単体＋操作ヒントが表示されるようになり、スマートなHUD表示を実現。
 
+---
+
+### 2026-11-01 (日) - スワイプ視点移動後の指離し誤爆防止・タップ感度最適化 (`main`, `feat-mobile-touch-test`)
+
+1. **視線移動終了時の指離しがタップと誤認識される問題の完全解消**
+   - **原因の特定**:
+     - 視線をスワイプして対象に合わせた後、指を静止させて画面から離した際、始点・終点距離や累積移動の管理が甘く、単なる「タップ」として誤認されて調査が発火していた。
+   - **対策と改修**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - `touchLook` に累積移動距離（`totalMoveDist`）および移動フラグ（`hasMoved`）を追加。
+       - わずか 4px 以上の移動が発生した時点で直ちに `hasMoved = true` と判定。
+       - 画面から指を離した際、`!hasMoved`（視点移動が一切発生していない）かつ `totalMoveDist < 4px` かつ `distFromStart < 5px` かつ接触時間 240ms 未満の「意図した軽いチョン押しタップ」のみを調査アクションとして厳格に限定。
+       - 視点を動かした後に指を離しても絶対に誤調査が発火しない安定した操作性を実現。
+
+---
+
+### 2026-11-01 (日) - ズーム注視・モーダル重なり時の完全リセットとスワイプ誤爆防止 (`main`, `feat-mobile-touch-test`)
+
+1. **設定開閉時に調査モーダルが背面に残留しフリーズする重大不具合の根底改修**
+   - **真因の解明**:
+     - 調査モーダル表示中やズーム注視中に右上の「設定」ボタンまたはEscキーで設定画面を開いた際、`inspectModal` の非表示処理や `cameraZoom.isZoomedIn` のリセットが行われていなかった。
+     - 設定画面を閉じた際、`activeModal` は `null` になる一方で背面に `inspectModal` が表示されたまま残り、閉じるボタンを押しても `!activeModal` で弾かれて閉じられず、カメラもズーム注視フラグで完全ロック（フリーズ）していた。
+   - **対策と改修**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **設定開閉時の他モーダル完全強制非表示化**: `openSettingsModal` および `closeSettingsModal` において、`inspectModal` と `itemDetailModal` を確実に強制非表示化。
+       - **カメラズーム状態の完全探索視点復帰**: 設定画面オープン・クローズ時に `cameraZoom.isZoomedIn`, `active` を完全解除し、探索元の通常視点（`savedPos`, `savedQuat`）へ即座に復旧。
+       - **調査モーダル強制クローズのフォールバック保証**: `closeModal` で `activeModal` のフラグが外れていても、DOM上 `inspectModal` が表示されていれば確実に隠してカメラを復帰させる安全弁を設置。
+       - **誤タップ・スワイプ誤爆防止強化**: スワイプ視点移動時のタップ誤判定閾値を `dt < 280ms && dist < 10px` に厳格化し、モーダル閉鎖後の誤調査クールダウンを 650ms に拡大。
+
+---
+
+### 2026-11-01 (日) - 設定画面開閉時の残存ホバー解消・調査誤爆クールダウン導入（フリーズ防止） (`main`, `feat-mobile-touch-test`)
+
+1. **設定変更から探索復帰時のフリーズ・調査モーダル誤爆トラブルの解消**
+   - **原因の特定**:
+     - 照準に対象（暖炉・机など）を合わせた状態で設定モーダルを開閉した際、`hoveredObject` がクリアされずに残存していた。
+     - モーダル閉鎖時の指の離脱（合成クリック）や、閉じた直後の画面タップが残存 `hoveredObject` の調査アクションを発火させ、意図しない調査モーダルが開いていた。
+     - 調査モーダルを閉じた際も同様に対象が残存しており、閉じた瞬間の画面タップで即座に再オープンする無限ループ状態となり、操作不能（フリーズ）に陥っていた。
+   - **対策と改修**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **完全ホバークリアの徹底**: `openSettingsModal`, `closeSettingsModal`, `openModal`, `closeModal`, `returnToMainMenu`, `startOrResumeGame`, `closeItemDetailModal` の全遷移ポイントで `clearHover()` と `isObjectInteracting = false` を確実に実行。
+       - **閉鎖直後の誤爆防止クールダウン導入**: `lastModalClosedTime`（400ms安全マージン）を新設。モーダル閉鎖直後のタップや遅延マウスクリック（Synthetic Click）による誤調査を物理的に完全ガード。
+       - **イベント伝播遮断**: 各モーダル・設定画面の閉じるボタンおよび背景クリックハンドラーに `e.stopPropagation()` / `e.preventDefault()` を適用し、背面レイヤーへのイベント透過を防止。
+       - **メニュー復帰時のズーム注視リセット**: メインメニュー復帰時にカメラズーム状態（`cameraZoom.isZoomedIn`, `active`）を安全に初期位置へリセット。
+
+---
+
+### 2026-11-01 (日) - 右下の調べるボタン撤廃・全画面タップ調査への一本化 (`main`, `feat-mobile-touch-test`)
+
+1. **画面上の全域タップ調査への一本化とUIシンプル化**
+   - **右下「調べる」アクションボタン（`#btn-touch-action`）の完全撤廃**:
+     - 照準に対象を捉えた状態で画面上のどこかをタップすれば調査（`triggerInteractAction`）が実行される仕様となっていたため、不要となった右下ボタンおよびそのCSSスタイル定義、関連JSコード（クラス付与・リスナー）を完全削除。
+     - 画面右下の視界を完全にクリアにし、より広々とした密室3D空間の没入感を向上。
+   - **タップ誤判定防止・快適性の向上**:
+     - 全画面スワイプ視点レイヤー（`#touch-look-zone`）におけるタップ判定条件を `dt < 350ms && dist < 18px` に微調整。
+     - モバイル実機での指の腹による微細なブレを許容し、スワイプ視点回転のスムーズさを損なわずに「画面タップで調べる」が確実かつ軽快に発火するよう操作性を向上。
+
+---
+
+### 2026-11-01 (日) - 仮想UIボタン削除・スティック被り解消・視点感度調整設定の新設 (`main`, `feat-mobile-touch-test`)
+
+1. **ユーザーフィードバックに基づくタッチ操作UIのレイアウト・操作性洗練**
+   - **仮想UIボタンの撤廃**:
+     - 画面上部に暫定配置していた「📱 仮想UI ON」ピルを削除。タッチデバイスまたは画面幅（<= 1024px）に応じた自動判定表示に一本化し、画面上部を本来のシンプルで上品なデザインへ復元。
+   - **スティックとインベントリバーの被り完全解消**:
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - バーチャルスティックの基準位置を `bottom: calc(20px + env(safe-area-inset-bottom))` から `bottom: calc(96px + env(safe-area-inset-bottom))` へ引き上げ。
+       - スティック外枠サイズを直径 104px、可動ノブを直径 46px（最大可動半径 36px）に最適化。
+       - 右下の「調べる」アクションボタン（`bottom: calc(96px + ...)`）と高さを完全に揃え、下部インベントリバー（6スロットすべて）を一切邪魔しない左右対称の美しいHUDレイアウトを実現。
+       - スマホ時のスロットサイズ（44px、gap 5px）を調整し、iPhone縦持ち画面でも左右の余白をすっきりと確保。
+   - **設定モーダルへのカメラ感度調整スライダー新設**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - デフォルトのスワイプ視点感度を従来の約2.1倍（0.0075）に引き上げ、指のスワイプ操作で軽快に周囲を見渡せるように改善。
+       - 設定モーダル（CONFIG & MENU）内に「視点・カメラ感度」調整スライダー（Level 1〜10、初期値: 5）を新設。
+       - 調整値は `localStorage` に自動保存・永続化され、プレイヤー好みの回転速度にいつでもリアルタイム調整可能。
+
+---
+
+### 2026-11-01 (日) - 仮想パッド非表示・視点不動トラブルの完全解消（Pointer Events 統一・総合判定・手動切替ピル新設） (`main`, `feat-mobile-touch-test`)
+
+1. **画面操作不能（スティック非表示・視点不動）の原因特定と根底改修**
+   - **原因**:
+     - タッチ環境判定に画面幅（`<= 1024px`）が含まれておらず、PCのブラウザ縮小や一部エミュレータ環境で `isTouchDevice` が false と判定され仮想操作UIが非表示（`.hidden`）のままになっていた。
+     - スティック・視点操作が `touch` イベント専用だったため、PCマウスドラッグや一部ブラウザで入力が取得できなかった。
+     - 視点回転ゾーンが画面右半分（`55vw`）に限定されており、画面左側や中央部でのスワイプに反応しなかった。
+     - ポインターロックが非アクティブな際、クリックイベントが `controls.isLocked` の前提条件でブロックされ操作停止を招いていた。
+   - **対策と実装**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+       - **総合判定（`checkIsTouchEnvironment`）**: タッチAPI、maxTouchPoints、ポインター特性、画面幅（`<= 1024px`）を統合して初期判定し、画面リサイズ時も自動同期。
+       - **Pointer Events API への完全統一**: バーチャルスティックおよびスワイプ視点を `pointerdown`, `pointermove`, `pointerup`（`setPointerCapture` 追従）へ刷新。指タッチ・マウスドラッグを問わず100%確実に動作するように改善。
+       - **全画面スワイプ視点化**: `#touch-look-zone` を全画面レイヤーに拡張。スティックやボタン以外の画面全体どこでも直感的に見渡し可能に。
+       - **操作モード手動切替ピル（`#btn-toggle-touch`）**: 画面右上に「📱 仮想UI」切替ボタンを新設。PC環境でもワンクリックで仮想パッドを呼び出してテスト可能。
+       - **ハイブリッド探索移動の解放**: 探索中であればポインターロックの成否を問わず常時スティック・WASD・Raycast判定がスムーズに動作する仕様へ強化。
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 右上HUDに `#btn-toggle-touch` を配置し、スティック（`z-index: 5`）、ボタン（`z-index: 5`）、全画面視点ゾーン（`z-index: 1`）、メニュー（`z-index: 35`）の重なり順を完全最適化。
+
+---
+
+### 2026-11-01 (日) - スマホ対応プロトタイプ（仮想スティック・スワイプ視点）の試験実装 (`main`, `feat-mobile-touch-test`)
+
+1. **PC操作との完全ハイブリッド両立とモバイル全画面・セーフエリア対応**
+   - **目的と方針**:
+     - 既存のPC向けマウス・キーボード操作（PointerLockControls・WASD・Escメニュー・数字キー）を一切損なわず、スマートフォン（タッチ操作）でも快適にプレイできるハイブリッド設計を試験実装。
+   - **HTML/CSSモバイル全画面・セーフエリア設定**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html):
+       - viewport に `maximum-scale=1.0, user-scalable=no, viewport-fit=cover` を設定。
+     - [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `html, body` および `#canvas-container` に `touch-action: none;` と `overscroll-behavior: none;` を設定し、スワイプ時のスクロールやリロード（pull-to-refresh）を完全に抑止。
+       - iPhoneのノッチ・ホームインジケーター（SafeArea）にUIが被らないよう、HUD・設定ピル・インベントリ・メッセージバー・トーストに `env(safe-area-inset-*)` を適用。
+
+2. **モバイル向け仮想操作系（タッチUI）の実装**
+   - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css) & [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js):
+     - **移動バーチャルスティック（画面左下）**:
+       - スチームパンク調の真鍮ベース円と可動ノブを画面左下に配置。
+       - ドラッグベクトル（前後左右）に応じてWASD移動と同じ移動速度・衝突判定（`resolveCollisions`）・足音再生を統合。指を離すと中央に戻り移動停止。
+     - **スワイプ視点回転（画面右半分）**:
+       - 画面右半分をドラッグした移動量（deltaX, deltaY）に応じて、カメラの水平（yaw）・垂直（pitch）角度を滑らかに回転（上下仰角制限付き）。
+     - **タップで調べる（INTERACT）**:
+       - 画面中央の照準に対象が入った際、右下アクションボタンが金色にパルス発光し、タップで直ちにRaycaster調査アクションを発火。画面右側の短時間タップでも同様に調査可能。
+     - **インベントリ・モーダルのモバイル最適化**:
+       - アイテムスロットの最小タップターゲット（48px、min 44px以上）を確保し、タップで即座に選択・詳細が開くように調整。タッチ時のクイック案内テキストも最適化。
+     - **ハイブリッド制御**:
+       - PCでは従来通り `controls.isLocked` による操作、タッチデバイス時はPointerLock不要で探索・移動・調査がフル動作する条件分岐を実装。
 ---
 
 ### 2026-11-01 (日) - 暖炉の火による壁への不自然な巨大影の解消 (`feat-main-menu-settings`)

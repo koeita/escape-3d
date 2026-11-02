@@ -147,6 +147,30 @@
   const topMenuEl = document.getElementById('top-menu');
   const btnGameSettings = document.getElementById('btn-game-settings');
 
+  // モバイル・タッチ操作用DOM
+  const mobileControls = document.getElementById('mobile-controls');
+  const virtualStickZone = document.getElementById('virtual-stick-zone');
+  const virtualStickBase = document.getElementById('virtual-stick-base');
+  const virtualStickKnob = document.getElementById('virtual-stick-knob');
+  const touchLookZone = document.getElementById('touch-look-zone');
+
+  // 設定モーダル内の感度調整UI
+  const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
+  const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
+
+  // タッチデバイス・画面幅総合判定（タッチAPI、maxTouchPoints、ポインター特性、または画面幅1024px以下）
+  function checkIsTouchEnvironment() {
+    const hasTouch = ('ontouchstart' in window) ||
+                     (navigator.maxTouchPoints > 0) ||
+                     (navigator.msMaxTouchPoints > 0) ||
+                     (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const isNarrowScreen = window.innerWidth <= 1024 || window.innerHeight <= 640 ||
+                           (window.matchMedia && window.matchMedia('(max-width: 1024px)').matches);
+    return Boolean(hasTouch || isNarrowScreen);
+  }
+
+  let isTouchMode = checkIsTouchEnvironment();
+
   let isGameStarted = false;
 
   // モーダル群
@@ -168,8 +192,6 @@
   const settingsModalClose = document.getElementById('settings-modal-close');
   const btnSettingsClose = document.getElementById('btn-settings-close');
   const btnSoundToggleSwitch = document.getElementById('btn-sound-toggle-switch');
-  const sliderLookSensitivity = document.getElementById('slider-look-sensitivity');
-  const sensitivityValueDisplay = document.getElementById('sensitivity-value-display');
   const btnSettingToMenu = document.getElementById('btn-setting-to-menu');
   const btnSettingRestart = document.getElementById('btn-setting-restart');
   const blockMenuReturn = document.getElementById('block-menu-return');
@@ -271,6 +293,7 @@
   // オブジェクトクリック・インタラクション状態フラグ（クリック中・ズーム演出中のEsc誤動作防止用）
   let isMouseDown = false;
   let isObjectInteracting = false;
+  let lastModalClosedTime = 0; // モーダル閉鎖直後の誤タップ・クリック貫通防止クールダウンタイマー
   let clockPendulumGroup = null;    // 時計の振り子
   let clockHourHandPivot = null;    // 壁掛け時計の短針ピボット（3D連動用）
   let clockMinuteHandPivot = null;  // 壁掛け時計の長針ピボット（3D連動用）
@@ -2813,6 +2836,13 @@
   }
 
   function renderInventory() {
+    const quickTipEl = document.querySelector('.inventory-quick-tip');
+    if (quickTipEl) {
+      quickTipEl.textContent = isTouchMode
+        ? '[タップで選択 ｜ もう一度タップで詳細]'
+        : '[キー 1〜6 で選択 ｜ 同じキーを再度押して詳細・分解・合成]';
+    }
+
     invSlots.forEach((slot, idx) => {
       const inner = slot.querySelector('.slot-inner');
       inner.innerHTML = '';
@@ -2826,6 +2856,8 @@
           slot.classList.add('selected');
         }
 
+        slot.onpointerdown = (e) => e.stopPropagation();
+        slot.ontouchstart = (e) => e.stopPropagation();
         slot.onclick = (e) => {
           e.stopPropagation();
           soundManager.playClick();
@@ -2846,6 +2878,7 @@
 
   // --- モーダル制御 ---
   function openModal(category, title, htmlContent, onReady = null) {
+    clearHover();
     isObjectInteracting = false;
     document.body.classList.add('modal-open');
 
@@ -2862,20 +2895,24 @@
     if (onReady) {
       onReady(modalBody);
     }
+    updateMobileControlsVisibility();
   }
 
   function closeModal() {
-    if (!activeModal) return;
+    if (!activeModal && inspectModal.classList.contains('hidden')) return;
+    clearHover();
     isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
-    activeModal.classList.add('hidden');
+    inspectModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
+    updateMobileControlsVisibility();
 
     // オブジェクトのズームイン状態から閉じる際は、元の探索視点の位置・向きへ滑らかに0.6秒ズームアウト
     if (cameraZoom.isZoomedIn) {
       startCameraZoomOut();
-    } else {
+    } else if (!isTouchMode) {
       controls.lock();
     }
   }
@@ -2944,17 +2981,20 @@
     cameraZoom.active = true;
     soundManager.playZoom(true);
 
-    // ユーザージェスチャ内でポインタロックを要求
-    controls.lock();
+    // PC通常モード時のみポインタロックを要求
+    if (!isTouchMode) {
+      controls.lock();
+    }
 
     cameraZoom.onComplete = () => {
       cameraZoom.isZoomedIn = false;
       isObjectInteracting = false;
       camera.position.copy(cameraZoom.savedPos);
       camera.quaternion.copy(cameraZoom.savedQuat);
-      if (!controls.isLocked && !activeModal) {
+      if (!isTouchMode && !controls.isLocked && !activeModal) {
         controls.lock();
       }
+      updateMobileControlsVisibility();
     };
   }
   const startDeskZoomOut = startCameraZoomOut;
@@ -2990,16 +3030,16 @@
     soundManager.playTurn();
     let bodyHtml = `
       <div style="text-align:center;">
-        <p style="color:#b2aba0; margin-bottom:12px; font-size:0.92rem;">
-          アンティークな書斎机だ。緑のバンカーズランプの脇に、革装丁の【古びた手帳】が置かれている。
+        <p class="modal-desc" style="color:#b2aba0; margin-bottom:12px;">
+          <span class="phrase">アンティークな書斎机だ。</span><span class="phrase">緑のバンカーズランプの脇に、</span><br><span class="phrase">革装丁の【古びた手帳】が</span><span class="phrase">置かれている。</span>
         </p>
 
-        <div style="background:rgba(20,24,32,0.6); border:1px solid rgba(202,168,106,0.35); border-radius:8px; padding:12px 16px; margin:0 auto 12px auto; max-width:400px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-          <div style="text-align:left;">
-            <div style="font-family:var(--font-serif); font-size:1.0rem; color:var(--brass-bright); font-weight:bold;">書斎主の天体日誌</div>
-            <div style="font-size:0.8rem; color:#888;">星辰と古時計の運行に関する記録</div>
+        <div class="desk-diary-card">
+          <div class="desk-diary-info">
+            <div class="desk-diary-title">書斎主の天体日誌</div>
+            <div class="desk-diary-sub">星辰と古時計の運行に関する記録</div>
           </div>
-          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">${UI_ICONS.book}日誌を開く</button>
+          <button id="btn-read-diary" class="secondary-btn btn-read-diary-action">${UI_ICONS.book} 日誌を開く</button>
         </div>
 
         <div style="border-top:1px solid rgba(202,168,106,0.25); padding-top:10px; margin-top:8px;">
@@ -3007,7 +3047,7 @@
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
-        <p style="margin-bottom:8px; font-size:0.88rem; color:#b2aba0;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
+        <p class="modal-desc" style="margin-bottom:8px; color:#b2aba0;"><span class="phrase">机の上段の引き出しには</span><span class="phrase">銀色の小さな鍵穴がついている。</span></p>
         <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="display:inline-flex; color:#bdc3c7;">${UI_ICONS.lockClosed}</span>
         </div>
@@ -3081,13 +3121,16 @@
       <div>
         <div class="diary-book" style="margin-bottom:12px;">
           <div class="diary-title">書斎主の天体日誌</div>
-          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
+          <p class="diary-intro">
+            <span class="nowrap">『かつて賢者は、古時計の二つの針を</span><br>
+            <span class="nowrap">大いなる天体の運行になぞらえた。』</span>
+          </p>
           <div class="diary-poem">
-            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+            <p class="diary-verse"><span class="nowrap">重厚なる短針は、</span><br><span class="nowrap">黄昏の陽が沈みゆく【西】の地平へ。</span></p>
+            <p class="diary-verse"><span class="nowrap">軽やかなる長針は、</span><br><span class="nowrap">黎明の光が生まれ出ずる【東】の空へ。</span></p>
+            <p class="diary-verse"><span class="nowrap">二つの針が正しく天の運行を指し示す時、</span><br><span class="nowrap">古時計は賢者への捧げ物を落とすであろう。</span></p>
           </div>
-          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+          <p class="diary-sign">— 賢者の書斎録より</p>
         </div>
         <div style="text-align:center;">
           <button id="btn-back-to-desk" class="secondary-btn" style="font-size:0.85rem; padding:6px 18px;">机の調査に戻る</button>
@@ -3241,7 +3284,7 @@
 
     if (!state.booksPuzzleSolved) {
       html += `
-        <p style="margin-bottom:8px;">背表紙に星座名が刻まれた7冊の書物が並んでいる。</p>
+        <p class="modal-desc" style="margin-bottom:8px;"><span class="nowrap">背表紙に星座名が刻まれた</span><br><span class="nowrap">7冊の書物が並んでいる。</span></p>
         ${!state.isLightOn ? '<p style="font-size:0.82rem; color:#5dade2;">★ 暗闇の中で背表紙が青白く微かに発光している！</p>' : ''}
 
         <div class="bookshelf-row">
@@ -3787,8 +3830,10 @@
   function openDoorModal() {
     let html = `
       <div>
-        <p style="text-align:center; color:#b2aba0; font-size:0.9rem; margin-bottom:14px;">
-          室外へ続く重厚な大扉だ。重厚な鍵穴と4桁の電子ダイヤルが組み合わされているようだ。
+        <p class="modal-desc" style="text-align:center; color:#b2aba0; font-size:0.9rem; margin-bottom:14px;">
+          <span class="nowrap">外へ通じる重厚な大扉だ。</span><br>
+          <span class="nowrap">頑丈な鍵穴と電子ダイヤル錠が</span><br>
+          <span class="nowrap">組み合わされているようだ。</span>
         </p>
 
         <div class="door-locks-grid">
@@ -3803,7 +3848,7 @@
           </div>
 
           <div class="lock-card">
-            <span class="lock-card-title">2. 電子ダイヤル錠 (4桁)</span>
+            <span class="lock-card-title">2. 電子ダイヤル錠</span>
             <div class="dials-row">
               ${state.doorCode.map((val, idx) => `
                 <div class="dial-column">
@@ -3890,6 +3935,8 @@
 
   // --- アイテム詳細モーダル（調べる・分解・合成） ---
   function openItemDetailModal(itemId) {
+    clearHover();
+    isObjectInteracting = false;
     const item = ITEMS[itemId];
     if (!item) return;
 
@@ -3919,17 +3966,22 @@
     if (controls.isLocked) {
       controls.unlock();
     }
+    updateMobileControlsVisibility();
   }
 
   function closeItemDetailModal(lockControls = true) {
     if (!itemDetailModal) return;
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     itemDetailModal.classList.add('hidden');
     activeModal = null;
     soundManager.playClick();
-    if (lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
+    if (!isTouchMode && lockControls && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
       controls.lock();
     }
+    updateMobileControlsVisibility();
   }
 
   function handleDisassembleBox() {
@@ -4077,7 +4129,7 @@
   const screenCenter = new THREE.Vector2(0, 0);
 
   function updateRaycast() {
-    if (!controls.isLocked || activeModal) {
+    if (activeModal || !isGameStarted || !menuScreen.classList.contains('hidden')) {
       clearHover();
       return;
     }
@@ -4101,6 +4153,10 @@
     hoveredObject = root;
     crosshair.classList.add('active');
     targetHintText.textContent = root.userData.name;
+    const hintKey = targetHint ? targetHint.querySelector('.hint-key') : null;
+    if (hintKey) {
+      hintKey.textContent = isTouchMode ? '[タップ]' : '[左クリック]';
+    }
     targetHint.classList.remove('hidden');
   }
 
@@ -4199,10 +4255,16 @@
     inventoryBarContainer.classList.remove('hidden');
     topMenuEl.classList.remove('hidden');
     isGameStarted = true;
-    controls.lock();
+    if (!isTouchMode) {
+      controls.lock();
+    }
+    updateMobileControlsVisibility();
   }
 
   function startOrResumeGame() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     soundManager.init();
     soundManager.playClick();
 
@@ -4218,10 +4280,16 @@
     topMenuEl.classList.remove('hidden');
 
     isGameStarted = true;
-    controls.lock();
+    if (!isTouchMode) {
+      controls.lock();
+    }
+    updateMobileControlsVisibility();
   }
 
   function returnToMainMenu() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
     document.body.classList.remove('modal-open');
     if (activeModal) {
       activeModal.classList.add('hidden');
@@ -4239,7 +4307,17 @@
     topMenuEl.classList.add('hidden');
     document.body.classList.remove('cursor-mode');
 
+    // ズーム注視中の場合は元の位置・状態にリセット
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
+
     menuScreen.classList.remove('hidden');
+    updateMobileControlsVisibility();
 
     if (state.gameCleared) {
       btnPlayStage1.textContent = 'もう一度遊ぶ';
@@ -4258,12 +4336,78 @@
     }
   }
 
+
+
+  function openSettingsModal(fromMenu = false) {
+    clearHover();
+    isObjectInteracting = false;
+    clearMessage();
+    soundManager.playClick();
+
+    // メインメニュー経由で開いた場合は「メインメニューへ戻る」「最初からやり直す」を非表示にする
+    const isOpenedFromMenu = fromMenu || !menuScreen.classList.contains('hidden');
+    if (blockMenuReturn) {
+      blockMenuReturn.style.display = isOpenedFromMenu ? 'none' : '';
+    }
+    if (blockRestartStage) {
+      blockRestartStage.style.display = isOpenedFromMenu ? 'none' : '';
+    }
+
+    // 他のモーダル（調査モーダル・アイテム詳細）が開いていれば背面に残さず確実に非表示化
+    if (inspectModal) inspectModal.classList.add('hidden');
+    if (itemDetailModal) itemDetailModal.classList.add('hidden');
+
+    // カメラがズーム注視中・ズーム移動中であれば、探索元の位置・向きへ安全にリセット
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
+    updateSoundSettingUI();
+    applySensitivityLevel(currentSensitivityLevel, false);
+    document.body.classList.add('modal-open');
+    activeModal = settingsModal;
+    settingsModal.classList.remove('hidden');
+    if (controls.isLocked) {
+      controls.unlock();
+    }
+    updateMobileControlsVisibility();
+  }
+
+  function closeSettingsModal() {
+    clearHover();
+    isObjectInteracting = false;
+    lastModalClosedTime = performance.now();
+    document.body.classList.remove('modal-open');
+    settingsModal.classList.add('hidden');
+
+    // 背面の他モーダルも確実に非表示化
+    if (inspectModal) inspectModal.classList.add('hidden');
+    if (itemDetailModal) itemDetailModal.classList.add('hidden');
+
+    // カメラズーム注視状態を完全に解除し通常探索視点を保証
+    if (cameraZoom.isZoomedIn || cameraZoom.active) {
+      cameraZoom.isZoomedIn = false;
+      cameraZoom.active = false;
+      cameraZoom.onComplete = null;
+      camera.position.copy(cameraZoom.savedPos);
+      camera.quaternion.copy(cameraZoom.savedQuat);
+    }
+
+    activeModal = null;
+    soundManager.playClick();
+    if (!isTouchMode && isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
+      controls.lock();
+    }
+    updateMobileControlsVisibility();
+  }
+
   // --- 視点・カメラ感度設定管理（ローカルストレージ永続化） ---
-  // PC版PointerLockControlsの基本感度: Level 5 = 1.0 (デフォルト現在の感度)
-  // レベル範囲: 1(超低速 0.4) 〜 5(標準 1.0) 〜 10(最高速 2.0)
-  const SENSITIVITY_MIN = 0.4;        // Level 1: 低速
-  const SENSITIVITY_DEFAULT = 1.0;    // Level 5: 標準（現在のPointerLock感度そのもの）
-  const SENSITIVITY_MAX = 2.0;        // Level 10: 高速
+  const SENSITIVITY_MIN = 0.0030;     // Level 1: 低速
+  const SENSITIVITY_DEFAULT = 0.0075; // Level 5: 標準（初期値）
+  const SENSITIVITY_MAX = 0.0150;     // Level 10: 最高速
   const SENSITIVITY_STORAGE_KEY = 'escape3d_camera_sensitivity_level';
 
   let currentSensitivityLevel = 5;
@@ -4275,11 +4419,7 @@
   } catch (_) {}
 
   function getSensitivityFromLevel(lvl) {
-    if (lvl <= 5) {
-      return SENSITIVITY_MIN + ((lvl - 1) / 4) * (SENSITIVITY_DEFAULT - SENSITIVITY_MIN);
-    } else {
-      return SENSITIVITY_DEFAULT + ((lvl - 5) / 5) * (SENSITIVITY_MAX - SENSITIVITY_DEFAULT);
-    }
+    return SENSITIVITY_MIN + ((lvl - 1) / 9) * (SENSITIVITY_MAX - SENSITIVITY_MIN);
   }
 
   function getSensitivityLabel(lvl) {
@@ -4295,9 +4435,15 @@
 
   function applySensitivityLevel(lvl, save = true) {
     currentSensitivityLevel = Math.max(1, Math.min(10, lvl));
-    const speed = getSensitivityFromLevel(currentSensitivityLevel);
+    const touchSpeed = getSensitivityFromLevel(currentSensitivityLevel);
+    if (typeof touchLook !== 'undefined') {
+      touchLook.sensitivity = touchSpeed;
+    }
     if (controls) {
-      controls.pointerSpeed = speed;
+      // PC PointerLockControls pointerSpeed: 0.4 (Lv1) 〜 1.0 (Lv5) 〜 2.0 (Lv10)
+      controls.pointerSpeed = (currentSensitivityLevel <= 5)
+        ? 0.4 + ((currentSensitivityLevel - 1) / 4) * 0.6
+        : 1.0 + ((currentSensitivityLevel - 5) / 5) * 1.0;
     }
     if (sliderLookSensitivity) {
       sliderLookSensitivity.value = String(currentSensitivityLevel);
@@ -4319,36 +4465,216 @@
     });
   }
 
-  function openSettingsModal(fromMenu = false) {
-    clearMessage();
-    soundManager.playClick();
+  // --- モバイル向け仮想操作系（タッチUI：仮想スティック・スワイプ視点・調べるボタン） ---
+  const touchStick = {
+    active: false,
+    pointerId: null,
+    x: 0, // -1.0 〜 1.0 (右〜左)
+    y: 0, // -1.0 〜 1.0 (前〜後)
+    maxRadius: 36 // スティックの可動最大半径 (px) - コンパクト化し操作感向上
+  };
 
-    // メインメニュー経由で開いた場合は「メインメニューへ戻る」「最初からやり直す」を非表示にする
-    const isOpenedFromMenu = fromMenu || !menuScreen.classList.contains('hidden');
-    if (blockMenuReturn) {
-      blockMenuReturn.style.display = isOpenedFromMenu ? 'none' : '';
-    }
-    if (blockRestartStage) {
-      blockRestartStage.style.display = isOpenedFromMenu ? 'none' : '';
-    }
+  const touchLook = {
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    lastX: 0,
+    lastY: 0,
+    totalMoveDist: 0,
+    hasMoved: false,
+    sensitivity: getSensitivityFromLevel(currentSensitivityLevel)
+  };
 
-    updateSoundSettingUI();
-    applySensitivityLevel(currentSensitivityLevel, false);
-    document.body.classList.add('modal-open');
-    activeModal = settingsModal;
-    settingsModal.classList.remove('hidden');
-    if (controls.isLocked) {
-      controls.unlock();
+  function updateMobileControlsVisibility() {
+    if (!mobileControls) return;
+    const shouldShow = isTouchMode && isGameStarted && menuScreen.classList.contains('hidden') && !activeModal && !state.gameCleared;
+    if (shouldShow) {
+      mobileControls.classList.remove('hidden');
+    } else {
+      mobileControls.classList.add('hidden');
+      resetVirtualStick();
     }
   }
 
-  function closeSettingsModal() {
-    document.body.classList.remove('modal-open');
-    settingsModal.classList.add('hidden');
-    activeModal = null;
-    soundManager.playClick();
-    if (isGameStarted && menuScreen.classList.contains('hidden') && !state.gameCleared) {
-      controls.lock();
+  function resetVirtualStick() {
+    touchStick.active = false;
+    touchStick.pointerId = null;
+    touchStick.x = 0;
+    touchStick.y = 0;
+    if (virtualStickKnob) {
+      virtualStickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  // 初回タッチまたはポインター入力検知でスマホ環境を即時確定・UI同期
+  window.addEventListener('touchstart', () => {
+    if (!isTouchMode) {
+      isTouchMode = true;
+      renderInventory();
+      updateMobileControlsVisibility();
+    }
+  }, { passive: true });
+
+  // 画面リサイズ時に自動追従
+  window.addEventListener('resize', () => {
+    const autoMode = checkIsTouchEnvironment();
+    if (autoMode !== isTouchMode) {
+      isTouchMode = autoMode;
+      renderInventory();
+      updateMobileControlsVisibility();
+    }
+  });
+
+  // 1. 移動バーチャルスティック（Pointer Events によりタッチ・マウス両対応）
+  if (virtualStickZone && virtualStickBase && virtualStickKnob) {
+    function handleStickPointer(clientX, clientY) {
+      const rect = virtualStickBase.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let dx = clientX - centerX;
+      let dy = clientY - centerY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > touchStick.maxRadius) {
+        dx = (dx / dist) * touchStick.maxRadius;
+        dy = (dy / dist) * touchStick.maxRadius;
+      }
+
+      virtualStickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      // dx: 右(+) / 左(-) => x = dx / maxRadius
+      // dy: 下(+) / 上(-) => 前進(+) / 後退(-) => y = -dy / maxRadius
+      touchStick.x = dx / touchStick.maxRadius;
+      touchStick.y = -dy / touchStick.maxRadius;
+    }
+
+    virtualStickZone.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      soundManager.init();
+      touchStick.active = true;
+      touchStick.pointerId = e.pointerId;
+      try { virtualStickZone.setPointerCapture(e.pointerId); } catch (_) {}
+      handleStickPointer(e.clientX, e.clientY);
+    });
+
+    virtualStickZone.addEventListener('pointermove', (e) => {
+      if (!touchStick.active || e.pointerId !== touchStick.pointerId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handleStickPointer(e.clientX, e.clientY);
+    });
+
+    const endStickPointer = (e) => {
+      if (touchStick.active && e.pointerId === touchStick.pointerId) {
+        try { virtualStickZone.releasePointerCapture(e.pointerId); } catch (_) {}
+        resetVirtualStick();
+      }
+    };
+
+    virtualStickZone.addEventListener('pointerup', endStickPointer);
+    virtualStickZone.addEventListener('pointercancel', endStickPointer);
+  }
+
+  // 2. 全画面スワイプ視点回転（Pointer Events によりタッチ・マウス両対応）
+  if (touchLookZone) {
+    touchLookZone.addEventListener('pointerdown', (e) => {
+      if (activeModal || cameraZoom.active || cameraZoom.isZoomedIn) return;
+      if (touchLook.active) return;
+      soundManager.init();
+
+      touchLook.active = true;
+      touchLook.pointerId = e.pointerId;
+      touchLook.startX = e.clientX;
+      touchLook.startY = e.clientY;
+      touchLook.lastX = e.clientX;
+      touchLook.lastY = e.clientY;
+      touchLook.startTime = performance.now();
+      touchLook.totalMoveDist = 0;
+      touchLook.hasMoved = false;
+      try { touchLookZone.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    touchLookZone.addEventListener('pointermove', (e) => {
+      if (!touchLook.active || e.pointerId !== touchLook.pointerId) return;
+      const deltaX = e.clientX - touchLook.lastX;
+      const deltaY = e.clientY - touchLook.lastY;
+      touchLook.lastX = e.clientX;
+      touchLook.lastY = e.clientY;
+
+      const stepDist = Math.hypot(deltaX, deltaY);
+      touchLook.totalMoveDist += stepDist;
+      const distFromStart = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
+      // わずか4px以上の移動、または始点から5px以上離れた場合は「視点移動中」と確定
+      if (touchLook.totalMoveDist > 4 || distFromStart > 5) {
+        touchLook.hasMoved = true;
+      }
+
+      if (!activeModal && !cameraZoom.active && !cameraZoom.isZoomedIn) {
+        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+        euler.setFromQuaternion(camera.quaternion);
+        euler.y -= deltaX * touchLook.sensitivity;
+        euler.x -= deltaY * touchLook.sensitivity;
+        euler.x = Math.max(-1.42, Math.min(1.42, euler.x));
+        camera.quaternion.setFromEuler(euler);
+      }
+    });
+
+    const endLookPointer = (e) => {
+      if (!touchLook.active || e.pointerId !== touchLook.pointerId) return;
+      try { touchLookZone.releasePointerCapture(e.pointerId); } catch (_) {}
+
+      const dt = performance.now() - touchLook.startTime;
+      const distFromStart = Math.hypot(e.clientX - touchLook.startX, e.clientY - touchLook.startY);
+
+      // 【重要】視点移動（スワイプ）した後の指離しは絶対にタップとみなさない
+      // 1. 移動フラグ hasMoved が false であること
+      // 2. 累積移動距離 totalMoveDist が 4px 未満であること
+      // 3. 始点と終点の直線距離 distFromStart が 5px 未満であること
+      // 4. 接触時間 dt が 240ms 未満の「意図した軽いチョン押しタップ」であること
+      if (!touchLook.hasMoved && touchLook.totalMoveDist < 4 && distFromStart < 5 && dt < 240) {
+        triggerInteractAction();
+      }
+
+      touchLook.active = false;
+      touchLook.pointerId = null;
+      touchLook.hasMoved = false;
+      touchLook.totalMoveDist = 0;
+    };
+
+    touchLookZone.addEventListener('pointerup', endLookPointer);
+    touchLookZone.addEventListener('pointercancel', endLookPointer);
+  }
+
+  // 3. 調べる（INTERACT）アクション実行
+  function triggerInteractAction() {
+    // モーダル表示中、メニュー表示中、ズームアニメ中、またはモーダル閉鎖直後（650ms以内）は安全に抑止
+    if (activeModal || !menuScreen.classList.contains('hidden') || cameraZoom.active) return;
+    if (performance.now() - lastModalClosedTime < 650) return;
+    soundManager.init();
+
+    // 照準に対象が入っている場合
+    if (hoveredObject && typeof hoveredObject.userData.action === 'function') {
+      isObjectInteracting = true;
+      soundManager.playClick();
+      hoveredObject.userData.action();
+      if (!cameraZoom.active && !activeModal) {
+        isObjectInteracting = false;
+      }
+      return;
+    }
+
+    // 照準に対象がない場合でも、念のため直前の状態からRaycastを再評価
+    updateRaycast();
+    if (hoveredObject && typeof hoveredObject.userData.action === 'function') {
+      isObjectInteracting = true;
+      soundManager.playClick();
+      hoveredObject.userData.action();
+      if (!cameraZoom.active && !activeModal) {
+        isObjectInteracting = false;
+      }
     }
   }
 
@@ -4380,12 +4706,24 @@
   });
 
   // 設定モーダル内のアクション
-  settingsModalClose.addEventListener('click', closeSettingsModal);
+  settingsModalClose.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeSettingsModal();
+  });
   if (btnSettingsClose) {
-    btnSettingsClose.addEventListener('click', closeSettingsModal);
+    btnSettingsClose.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    });
   }
   settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) closeSettingsModal();
+    if (e.target === settingsModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSettingsModal();
+    }
   });
 
   if (btnSoundToggleSwitch) {
@@ -4440,16 +4778,22 @@
       isMouseDown = true;
     }
     if (activeModal || !menuScreen.classList.contains('hidden')) return;
+    if (performance.now() - lastModalClosedTime < 650) return;
+
+    // 【重要】UI要素（インベントリバー、設定ボタン、HUD、メッセージバー、モーダル等）のタップ・クリック時は3D空間のズーム・調査を物理的に遮断
+    if (e.target && e.target.closest('#inventory-bar-container, #top-menu, #hud, #message-bar-container, .modal-card, .modal-content, .settings-card, button, .inv-slot, a, input')) {
+      return;
+    }
 
     // 左クリック (button === 0)
     if (e.button === 0) {
-      if (!controls.isLocked && isGameStarted) {
-        // ポインターロックが外れている場合はクリックで探索視点へ復帰
+      if (!isTouchMode && !controls.isLocked && isGameStarted) {
+        // PC通常モード：ポインターロックが外れている場合はクリックで探索視点へ復帰
         controls.lock();
         return;
       }
 
-      if (controls.isLocked && hoveredObject) {
+      if (hoveredObject) {
         isObjectInteracting = true;
         soundManager.playClick();
         if (typeof hoveredObject.userData.action === 'function') {
@@ -4473,16 +4817,30 @@
   });
 
   // モーダル閉じるボタン
-  modalCloseBtn.addEventListener('click', closeModal);
+  modalCloseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeModal();
+  });
   inspectModal.addEventListener('click', (e) => {
-    if (e.target === inspectModal) closeModal();
+    if (e.target === inspectModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    }
   });
 
-  itemDetailCloseBtn.addEventListener('click', () => {
+  itemDetailCloseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     closeItemDetailModal(true);
   });
   itemDetailModal.addEventListener('click', (e) => {
-    if (e.target === itemDetailModal) closeItemDetailModal(true);
+    if (e.target === itemDetailModal) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeItemDetailModal(true);
+    }
   });
 
   // クリアモーダルのボタン
@@ -4529,6 +4887,8 @@
         }
         activeModal = null;
         isObjectInteracting = false;
+        clearHover();
+        lastModalClosedTime = performance.now();
 
         // カメラがズーム注視中の場合は探索元の視点位置・向きへ即座にリセット
         if (cameraZoom.isZoomedIn) {
@@ -4682,19 +5042,27 @@
           doneCb();
         }
       }
-    } else if (controls.isLocked && !activeModal && !cameraZoom.isZoomedIn) {
+    } else if (isGameStarted && menuScreen.classList.contains('hidden') && !activeModal && !cameraZoom.isZoomedIn) {
       velocity.x -= velocity.x * PLAYER.damping * delta;
       velocity.z -= velocity.z * PLAYER.damping * delta;
 
-      direction.z = Number(moveState.forward) - Number(moveState.backward);
-      direction.x = Number(moveState.right) - Number(moveState.left);
-      direction.normalize();
+      // キーボード入力 (WASD / 矢印キー)
+      let inputZ = Number(moveState.forward) - Number(moveState.backward);
+      let inputX = Number(moveState.right) - Number(moveState.left);
 
-      if (moveState.forward || moveState.backward) {
-        velocity.z -= direction.z * PLAYER.moveSpeed * PLAYER.damping * delta;
+      // モバイル：バーチャルスティック入力の合成
+      if (touchStick.active) {
+        inputX = touchStick.x;
+        inputZ = touchStick.y;
       }
-      if (moveState.left || moveState.right) {
-        velocity.x -= direction.x * PLAYER.moveSpeed * PLAYER.damping * delta;
+
+      const inputMag = Math.hypot(inputX, inputZ);
+      if (inputMag > 0.05) {
+        direction.x = inputX / (inputMag > 1 ? inputMag : 1);
+        direction.z = inputZ / (inputMag > 1 ? inputMag : 1);
+        const speedFactor = Math.min(inputMag, 1.0);
+        velocity.z -= direction.z * PLAYER.moveSpeed * PLAYER.damping * delta * speedFactor;
+        velocity.x -= direction.x * PLAYER.moveSpeed * PLAYER.damping * delta * speedFactor;
       }
 
       const currentPos = controls.getObject().position.clone();
@@ -4705,8 +5073,8 @@
       resolveCollisions(nextPos, currentPos);
       nextPos.y = PLAYER.eyeHeight;
 
-      // WASD移動中、一定間隔（約0.4秒ごと）で木の床を踏む歩行音を再生
-      const isMovingInput = moveState.forward || moveState.backward || moveState.left || moveState.right;
+      // WASD / タッチ移動中、一定間隔（約0.4秒ごと）で木の床を踏む歩行音を再生
+      const isMovingInput = moveState.forward || moveState.backward || moveState.left || moveState.right || (touchStick.active && inputMag > 0.1);
       const movedDistSq =
         (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
         (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z);
@@ -4733,5 +5101,6 @@
   buildAllObjects();
   renderInventory();
   applySensitivityLevel(currentSensitivityLevel, false);
+  updateMobileControlsVisibility();
   animate();
 })();
