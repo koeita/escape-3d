@@ -127,6 +127,13 @@
 
   <!-- タイトル & ステージ選択 メインメニュー画面 -->
   <div id="menu-screen">
+    <!-- メインメニュー専用背景レイヤー（専用アートワーク ＆ 浮遊パーティクル） -->
+    <div id="menu-bg-backdrop" aria-hidden="true">
+      <div class="menu-bg-art"></div>
+      <canvas id="menu-particles-canvas"></canvas>
+      <div class="menu-bg-overlay"></div>
+    </div>
+
     <div class="menu-screen-card">
       <div class="menu-header">
         <div class="menu-brand">
