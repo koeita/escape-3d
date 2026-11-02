@@ -195,6 +195,11 @@ body.cursor-mode #crosshair {
   transform: translateX(-50%);
   z-index: 200;
   pointer-events: none;
+  width: calc(100vw - 32px);
+  max-width: 400px;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
   transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -206,16 +211,17 @@ body.cursor-mode #crosshair {
 .toast-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background: linear-gradient(135deg, rgba(22, 26, 36, 0.96) 0%, rgba(32, 38, 52, 0.98) 100%);
   border: 2px solid var(--brass-bright);
   border-radius: 8px;
-  padding: 12px 22px;
+  padding: 10px 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9), 0 0 24px rgba(232, 201, 136, 0.45);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  min-width: 290px;
-  max-width: 90vw;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .toast-icon-wrap {
@@ -241,6 +247,13 @@ body.cursor-mode #crosshair {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.toast-tip-mobile {
+  display: none;
 }
 
 .toast-badge {
@@ -797,14 +810,64 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 /* パズル別UIスタイル */
 
 /* 1. 天体日誌 (Diary) */
+.desk-diary-card {
+  background: rgba(20, 24, 32, 0.6);
+  border: 1px solid rgba(202, 168, 106, 0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0 auto 12px auto;
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.desk-diary-info {
+  text-align: left;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.desk-diary-title {
+  font-family: var(--font-serif);
+  font-size: 0.96rem;
+  color: var(--brass-bright);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.desk-diary-sub {
+  font-size: 0.76rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-read-diary-action {
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: 0.80rem;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  flex-shrink: 0;
+}
+
 .diary-book {
   background: #f4efe2;
   color: #2c251e;
   border-radius: 6px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border: 2px solid #8c6a3e;
   box-shadow: inset 0 0 20px rgba(140, 106, 62, 0.2), 0 8px 24px rgba(0, 0, 0, 0.5);
   font-family: var(--font-serif);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 12px auto;
 }
 
 .diary-title {
@@ -813,42 +876,79 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
   color: #5c3a1e;
   border-bottom: 1px solid #b89344;
   padding-bottom: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   text-align: center;
+  white-space: nowrap;
+}
+
+.diary-intro {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: #3d3228;
+  margin-bottom: 10px;
+  text-align: center;
+  word-break: auto-phrase;
+  line-break: strict;
 }
 
 .diary-poem {
-  margin: 8px 0;
-  padding: 8px 12px;
+  margin: 10px 0;
+  padding: 10px 14px;
   background: rgba(140, 106, 62, 0.08);
   border-left: 3px solid #8c6a3e;
   font-style: italic;
-  line-height: 1.6;
-  font-size: 0.88rem;
+  line-height: 1.7;
+  font-size: 0.84rem;
+  word-break: auto-phrase;
+  line-break: strict;
+  text-align: left;
+}
+
+.diary-verse {
+  margin: 4px 0;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.diary-sign {
+  text-align: right;
+  font-size: 0.80rem;
+  color: #7a6248;
+  margin-top: 8px;
+  white-space: nowrap;
 }
 
 /* 2. 本棚パズル (Bookshelf) */
 .bookshelf-row {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
-  margin: 10px 0;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 12px auto;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
 }
 
 .puzzle-book-btn {
-  width: 46px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 48px;
   height: 96px;
   border-radius: 4px;
   border: 1px solid rgba(241, 196, 15, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 2px;
+  justify-content: center;
+  padding: 6px 1px;
   cursor: pointer;
   color: #f1c40f;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  box-sizing: border-box;
 }
 
 .puzzle-book-btn:hover {
@@ -1425,11 +1525,16 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
 }
 
 .stage-desc {
-  font-size: 0.81rem;
+  font-size: 0.79rem;
   color: var(--text-sub);
-  line-height: 1.6;
+  line-height: 1.55;
   margin: 6px 0 10px 0;
   word-break: auto-phrase;
+}
+
+.stage-desc-sentence {
+  display: block;
+  white-space: nowrap;
 }
 
 .stage-desc .phrase {
@@ -2033,6 +2138,67 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     line-height: 1.5;
   }
 
+  /* ステージカードのスマホ幅調整（文章単位1行表示の徹底保持） */
+  .stage-card {
+    flex: 0 0 86%;
+    max-width: 350px;
+    min-width: 285px;
+    padding: 16px 12px;
+  }
+
+  .stage-desc {
+    font-size: 0.78rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* 本棚ボタンスマホ最適化（7冊1列完全保持） */
+  .bookshelf-row {
+    gap: 4px;
+    margin: 10px auto;
+  }
+
+  .puzzle-book-btn {
+    height: 84px;
+    padding: 4px 1px;
+  }
+
+  .book-title-spine {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  /* トーストスマホ最適化（枠外飛び出し防止） */
+  #item-get-toast {
+    width: calc(100vw - 24px);
+    max-width: 380px;
+  }
+
+  .toast-card {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .toast-icon-wrap {
+    width: 40px;
+    height: 40px;
+  }
+
+  .toast-title {
+    font-size: 1.05rem;
+  }
+
+  .toast-tip-pc {
+    display: none !important;
+  }
+
+  .toast-tip-mobile {
+    display: block !important;
+    font-size: 0.68rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* モーダルダイアログのスマホ画面対応（スクロール・押しやすさ） */
   .modal-content,
   .modal-card,
@@ -2042,6 +2208,14 @@ body:has(#item-detail-modal:not(.hidden)) #message-bar-container.visible {
     padding: 20px 16px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-desc,
+  .modal-body p {
+    font-size: 0.86rem;
+    line-height: 1.6;
+    word-break: auto-phrase;
+    line-break: strict;
   }
 
   .help-list-pc {

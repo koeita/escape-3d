@@ -3028,16 +3028,16 @@
     soundManager.playTurn();
     let bodyHtml = `
       <div style="text-align:center;">
-        <p style="color:#b2aba0; margin-bottom:12px; font-size:0.92rem;">
-          アンティークな書斎机だ。緑のバンカーズランプの脇に、革装丁の【古びた手帳】が置かれている。
+        <p class="modal-desc" style="color:#b2aba0; margin-bottom:12px;">
+          <span class="phrase">アンティークな書斎机だ。</span><span class="phrase">緑のバンカーズランプの脇に、</span><br><span class="phrase">革装丁の【古びた手帳】が</span><span class="phrase">置かれている。</span>
         </p>
 
-        <div style="background:rgba(20,24,32,0.6); border:1px solid rgba(202,168,106,0.35); border-radius:8px; padding:12px 16px; margin:0 auto 12px auto; max-width:400px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-          <div style="text-align:left;">
-            <div style="font-family:var(--font-serif); font-size:1.0rem; color:var(--brass-bright); font-weight:bold;">書斎主の天体日誌</div>
-            <div style="font-size:0.8rem; color:#888;">星辰と古時計の運行に関する記録</div>
+        <div class="desk-diary-card">
+          <div class="desk-diary-info">
+            <div class="desk-diary-title">書斎主の天体日誌</div>
+            <div class="desk-diary-sub">星辰と古時計の運行に関する記録</div>
           </div>
-          <button id="btn-read-diary" class="secondary-btn" style="white-space:nowrap; padding:6px 14px; font-size:0.82rem; border-color:var(--accent-gold); color:var(--accent-gold);">${UI_ICONS.book}日誌を開く</button>
+          <button id="btn-read-diary" class="secondary-btn btn-read-diary-action">${UI_ICONS.book} 日誌を開く</button>
         </div>
 
         <div style="border-top:1px solid rgba(202,168,106,0.25); padding-top:10px; margin-top:8px;">
@@ -3045,7 +3045,7 @@
 
     if (!state.drawerUnlocked) {
       bodyHtml += `
-        <p style="margin-bottom:8px; font-size:0.88rem; color:#b2aba0;">机の上段の引き出しには銀色の小さな鍵穴がついている。</p>
+        <p class="modal-desc" style="margin-bottom:8px; color:#b2aba0;"><span class="phrase">机の上段の引き出しには</span><span class="phrase">銀色の小さな鍵穴がついている。</span></p>
         <div style="width:90px; height:40px; margin:6px auto; background:#22150f; border:2px solid #5c3d26; border-radius:6px; display:flex; align-items:center; justify-content:center;">
           <span style="display:inline-flex; color:#bdc3c7;">${UI_ICONS.lockClosed}</span>
         </div>
@@ -3119,13 +3119,16 @@
       <div>
         <div class="diary-book" style="margin-bottom:12px;">
           <div class="diary-title">書斎主の天体日誌</div>
-          <p>『かつて賢者は、古時計の二つの針を大いなる天体の運行になぞらえた。』</p>
+          <p class="diary-intro">
+            <span class="phrase">『かつて賢者は、</span><span class="phrase">古時計の二つの針を</span><br>
+            <span class="phrase">大いなる天体の運行に</span><span class="phrase">なぞらえた。』</span>
+          </p>
           <div class="diary-poem">
-            重厚なる短針は、黄昏の陽が沈みゆく【西】の地平へ。<br>
-            軽やかなる長針は、黎明の光が生まれ出ずる【東】の空へ。<br>
-            二つの針が正しく天の運行を指し示し時、古時計は賢者への捧げ物を落とすであろう。
+            <p class="diary-verse">重厚なる短針は、黄昏の陽が沈みゆく<span class="nowrap">【西】</span>の地平へ。</p>
+            <p class="diary-verse">軽やかなる長針は、黎明の光が生まれ出ずる<span class="nowrap">【東】</span>の空へ。</p>
+            <p class="diary-verse">二つの針が正しく天の運行を指し示し時、<br>古時計は賢者への捧げ物を落とすであろう。</p>
           </div>
-          <p style="font-size:0.82rem; color:#6e5227; text-align:right;">— 賢者の書斎録より</p>
+          <p class="diary-sign">— 賢者の書斎録より</p>
         </div>
         <div style="text-align:center;">
           <button id="btn-back-to-desk" class="secondary-btn" style="font-size:0.85rem; padding:6px 18px;">机の調査に戻る</button>
@@ -3279,7 +3282,7 @@
 
     if (!state.booksPuzzleSolved) {
       html += `
-        <p style="margin-bottom:8px;">背表紙に星座名が刻まれた7冊の書物が並んでいる。</p>
+        <p class="modal-desc" style="margin-bottom:8px;"><span class="phrase">背表紙に星座名が刻まれた</span><span class="phrase">7冊の書物が並んでいる。</span></p>
         ${!state.isLightOn ? '<p style="font-size:0.82rem; color:#5dade2;">★ 暗闇の中で背表紙が青白く微かに発光している！</p>' : ''}
 
         <div class="bookshelf-row">

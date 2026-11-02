@@ -41,6 +41,47 @@ c:\Users\xcang\Desktop\Antigravity\escape-3d\
 
 ## 2. 開発記録 (Development Log)
 
+### 2026-11-02 (月) - 全UIの改行・要素はみ出し・本棚折り返しの徹底修復 (`feat-mobile-touch-test`)
+
+1. **ステージ説明文の文章単位1行表示の完全保証（合計2行）**
+   - **原因**: 文節ごとの折り返し指定（`phrase`）がカード幅の僅かな余白不足で途中改行され、2文目が「賢者が残した暗号を」「解き明かし脱出せよ。」と分断されて計3行に崩れていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 各文章を `<span class="stage-desc-sentence">...</span>` でグループ化し、`white-space: nowrap; display: block;` を適用。
+       - スマホでのカード幅（`max-width: 350px; min-width: 285px;`）およびフォントサイズ（`0.78rem`）を微調整し、PC・スマホ（390px, 375px）の全解像度で**各文が必ず1行（合計2行）**で収まるよう完全保証。
+
+2. **本棚モーダルで7冊目の「射手」が2行目に折り返される不具合の解消**
+   - **原因**: `.bookshelf-row` が `flex-wrap: wrap;` かつ本の固定幅（`width: 46px;`）により合計幅 358px となり、スマホのモーダル幅（約340px）を超えて最後の1冊（射手）だけがポツンと2行目に落ちていた。また説明文の「る。」が1文字だけ改行されていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.bookshelf-row` を `flex-wrap: nowrap;` に変更し、本ボタン（`.puzzle-book-btn`）を `flex: 1 1 0; min-width: 0; max-width: 48px;` のフレキシブル幅に刷新。
+       - スマホ画面でも**7冊すべてが確実に1列（1行）に美しく均等整列**するように改善。
+       - 説明文を文節グループ化し、行末の「る。」落ちを解消。
+
+3. **アンティーク書斎机モーダルで「日誌を開く」ボタンが右枠を突き抜ける不具合の解消**
+   - **原因**: `.desk-diary-card` 内のテキスト「星辰と古時計の運行に関する記録」とボタンの合計幅がモーダル幅を超え、インラインレイアウトの不備でボタンが枠外へ飛び出していた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - `.desk-diary-card` クラスを新設し、テキスト情報（`.desk-diary-info`）に `min-width: 0; flex: 1 1 auto;` を指定。
+       - ボタン（`.btn-read-diary-action`）をコンパクトに収め、スマホ画面でもカード枠内に15px以上の安全余白を保って完璧に収容。
+
+4. **天体日誌モーダルの詩の改行分断（【西】の分断・「、」行頭落ち・1文字落ち）の解消**
+   - **原因**: 詩のテキストが自然な文節で改行されておらず、ブラウザの折り返しにより「【 / 西】」「指し示し時 / 、」「落とすであろ / う。」と無残に分断されていた。
+   - **対策**:
+     - [main.js](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/main.js) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - 方位タグを `<span class="nowrap">【西】</span>`、`<span class="nowrap">【東】</span>` で保護。
+       - 詩文を意味のまとまりごとに `<p class="diary-verse">` と適切な `<br>` で構造化し、`line-break: strict; word-break: auto-phrase;` を適用。
+       - 句読点がポツンと落ちず、古文書の詩として極めて格調高く読みやすいレイアウトに再構築。
+
+5. **アイテム取得ポップアップトースト（#item-get-toast）のテキスト飛び出し解消**
+   - **原因**: トースト内の案内テキスト「[数字キーで選択 ｜ 同じキーをもう一度押して詳細]」が26文字と長く、`white-space: nowrap;` によりスマホの画面幅（340px）を80px以上も大きく突き抜けていた。
+   - **対策**:
+     - [index.html](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/index.html) & [style.css](file:///C:/Users/xcang/Desktop/Antigravity/escape-3d/style.css):
+       - トースト案内文を PC版（`toast-tip-pc`: 「［キー 1〜6 で選択 ｜ 再度押して詳細］」）とモバイル版（`toast-tip-mobile`: 「［スロットタップで選択 ｜ 再度タップで詳細］」）に分離。
+       - トーストカードを `width: calc(100vw - 24px); max-width: 380px; overflow: hidden;` でガードし、スマホ実機で枠外への文字飛び出しを100%防止。
+
+---
+
 ### 2026-11-02 (月) - コンフリクト解消後のUI崩れ包括的修復・メニューヘッダー横スクロール遮断・文節折り返し最適化 (`feat-mobile-touch-test`)
 
 1. **モバイルでカード横スクロール時にメニューヘッダーごと横スクロールする不具合の完全防止**
